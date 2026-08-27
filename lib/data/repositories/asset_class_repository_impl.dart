@@ -83,6 +83,7 @@ class AssetClassRepositoryImpl implements AssetClassRepository {
         name: row.name,
         kind: row.kind,
         targetWeightBp: row.targetWeightBp,
+        targetGroupId: row.targetGroupId,
         inInvestmentGroup: row.inInvestmentGroup,
         hidden: row.hidden,
         sortOrder: row.sortOrder,

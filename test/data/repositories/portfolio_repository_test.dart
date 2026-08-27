@@ -3,16 +3,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_finance/core/money/money.dart';
 import 'package:personal_finance/data/db/database.dart';
 import 'package:personal_finance/data/repositories/asset_class_repository_impl.dart';
+import 'package:personal_finance/data/repositories/debt_repository_impl.dart';
+import 'package:personal_finance/data/repositories/fx_rate_repository_impl.dart';
 import 'package:personal_finance/data/repositories/holding_repository_impl.dart';
 import 'package:personal_finance/data/repositories/portfolio_repository_impl.dart';
 import 'package:personal_finance/data/repositories/price_quote_repository_impl.dart';
 import 'package:personal_finance/data/repositories/settings_repository_impl.dart';
 import 'package:personal_finance/domain/models/enums.dart';
 import 'package:personal_finance/domain/repositories/asset_class_repository.dart';
+import 'package:personal_finance/domain/repositories/debt_repository.dart';
+import 'package:personal_finance/domain/repositories/fx_rate_repository.dart';
 import 'package:personal_finance/domain/repositories/holding_repository.dart';
 import 'package:personal_finance/domain/repositories/portfolio_repository.dart';
 import 'package:personal_finance/domain/repositories/price_quote_repository.dart';
 import 'package:personal_finance/domain/repositories/settings_repository.dart';
+import 'package:personal_finance/domain/rules/effective_fx_rate.dart';
 import 'package:personal_finance/domain/rules/holding_value.dart';
 
 void main() {
@@ -21,6 +26,8 @@ void main() {
   late HoldingRepository holdings;
   late PriceQuoteRepository prices;
   late SettingsRepository settings;
+  late DebtRepository debts;
+  late FxRateRepository fxRates;
   late PortfolioRepository portfolio;
 
   final clock = DateTime.utc(2026, 8, 27, 10);
@@ -31,12 +38,15 @@ void main() {
     holdings = HoldingRepositoryImpl(db, now: () => clock);
     prices = PriceQuoteRepositoryImpl(db, now: () => clock);
     settings = SettingsRepositoryImpl(db);
+    debts = DebtRepositoryImpl(db);
+    fxRates = FxRateRepositoryImpl(db, settings);
     portfolio = PortfolioRepositoryImpl(
       db: db,
       assetClasses: classes,
       holdings: holdings,
       prices: prices,
-      settings: settings,
+      debts: debts,
+      fxRates: fxRates,
     );
     await settings.initialize(
       initialContributionAmount: const Money(333000000),
@@ -78,7 +88,13 @@ void main() {
       await addPriced(AssetKind.stock, 'FPT', '100', 150000);
       // Tiền mặt 92tr, Cho vay 183tr: nhập thẳng giá trị.
       await addValued(AssetKind.cashSavings, 'TK VCB', 92000000);
-      await addValued(AssetKind.lending, 'Anh Nam', 183000000);
+      // Lớp Cho vay không nhập bằng Khoản nắm giữ nữa — nó là tổng ròng Sổ
+      // nợ. Xem FR-35.
+      await debts.add(
+        personName: 'Anh Thắng',
+        amount: const Money(183000000),
+        date: DateTime.utc(2026, 8, 27),
+      );
       // Crypto 390tr: 3 chỉ ảo giá 130tr — dùng giá VND cho gọn.
       await addPriced(AssetKind.crypto, 'BTC', '3', 130000000);
     });
@@ -119,16 +135,22 @@ void main() {
   group('Lớp bị ẩn', () {
     test('không cộng vào tổng tài sản', () async {
       await addValued(AssetKind.cashSavings, 'TK VCB', 92000000);
-      await addValued(AssetKind.lending, 'Anh Nam', 183000000);
+      // Lớp Cho vay không nhập bằng Khoản nắm giữ nữa — nó là tổng ròng Sổ
+      // nợ. Xem FR-35.
+      await debts.add(
+        personName: 'Anh Thắng',
+        amount: const Money(183000000),
+        date: DateTime.utc(2026, 8, 27),
+      );
 
       expect((await portfolio.valuation()).totalAssets,
           const Money(275000000));
 
-      // Lớp Cho vay rỗng thì mới ẩn được; xoá khoản trước.
-      final lendingId = await idOf(AssetKind.lending);
-      final holding = (await holdings.byAssetClass(lendingId)).single;
-      await holdings.remove(holding.id);
-      await classes.hide(lendingId);
+      // Lớp Cho vay không chứa Khoản nắm giữ nào nên ẩn được ngay.
+      expect(
+        await classes.hide(await idOf(AssetKind.lending)),
+        isA<AssetClassHidden>(),
+      );
 
       expect((await portfolio.valuation()).totalAssets, const Money(92000000));
     });
@@ -213,7 +235,10 @@ void main() {
   });
 
   group('Quy đổi USD dùng tỷ giá trong thiết lập', () {
-    test('chưa nhập tỷ giá thì khoản USD chưa tính được', () async {
+    test('chưa nhập tỷ giá thì dùng tỷ giá dự phòng chứ không đứng im',
+        () async {
+      // Ứng dụng không bao giờ chờ mạng mới hiện được số. Đổi lại, tỷ giá
+      // dự phòng phải được ghi rõ ở giao diện. Xem FR-11.
       await holdings.add(
         assetClassId: await idOf(AssetKind.crypto),
         symbol: 'BTC',
@@ -228,10 +253,12 @@ void main() {
 
       final valued =
           await portfolio.valuedHoldings(await idOf(AssetKind.crypto));
-      expect(
-        (valued.single.value as HoldingValueUnknown).reason,
-        MissingValueReason.noFxRate,
-      );
+      // 30.000 USD × 26.000 đồng dự phòng.
+      expect(valued.single.amountOrNull, const Money(780000000));
+
+      final rate = await fxRates.effectiveRate();
+      expect(rate.isFallback, isTrue);
+      expect(rate.rateAmount, EffectiveFxRate.fallbackRate);
     });
 
     test('nhập tỷ giá xong thì quy đổi được', () async {

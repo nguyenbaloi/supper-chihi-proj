@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../../domain/models/enums.dart';
 import '../converters.dart';
 
 /// Thiết lập toàn cục. Luôn đúng một dòng, khoá chính cố định bằng 1.
@@ -34,6 +35,10 @@ class SettingsTable extends Table {
 
   /// Lần xuất dữ liệu gần nhất, dùng để nhắc sao lưu.
   DateTimeColumn get lastExportedAt => dateTime().nullable()();
+
+  /// Chế độ hiển thị sáng tối. Xem FR-39.
+  TextColumn get themeMode => textEnum<ThemeModeSetting>()
+      .withDefault(const Constant('system'))();
 
   /// Đã hoàn tất luồng khởi tạo lần đầu chưa.
   BoolColumn get onboardingCompleted =>

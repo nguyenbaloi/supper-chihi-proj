@@ -3,16 +3,18 @@ import 'dart:async';
 import 'package:drift/drift.dart';
 
 import '../../core/money/money.dart';
-import '../../domain/models/enums.dart';
 import '../../domain/models/holding.dart';
 import '../../domain/models/portfolio_valuation.dart';
 import '../../domain/models/price_quote.dart';
 import '../../domain/models/valued_holding.dart';
+import '../../domain/models/enums.dart' show AssetKind, InputMode;
 import '../../domain/repositories/asset_class_repository.dart';
+import '../../domain/repositories/debt_repository.dart';
+import '../../domain/repositories/fx_rate_repository.dart';
 import '../../domain/repositories/holding_repository.dart';
 import '../../domain/repositories/portfolio_repository.dart';
 import '../../domain/repositories/price_quote_repository.dart';
-import '../../domain/repositories/settings_repository.dart';
+import '../../domain/rules/debt_math.dart';
 import '../../domain/rules/holding_value.dart';
 import '../../domain/rules/portfolio_math.dart';
 import '../db/database.dart';
@@ -27,19 +29,22 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
   final AssetClassRepository _assetClasses;
   final HoldingRepository _holdings;
   final PriceQuoteRepository _prices;
-  final SettingsRepository _settings;
+  final DebtRepository _debts;
+  final FxRateRepository _fxRates;
 
   PortfolioRepositoryImpl({
     required AppDatabase db,
     required AssetClassRepository assetClasses,
     required HoldingRepository holdings,
     required PriceQuoteRepository prices,
-    required SettingsRepository settings,
+    required DebtRepository debts,
+    required FxRateRepository fxRates,
   })  : _db = db,
         _assetClasses = assetClasses,
         _holdings = holdings,
         _prices = prices,
-        _settings = settings;
+        _debts = debts,
+        _fxRates = fxRates;
 
   @override
   Future<PortfolioValuation> valuation() async {
@@ -68,6 +73,16 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
       );
     }
 
+    // Lớp Cho vay không tính từ Khoản nắm giữ mà từ tổng ròng Sổ nợ. Đây
+    // chính là phép cộng thủ công `133 + 50 = 183` giữa hai sheet trong Excel
+    // gốc — nay không còn đường nào nhập tay con số này. Xem AD-5 và FR-35.
+    final lendingValue = DebtMath.lendingClassValue(await _debts.active());
+    for (final assetClass in classes) {
+      if (assetClass.kind == AssetKind.lending) {
+        valueByClass[assetClass.id] = lendingValue;
+      }
+    }
+
     return PortfolioMath.valuation(
       classes,
       valueByClass,
@@ -85,6 +100,8 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
         _db.holdingsTable,
         _db.priceQuotesTable,
         _db.settingsTable,
+        _db.debtsTable,
+        _db.fxRatesTable,
       ]),
     );
 
@@ -138,7 +155,9 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
 
     return _ValuationContext(
       pricesBySymbol: await _prices.effectivePricesFor(symbols),
-      usdToVndRate: (await _settings.current())?.fxRateManualAmount,
+      // Đi qua EffectiveFxRate: tỷ giá nhập tay thắng tỷ giá lấy tự động,
+      // và luôn có giá trị dự phòng để ứng dụng không đứng chờ mạng.
+      usdToVndRate: (await _fxRates.effectiveRate()).rateAmount,
     );
   }
 }

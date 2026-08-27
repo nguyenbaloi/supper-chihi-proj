@@ -23,6 +23,18 @@ enum InputMode {
 /// Tiền tệ được hỗ trợ. Chỉ hai loại, xem mục Không làm gì của PRD.
 enum Currency { vnd, usd }
 
+/// Cách một Bản chốt ra đời.
+enum SnapshotKind {
+  /// Ứng dụng tự sinh khi mở lần đầu trong ngày. Không sửa, không xoá được.
+  auto,
+
+  /// Người dùng tự chốt kèm ghi chú.
+  manual,
+}
+
+/// Chế độ hiển thị sáng tối.
+enum ThemeModeSetting { light, dark, system }
+
 /// Nguồn của một Giá.
 enum PriceSource {
   /// Lấy tự động từ nguồn dữ liệu bên ngoài.

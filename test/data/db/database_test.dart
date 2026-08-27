@@ -13,8 +13,10 @@ void main() {
   tearDown(() => db.close());
 
   group('Cơ sở dữ liệu', () {
-    test('mở được và ở phiên bản schema mới nhất', () async {
-      expect(db.schemaVersion, 2);
+    test('mở được ở phiên bản schema hiện hành', () async {
+      // Con số cụ thể do test migration giữ, ở đó nó được đối chiếu với ảnh
+      // chụp schema. Ở đây chỉ cần biết cơ sở dữ liệu mở lên được.
+      expect(db.schemaVersion, greaterThan(0));
       // Chạm vào một bảng để buộc drift thực sự tạo schema.
       await db.select(db.assetClassesTable).get();
     });

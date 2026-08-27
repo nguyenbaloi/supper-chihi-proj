@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../../core/money/money.dart';
+import 'enums.dart';
 
 /// Thiết lập nền của ứng dụng. Luôn đúng một bản ghi.
 ///
@@ -22,6 +23,9 @@ class AppSettings {
   final DateTime? lastExportedAt;
   final bool onboardingCompleted;
 
+  /// Chế độ hiển thị sáng tối. Xem FR-39.
+  final ThemeModeSetting themeModeSetting;
+
   const AppSettings({
     required this.initialContributionAmount,
     required this.startDate,
@@ -29,6 +33,7 @@ class AppSettings {
     this.driftThresholdBp = 500,
     this.lastExportedAt,
     this.onboardingCompleted = false,
+    this.themeModeSetting = ThemeModeSetting.system,
   });
 
   @override
@@ -39,7 +44,8 @@ class AppSettings {
       other.fxRateManualAmount == fxRateManualAmount &&
       other.driftThresholdBp == driftThresholdBp &&
       other.lastExportedAt == lastExportedAt &&
-      other.onboardingCompleted == onboardingCompleted;
+      other.onboardingCompleted == onboardingCompleted &&
+      other.themeModeSetting == themeModeSetting;
 
   @override
   int get hashCode => Object.hash(
@@ -49,5 +55,6 @@ class AppSettings {
         driftThresholdBp,
         lastExportedAt,
         onboardingCompleted,
+        themeModeSetting,
       );
 }

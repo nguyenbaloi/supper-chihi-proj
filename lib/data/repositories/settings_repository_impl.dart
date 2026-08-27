@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../core/money/money.dart';
 import '../../domain/models/app_settings.dart';
+import '../../domain/models/enums.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../db/database.dart';
 
@@ -59,6 +60,10 @@ class SettingsRepositoryImpl implements SettingsRepository {
       _write(SettingsTableCompanion(driftThresholdBp: Value(bp)));
 
   @override
+  Future<void> setThemeMode(ThemeModeSetting mode) =>
+      _write(SettingsTableCompanion(themeMode: Value(mode)));
+
+  @override
   Future<void> markExported(DateTime at) =>
       _write(SettingsTableCompanion(lastExportedAt: Value(at)));
 
@@ -77,5 +82,6 @@ class SettingsRepositoryImpl implements SettingsRepository {
         driftThresholdBp: row.driftThresholdBp,
         lastExportedAt: row.lastExportedAt,
         onboardingCompleted: row.onboardingCompleted,
+        themeModeSetting: row.themeMode,
       );
 }

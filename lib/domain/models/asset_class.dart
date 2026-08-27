@@ -22,6 +22,12 @@ class AssetClass {
   /// Tỷ trọng mục tiêu, đơn vị phần vạn — 5000 tương đương 50%.
   final int? targetWeightBp;
 
+  /// Nhóm mục tiêu chứa lớp này, `null` nếu lớp tự đứng một mình.
+  ///
+  /// Khi có nhóm, [targetWeightBp] của riêng lớp bị bỏ qua — mục tiêu đặt ở
+  /// cấp nhóm. Xem FR-19.
+  final int? targetGroupId;
+
   /// Lớp này có tham gia tính Lãi lỗ không. Xem FR-25.
   final bool inInvestmentGroup;
 
@@ -44,6 +50,7 @@ class AssetClass {
     required this.colorValue,
     required this.iconCodePoint,
     this.targetWeightBp,
+    this.targetGroupId,
     this.inInvestmentGroup = false,
     this.hidden = false,
     this.sortOrder = 0,
@@ -52,6 +59,7 @@ class AssetClass {
   AssetClass copyWith({
     String? name,
     int? Function()? targetWeightBp,
+    int? Function()? targetGroupId,
     bool? inInvestmentGroup,
     bool? hidden,
     int? sortOrder,
@@ -64,6 +72,8 @@ class AssetClass {
         kind: kind,
         targetWeightBp:
             targetWeightBp == null ? this.targetWeightBp : targetWeightBp(),
+        targetGroupId:
+            targetGroupId == null ? this.targetGroupId : targetGroupId(),
         inInvestmentGroup: inInvestmentGroup ?? this.inInvestmentGroup,
         hidden: hidden ?? this.hidden,
         sortOrder: sortOrder ?? this.sortOrder,
@@ -78,6 +88,7 @@ class AssetClass {
       other.name == name &&
       other.kind == kind &&
       other.targetWeightBp == targetWeightBp &&
+      other.targetGroupId == targetGroupId &&
       other.inInvestmentGroup == inInvestmentGroup &&
       other.hidden == hidden &&
       other.sortOrder == sortOrder &&
@@ -90,6 +101,7 @@ class AssetClass {
         name,
         kind,
         targetWeightBp,
+        targetGroupId,
         inInvestmentGroup,
         hidden,
         sortOrder,

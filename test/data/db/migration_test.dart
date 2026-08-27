@@ -44,8 +44,8 @@ void main() {
       await verifier.migrateAndValidate(db, 1);
     });
 
-    test('phiên bản schema hiện tại là 2', () {
-      expect(GeneratedHelper.versions.last, 2);
+    test('phiên bản schema hiện tại là 3', () {
+      expect(GeneratedHelper.versions.last, 3);
       final db = AppDatabase(NativeDatabase.memory());
       addTearDown(db.close);
       expect(db.schemaVersion, GeneratedHelper.versions.last);
@@ -115,7 +115,7 @@ void main() {
       expect(userVersion.data.values.first, second.schemaVersion);
     });
 
-    test('dữ liệu ghi ở schema v1 còn nguyên sau khi nâng lên v2', () async {
+    test('dữ liệu ghi ở schema v1 còn nguyên sau khi nâng lên bản mới nhất', () async {
       // Đây là bài test thật sự bảo vệ dữ liệu người dùng: dựng cơ sở dữ liệu
       // ở phiên bản 1, ghi dữ liệu bằng SQL thô đúng như dữ liệu đang nằm trên
       // máy người dùng đã cài bản cũ, rồi nâng lên phiên bản 2 và kiểm chứng
@@ -143,7 +143,7 @@ void main() {
         "'$startDate')",
       );
 
-      await verifier.migrateAndValidate(db, 2);
+      await verifier.migrateAndValidate(db, 3);
 
       final settings = await db.select(db.settingsTable).getSingle();
       expect(settings.initialContributionAmount, const Money(333000000));
@@ -160,6 +160,39 @@ void main() {
       expect(await db.select(db.priceQuotesTable).get(), isEmpty);
     });
 
+    test('nâng từ v2 lên v3 giữ nguyên giá đã lưu trong bộ nhớ đệm', () async {
+      final connection = await verifier.startAt(2);
+      final db = AppDatabase(connection);
+      addTearDown(db.close);
+
+      await db.customStatement(
+        'INSERT INTO price_quotes (symbol, source, price_amount, currency, '
+        'fetched_at) '
+        "VALUES ('BTC', 'manual', 6500000, 'usd', '2026-08-27T00:00:00.000Z')",
+      );
+
+      await verifier.migrateAndValidate(db, 3);
+
+      final quote = await db.select(db.priceQuotesTable).getSingle();
+      expect(quote.symbol, 'BTC');
+      expect(quote.priceAmount, const Money(6500000));
+
+      // Các bảng của phiên bản 3 phải dùng được ngay sau khi nâng.
+      expect(await db.select(db.cashFlowsTable).get(), isEmpty);
+      expect(await db.select(db.debtsTable).get(), isEmpty);
+      expect(await db.select(db.snapshotsTable).get(), isEmpty);
+      expect(await db.select(db.actionNotesTable).get(), isEmpty);
+
+      // Cột thêm vào bảng cũ phải có mặt với giá trị mặc định.
+      final settingsColumns = await db
+          .customSelect("SELECT name FROM pragma_table_info('settings')")
+          .get();
+      expect(
+        settingsColumns.map((r) => r.data['name']),
+        contains('theme_mode'),
+      );
+    });
+
     test('nâng cấp không đụng tới số dòng của các bảng cũ', () async {
       final connection = await verifier.startAt(1);
       final db = AppDatabase(connection);
@@ -172,7 +205,7 @@ void main() {
         "(2, 'Vàng', 'gold', 0, 0, 1, 2, 2)",
       );
 
-      await verifier.migrateAndValidate(db, 2);
+      await verifier.migrateAndValidate(db, 3);
 
       // onCreate gieo năm lớp mặc định, nhưng đây là nâng cấp chứ không phải
       // tạo mới — hai lớp của người dùng phải còn đúng hai, không bị gieo đè.

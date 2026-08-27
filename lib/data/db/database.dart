@@ -7,8 +7,15 @@ import '../../domain/models/enums.dart';
 import 'converters.dart';
 
 import 'tables/asset_classes_table.dart';
+import 'tables/action_notes_table.dart';
+import 'tables/cash_flows_table.dart';
+import 'tables/debts_table.dart';
+import 'tables/fx_rates_table.dart';
 import 'tables/holdings_table.dart';
 import 'tables/price_quotes_table.dart';
+import 'tables/snapshot_details_table.dart';
+import 'tables/snapshots_table.dart';
+import 'tables/target_groups_table.dart';
 import 'tables/settings_table.dart';
 
 part 'database.g.dart';
@@ -20,9 +27,16 @@ part 'database.g.dart';
 @DriftDatabase(
   tables: [
     SettingsTable,
+    TargetGroupsTable,
     AssetClassesTable,
     HoldingsTable,
     PriceQuotesTable,
+    FxRatesTable,
+    CashFlowsTable,
+    DebtsTable,
+    SnapshotsTable,
+    SnapshotDetailsTable,
+    ActionNotesTable,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -32,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.open() : super(driftDatabase(name: 'personal_finance'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -53,7 +67,24 @@ class AppDatabase extends _$AppDatabase {
             // Thêm bộ nhớ đệm giá. Không đụng tới bảng nào đang có dữ liệu.
             await m.createTable(priceQuotesTable);
           }
-          if (to > 2) {
+          if (from < 3) {
+            // Toàn bộ phần còn lại của sản phẩm: sổ vốn, sổ nợ, bản chốt,
+            // ghi chú kế hoạch, nhóm mục tiêu và tỷ giá tự lấy. Tất cả đều
+            // thêm mới, không đụng tới cột nào đang chứa dữ liệu.
+            await m.createTable(targetGroupsTable);
+            await m.createTable(fxRatesTable);
+            await m.createTable(cashFlowsTable);
+            await m.createTable(debtsTable);
+            await m.createTable(snapshotsTable);
+            await m.createTable(snapshotDetailsTable);
+            await m.createTable(actionNotesTable);
+            await m.addColumn(
+              assetClassesTable,
+              assetClassesTable.targetGroupId,
+            );
+            await m.addColumn(settingsTable, settingsTable.themeMode);
+          }
+          if (to > 3) {
             throw UnsupportedError(
               'Chưa định nghĩa bước nâng cấp từ schema $from lên $to',
             );

@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../../domain/models/enums.dart';
+import 'target_groups_table.dart';
 
 /// Lớp tài sản — nhóm phân loại cấp một của Danh mục.
 ///
@@ -23,6 +24,14 @@ class AssetClassesTable extends Table {
   /// Dùng phần vạn thay vì số thực để giữ nguyên tắc cấm dấu phẩy động,
   /// và đủ mịn cho mọi mục tiêu người dùng đặt ra.
   IntColumn get targetWeightBp => integer().nullable()();
+
+  /// Nhóm mục tiêu chứa lớp này, `null` nếu lớp tự đứng một mình.
+  ///
+  /// Khi có nhóm, [targetWeightBp] của riêng lớp bị bỏ qua — mục tiêu đặt ở
+  /// cấp nhóm. Xem FR-19.
+  IntColumn get targetGroupId => integer()
+      .nullable()
+      .references(TargetGroupsTable, #id, onDelete: KeyAction.setNull)();
 
   /// Lớp này có tham gia tính Lãi lỗ không.
   ///

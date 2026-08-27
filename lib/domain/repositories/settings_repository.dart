@@ -1,5 +1,6 @@
 import '../../core/money/money.dart';
 import '../models/app_settings.dart';
+import '../models/enums.dart';
 
 /// Đọc ghi thiết lập nền.
 ///
@@ -24,6 +25,8 @@ abstract interface class SettingsRepository {
   Future<void> setFxRate(Money? rate);
 
   Future<void> setDriftThreshold(int bp);
+
+  Future<void> setThemeMode(ThemeModeSetting mode);
 
   Future<void> markExported(DateTime at);
 }

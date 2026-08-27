@@ -95,13 +95,26 @@ void main() {
       // backend, không tài khoản, không đồng bộ. Một lời gọi mạng lọt ra
       // ngoài thư mục đó là chỗ số liệu tài chính có thể rời khỏi máy mà
       // không ai để ý.
+      // Cấm theo gói mạng, không cấm cả `dart:io`: thư viện đó vừa mở được
+      // kết nối mạng vừa ghi được tệp, mà ghi tệp xuất dữ liệu ra máy người
+      // dùng là việc hợp lệ. Phần mạng của `dart:io` bị chặn riêng ở dưới
+      // bằng tên lớp.
       const networkPackages = [
         'package:http/',
         'package:dio/',
-        'dart:io',
         'package:web_socket_channel/',
         'package:googleapis',
         'package:firebase',
+        'package:grpc/',
+      ];
+
+      /// Các lớp mở kết nối mạng của `dart:io`.
+      const networkTypes = [
+        'HttpClient',
+        'RawSocket',
+        'ServerSocket',
+        'WebSocket',
+        'Socket.connect',
       ];
 
       final hits = <String>[];
@@ -112,12 +125,16 @@ void main() {
         final lines = file.readAsLinesSync();
         for (var i = 0; i < lines.length; i++) {
           final line = lines[i].trimLeft();
-          if (!line.startsWith('import ') && !line.startsWith('export ')) {
-            continue;
+          if (line.startsWith('import ') || line.startsWith('export ')) {
+            for (final package in networkPackages) {
+              if (lines[i].contains(package)) {
+                hits.add('$path:${i + 1} → $package');
+              }
+            }
           }
-          for (final package in networkPackages) {
-            if (lines[i].contains(package)) {
-              hits.add('$path:${i + 1} → $package');
+          for (final type in networkTypes) {
+            if (lines[i].contains(type)) {
+              hits.add('$path:${i + 1} → $type');
             }
           }
         }
@@ -135,6 +152,78 @@ void main() {
       // Nếu ai đó xoá thư mục thì bài test trên xanh một cách rỗng.
       final files = _dartFilesIn('lib/data/remote').map(_relative);
       expect(files, contains('lib/data/remote/remote_price_source.dart'));
+    });
+  });
+
+  group('AD-7 — không có tác vụ nền', () {
+    test('không mã nguồn nào đăng ký tác vụ chạy nền', () {
+      // Bản chốt sinh ra khi người dùng mở ứng dụng, không phải do hệ điều
+      // hành đánh thức. Một tác vụ nền là thứ chạy mà người dùng không biết,
+      // tiêu pin và có thể ghi dữ liệu sai lúc. Xem AD-7 và FR-28.
+      const forbidden = [
+        'workmanager',
+        'background_fetch',
+        'android_alarm_manager',
+        'flutter_background',
+        'BGTaskScheduler',
+        'WorkManager',
+      ];
+
+      final hits = <String>[];
+      for (final file in _dartFilesIn('lib')) {
+        final content = file.readAsStringSync();
+        for (final token in forbidden) {
+          if (content.contains(token)) {
+            hits.add('${_relative(file)} → \$token');
+          }
+        }
+      }
+
+      expect(hits, isEmpty, reason: hits.join('\n'));
+    });
+
+    test('pubspec không khai báo gói chạy nền nào', () {
+      final pubspec = File('pubspec.yaml').readAsStringSync();
+      for (final package in const [
+        'workmanager',
+        'background_fetch',
+        'android_alarm_manager_plus',
+        'flutter_background_service',
+      ]) {
+        expect(
+          pubspec,
+          isNot(contains(package)),
+          reason: 'pubspec khai báo \$package',
+        );
+      }
+    });
+
+    test('cấu hình hai nền tảng không đăng ký tác vụ nền', () {
+      // Kiểm tra cả tệp cấu hình gốc, không chỉ mã Dart — đăng ký tác vụ nền
+      // thường nằm ở manifest và Info.plist chứ không ở Dart.
+      const platformFiles = [
+        'android/app/src/main/AndroidManifest.xml',
+        'ios/Runner/Info.plist',
+      ];
+      const markers = [
+        'BGTaskSchedulerPermittedIdentifiers',
+        'UIBackgroundModes',
+        'android.permission.RECEIVE_BOOT_COMPLETED',
+        'WorkManagerInitializer',
+      ];
+
+      for (final path in platformFiles) {
+        final file = File(path);
+        if (!file.existsSync()) continue;
+        final content = file.readAsStringSync();
+        for (final marker in markers) {
+          expect(
+            content,
+            isNot(contains(marker)),
+            reason: '\$path khai báo \$marker',
+          );
+        }
+      }
     });
   });
 
