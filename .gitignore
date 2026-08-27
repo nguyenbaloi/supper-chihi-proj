@@ -49,3 +49,17 @@ app.*.map.json
 # BMAD — cấu hình cá nhân, không chia sẻ
 _bmad/custom/config.user.toml
 _bmad/_config/
+
+# Ghi đè gitignore toàn cục của máy (~/.gitignore_global bỏ qua *.json và
+# pubspec.lock). Hai thứ dưới đây bắt buộc phải nằm trong repo:
+#
+#  - pubspec.lock: đây là ứng dụng, không phải thư viện. Cây phụ thuộc của
+#    project rất mong manh (xung đột analyzer, cấm build hooks — xem AD-13),
+#    thiếu lock file là máy khác giải ra bộ phiên bản khác và build hỏng ngay.
+#
+#  - drift_schemas/*.json: ảnh chụp cấu trúc cơ sở dữ liệu từng phiên bản.
+#    Thiếu nó thì không chạy được test migration, tức là mất lưới an toàn
+#    duy nhất bảo vệ dữ liệu người dùng khi nâng cấp — xem AD-10.
+!pubspec.lock
+!drift_schemas/
+!drift_schemas/*.json

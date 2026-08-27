@@ -44,13 +44,13 @@ Tầng `domain` không biết gì về Flutter, Drift hay HTTP. Đây là điề
 - **Prevents (ngăn chặn):** logic nghiệp vụ dính vào Flutter hoặc Drift, khiến không viết test được nếu không dựng cả một môi trường giả lập
 - **Rule (quy tắc):** file trong `domain/` không được `import` bất cứ thứ gì từ `package:flutter`, `package:drift`, `package:http`, hay từ `data/` và `presentation/`. Tầng `data` và `presentation` phụ thuộc vào `domain` qua các lớp trừu tượng khai báo trong `domain/repositories/`.
 
-### AD-2 — Riverpod 2.6.1, khai báo provider thủ công `[ĐÃ CHỐT]`
+### AD-2 — Riverpod 3.3.2, khai báo provider thủ công `[ĐÃ CHỐT]`
 
 - **Binds (ràng buộc):** toàn bộ tầng `presentation`
 - **Prevents (ngăn chặn):** nửa codebase dùng codegen, nửa viết tay; và việc nâng Riverpod lên 3.x làm vỡ toàn bộ tầng dữ liệu
-- **Rule (quy tắc):** dùng `flutter_riverpod: ^2.6.1`. Không thêm `riverpod_generator`, `riverpod_annotation`, `riverpod_lint`, `custom_lint`. Provider khai báo bằng tay dưới dạng biến `final` cấp cao nhất trong `presentation/providers/`.
+- **Rule (quy tắc):** dùng `flutter_riverpod: ^3.3.2`. Không thêm `riverpod_generator`, `riverpod_annotation`, `riverpod_lint`, `custom_lint`. Provider khai báo bằng tay dưới dạng biến `final` cấp cao nhất trong `presentation/providers/`.
 
-**Lý do ràng buộc này tồn tại:** Riverpod 3.x kéo theo `test 1.26.3` vốn cần `analyzer <9.0`, trong khi `drift_dev` bản mới cần `analyzer ^13.0`. Hai nhánh loại trừ nhau dưới Dart 3.10.9. Đã kiểm chứng bằng cách giải phụ thuộc thật với các bản Riverpod 3.0, 3.1, 3.2, 3.3 — không bản nào thoát. Lớp dữ liệu được ưu tiên vì toàn bộ tài sản người dùng nằm trong SQLite.
+**Lý do ràng buộc này tồn tại:** `riverpod_generator` cần `analyzer ^9/^12` trong khi `drift_dev` cần `^10/^13` — loại trừ nhau dưới Dart 3.10.9. Bỏ codegen của Riverpod là cách duy nhất giữ được cả hai. Đường nâng cấp về sau tương đối gọn vì không có mã sinh tự động phải viết lại.
 
 ### AD-3 — Không có số thực dấu phẩy động trong bất kỳ phép tính tài chính nào
 
@@ -117,6 +117,22 @@ Tầng `domain` không biết gì về Flutter, Drift hay HTTP. Đây là điề
 - **Prevents (ngăn chặn):** sửa dữ liệu hiện tại làm biến dạng lịch sử, khiến biểu đồ vẽ lại sai
 - **Rule (quy tắc):** Bản chốt lưu giá trị đã tính sẵn của thời điểm đó, không lưu tham chiếu tới Khoản nắm giữ. Xóa một Khoản nắm giữ không làm đổi Bản chốt cũ. Ngoại lệ duy nhất và có chủ đích: cột Vốn góp lũy kế và Lãi lỗ của Bản chốt được tính lại theo AD-4, vì sửa Dòng vốn chính là sửa lịch sử.
 
+### AD-13 — Cây phụ thuộc không được chứa build hooks `[ĐÃ CHỐT]`
+
+- **Binds (ràng buộc):** toàn bộ `pubspec.yaml`
+- **Prevents (ngăn chặn):** mất khả năng sinh mã của drift, kéo theo không dựng được tầng dữ liệu
+- **Rule (quy tắc):** không gói nào trong cây phụ thuộc được dùng cơ chế build hooks của Dart. Cụ thể: giữ `drift_flutter` ở nhánh `0.2.x` (nhánh `0.3.x` kéo theo `sqlite3` 3.x dùng hooks), và ghim đè `path_provider_foundation: 2.5.1` (bản `2.6.0` kéo theo `objective_c` dùng hooks). Trước khi thêm bất kỳ gói mới nào, kiểm tra gói đó và các phụ thuộc của nó có thư mục `hook/` hay không.
+
+**Lý do:** `build_runner` biên dịch script builder bằng `dart compile`, mà `dart compile` chưa hỗ trợ build hooks — lỗi `'dart compile' does not support build hooks`. Không có `build_runner` thì không sinh được mã drift, tức là không có cơ sở dữ liệu. Đã kiểm chứng bằng build thật, không phải suy đoán. Gỡ ràng buộc này khi `build_runner` hỗ trợ hooks.
+
+### AD-14 — Bộ công cụ Android bám theo template của SDK `[ĐÃ CHỐT]`
+
+- **Binds (ràng buộc):** `android/settings.gradle.kts`, `android/gradle/wrapper/`
+- **Prevents (ngăn chặn):** thư viện Flutter mới từ chối biên dịch vì Kotlin plugin quá cũ
+- **Rule (quy tắc):** AGP, Kotlin Gradle Plugin và Gradle wrapper phải khớp phiên bản mà Flutter SDK đang dùng trong template: AGP 8.11.1, Kotlin 2.2.20, Gradle 8.14. Khi nâng Flutter SDK, đối chiếu lại ba con số này trong `packages/flutter_tools/lib/src/android/gradle_utils.dart`.
+
+**Lý do:** thư mục `android/` được sinh bởi Flutter 3.29.2 lúc tạo project với Kotlin 1.8.22, trong khi `share_plus 13.3.0` cần Kotlin 2.x. Build thất bại với lỗi khó truy nguyên ở `KotlinAndroidProjectExtension.compilerOptions`.
+
 ## Quy ước nhất quán
 
 | Vấn đề | Quy ước |
@@ -141,10 +157,10 @@ Tầng `domain` không biết gì về Flutter, Drift hay HTTP. Đây là điề
 |---|---|
 | Flutter | 3.38.10 (stable, ghim bằng FVM) |
 | Dart | 3.10.9 |
-| flutter_riverpod | 2.6.1 |
-| drift | 2.34.3 |
-| drift_flutter | 0.3.1 |
-| sqlite3 | 3.5.2 |
+| flutter_riverpod | 3.3.2 |
+| drift | 2.31.0 |
+| drift_flutter | 0.2.8 (giữ ở 0.2.x, xem AD-13) |
+| sqlite3 | 2.9.4 (qua drift_flutter) |
 | decimal | 3.2.6 |
 | intl | 0.20.2 (bị SDK ghim) |
 | fl_chart | 1.2.0 |
@@ -152,9 +168,13 @@ Tầng `domain` không biết gì về Flutter, Drift hay HTTP. Đây là điề
 | shared_preferences | 2.5.5 |
 | path_provider | 2.1.6 |
 | share_plus | 13.3.0 |
-| drift_dev | 2.34.0 |
+| drift_dev | 2.31.0 |
 | build_runner | 2.15.1 |
 | flutter_lints | 5.0.0 |
+| path_provider_foundation | 2.5.1 (ghim đè, xem AD-13) |
+| Android Gradle Plugin | 8.11.1 |
+| Kotlin Gradle Plugin | 2.2.20 |
+| Gradle | 8.14 |
 
 **Ghi chú vận hành:** phiên bản Flutter được ghim riêng cho project này qua FVM (`.fvmrc`), không ảnh hưởng các project eGOV khác trên máy đang dùng 3.29.2. Mọi lệnh chạy qua tiền tố `fvm`.
 

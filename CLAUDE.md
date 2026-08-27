@@ -83,11 +83,33 @@ File trong `domain/` không được `import` bất cứ thứ gì từ `package
 
 ## Ngăn xếp
 
-Riverpod 2.6.1 · drift 2.34.3 · sqlite3 3.5.2 · decimal 3.2.6 · fl_chart 1.2.0 · intl 0.20.2
+Riverpod 3.3.2 · drift 2.31.0 · drift_flutter 0.2.8 · decimal 3.2.6 · fl_chart 1.2.0 · intl 0.20.2
 
-**Không dùng code generation của Riverpod.** `riverpod_generator` cần `analyzer ^9/^12` còn `drift_dev` cần `^10/^13` — loại trừ nhau dưới Dart 3.10.9. Provider khai báo thủ công dưới dạng biến `final` cấp cao nhất trong `presentation/providers/`.
+**Không dùng code generation của Riverpod.** `riverpod_generator` cần `analyzer ^9/^12` còn `drift_dev` cần `^10/^13` — loại trừ nhau dưới Dart 3.10.9. Provider khai báo thủ công dưới dạng biến `final` cấp cao nhất trong `presentation/providers/`. Không thêm `riverpod_annotation`, `riverpod_lint`, `custom_lint`.
 
-Không thêm `riverpod_annotation`, `riverpod_lint`, `custom_lint`. Không nâng Riverpod lên 3.x cho tới khi Flutter mang Dart 3.12+.
+### Cấm build hooks trong cây phụ thuộc
+
+`build_runner` biên dịch builder bằng `dart compile`, mà `dart compile` chưa hỗ trợ build hooks của Dart. Một gói dùng hooks lọt vào cây phụ thuộc là **mất luôn khả năng sinh mã drift**, tức là mất tầng dữ liệu. Lỗi hiện ra dưới dạng:
+
+```
+'dart compile' does not support build hooks, use 'dart build' instead.
+```
+
+Hai ràng buộc đang giữ điều đó:
+- `drift_flutter` phải ở nhánh **0.2.x** — nhánh 0.3.x kéo theo `sqlite3` 3.x vốn dùng hooks
+- `path_provider_foundation` ghim đè **2.5.1** — bản 2.6.0 kéo theo `objective_c` vốn dùng hooks
+
+**Trước khi thêm bất kỳ gói mới nào**, kiểm tra gói đó và các phụ thuộc của nó có thư mục `hook/` không:
+
+```bash
+ls ~/.pub-cache/hosted/pub.dev/<tên>-<phiên bản>/hook 2>/dev/null
+```
+
+### Bộ công cụ Android
+
+AGP **8.11.1** · Kotlin **2.2.20** · Gradle **8.14** — khớp đúng phiên bản Flutter SDK dùng trong template. Thư mục `android/` ban đầu do Flutter 3.29.2 sinh ra với Kotlin 1.8.22, quá cũ để biên dịch `share_plus 13.x`.
+
+Khi nâng Flutter SDK, đối chiếu lại ba con số này trong `.fvm/flutter_sdk/packages/flutter_tools/lib/src/android/gradle_utils.dart`.
 
 ## Thuật ngữ — dùng đúng, không đặt từ đồng nghĩa
 
@@ -106,6 +128,23 @@ Từ điển đầy đủ ở mục 3 của PRD. Giới thiệu một từ đồ
 | Lỗi | Kiểu kết quả tường minh ở ranh giới tầng `data`, không `throw` để truyền lỗi nghiệp vụ |
 | Chuỗi hiển thị | Qua lớp l10n, không viết thẳng tiếng Việt trong widget |
 | Đổi schema DB | Tăng `schemaVersion`, viết migration, kèm test dựng DB bản cũ rồi nâng lên |
+
+## Đổi cấu trúc cơ sở dữ liệu
+
+Mỗi lần tăng `schemaVersion`, làm đủ bốn bước — thiếu bước nào cũng có thể làm mất dữ liệu người dùng mà không có đường khôi phục:
+
+```bash
+# 1. Chụp lại schema mới
+fvm dart run drift_dev schema dump lib/data/db/database.dart drift_schemas/
+
+# 2. Sinh lại helper kiểm thử
+fvm dart run drift_dev schema generate drift_schemas/ test/data/db/generated/
+```
+
+3. Thêm bước nâng cấp vào `MigrationStrategy.onUpgrade` trong `lib/data/db/database.dart`
+4. Thêm test `migrateAndValidate` cho cặp phiên bản mới vào `test/data/db/migration_test.dart`
+
+Cấm xoá cột đang chứa dữ liệu người dùng mà không có bước chuyển sang nơi khác.
 
 ## Kiểm thử bắt buộc
 
