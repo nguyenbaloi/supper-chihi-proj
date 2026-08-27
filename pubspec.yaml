@@ -1,0 +1,48 @@
+name: personal_finance
+description: "Ứng dụng quản lý danh mục đầu tư cá nhân"
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.10.9
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Quản lý trạng thái.
+  # Giữ ở 2.x có chủ đích: Riverpod 3.x kéo theo test 1.26.3 vốn cần
+  # analyzer <9, xung đột với drift_dev mới (analyzer ^13). Ưu tiên lớp
+  # dữ liệu vì toàn bộ tài sản người dùng nằm trong SQLite. Xem AD-2.
+  flutter_riverpod: ^2.6.1
+
+  # Cơ sở dữ liệu. drift_flutter 0.3.x kéo theo sqlite3 3.x — bản mang sẵn
+  # thư viện native, thay cho sqlite3_flutter_libs đã ngừng hỗ trợ.
+  drift: ^2.34.3
+  drift_flutter: ^0.3.1
+
+  # Số học chính xác — bắt buộc, xem AD-3.
+  decimal: ^3.2.6
+
+  # Định dạng và biểu đồ
+  intl: 0.20.2          # bị ghim bởi flutter_localizations trong SDK
+  fl_chart: ^1.2.0
+
+  # Hạ tầng
+  http: ^1.6.0
+  shared_preferences: ^2.5.5
+  path_provider: ^2.1.6
+  share_plus: ^13.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.15.1
+  drift_dev: ^2.34.0
+
+flutter:
+  uses-material-design: true
+  generate: true
