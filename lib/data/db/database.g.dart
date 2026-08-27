@@ -1831,6 +1831,399 @@ class HoldingsTableCompanion extends UpdateCompanion<HoldingsTableData> {
   }
 }
 
+class $PriceQuotesTableTable extends PriceQuotesTable
+    with TableInfo<$PriceQuotesTableTable, PriceQuotesTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PriceQuotesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _symbolMeta = const VerificationMeta('symbol');
+  @override
+  late final GeneratedColumn<String> symbol = GeneratedColumn<String>(
+    'symbol',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 20,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<PriceSource, String> source =
+      GeneratedColumn<String>(
+        'source',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<PriceSource>($PriceQuotesTableTable.$convertersource);
+  @override
+  late final GeneratedColumnWithTypeConverter<Money, int> priceAmount =
+      GeneratedColumn<int>(
+        'price_amount',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<Money>($PriceQuotesTableTable.$converterpriceAmount);
+  @override
+  late final GeneratedColumnWithTypeConverter<Currency, String> currency =
+      GeneratedColumn<String>(
+        'currency',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<Currency>($PriceQuotesTableTable.$convertercurrency);
+  static const VerificationMeta _fetchedAtMeta = const VerificationMeta(
+    'fetchedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> fetchedAt = GeneratedColumn<DateTime>(
+    'fetched_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    symbol,
+    source,
+    priceAmount,
+    currency,
+    fetchedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'price_quotes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PriceQuotesTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('symbol')) {
+      context.handle(
+        _symbolMeta,
+        symbol.isAcceptableOrUnknown(data['symbol']!, _symbolMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_symbolMeta);
+    }
+    if (data.containsKey('fetched_at')) {
+      context.handle(
+        _fetchedAtMeta,
+        fetchedAt.isAcceptableOrUnknown(data['fetched_at']!, _fetchedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fetchedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {symbol, source};
+  @override
+  PriceQuotesTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PriceQuotesTableData(
+      symbol: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}symbol'],
+      )!,
+      source: $PriceQuotesTableTable.$convertersource.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}source'],
+        )!,
+      ),
+      priceAmount: $PriceQuotesTableTable.$converterpriceAmount.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}price_amount'],
+        )!,
+      ),
+      currency: $PriceQuotesTableTable.$convertercurrency.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}currency'],
+        )!,
+      ),
+      fetchedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}fetched_at'],
+      )!,
+    );
+  }
+
+  @override
+  $PriceQuotesTableTable createAlias(String alias) {
+    return $PriceQuotesTableTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<PriceSource, String, String> $convertersource =
+      const EnumNameConverter<PriceSource>(PriceSource.values);
+  static JsonTypeConverter2<Money, int, int> $converterpriceAmount =
+      const MoneyConverter();
+  static JsonTypeConverter2<Currency, String, String> $convertercurrency =
+      const EnumNameConverter<Currency>(Currency.values);
+}
+
+class PriceQuotesTableData extends DataClass
+    implements Insertable<PriceQuotesTableData> {
+  final String symbol;
+  final PriceSource source;
+
+  /// Giá một đơn vị, tính theo đơn vị nhỏ nhất của [currency]: đồng với VND,
+  /// xu với USD. Xem `CurrencyX.decimals`.
+  final Money priceAmount;
+  final Currency currency;
+
+  /// Thời điểm lấy được giá này. Bắt buộc — không có trạng thái nào mà ứng
+  /// dụng hiện số liệu tài chính mà không cho biết nó tính từ giá lúc nào.
+  /// Xem FR-13.
+  final DateTime fetchedAt;
+  const PriceQuotesTableData({
+    required this.symbol,
+    required this.source,
+    required this.priceAmount,
+    required this.currency,
+    required this.fetchedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['symbol'] = Variable<String>(symbol);
+    {
+      map['source'] = Variable<String>(
+        $PriceQuotesTableTable.$convertersource.toSql(source),
+      );
+    }
+    {
+      map['price_amount'] = Variable<int>(
+        $PriceQuotesTableTable.$converterpriceAmount.toSql(priceAmount),
+      );
+    }
+    {
+      map['currency'] = Variable<String>(
+        $PriceQuotesTableTable.$convertercurrency.toSql(currency),
+      );
+    }
+    map['fetched_at'] = Variable<DateTime>(fetchedAt);
+    return map;
+  }
+
+  PriceQuotesTableCompanion toCompanion(bool nullToAbsent) {
+    return PriceQuotesTableCompanion(
+      symbol: Value(symbol),
+      source: Value(source),
+      priceAmount: Value(priceAmount),
+      currency: Value(currency),
+      fetchedAt: Value(fetchedAt),
+    );
+  }
+
+  factory PriceQuotesTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PriceQuotesTableData(
+      symbol: serializer.fromJson<String>(json['symbol']),
+      source: $PriceQuotesTableTable.$convertersource.fromJson(
+        serializer.fromJson<String>(json['source']),
+      ),
+      priceAmount: $PriceQuotesTableTable.$converterpriceAmount.fromJson(
+        serializer.fromJson<int>(json['priceAmount']),
+      ),
+      currency: $PriceQuotesTableTable.$convertercurrency.fromJson(
+        serializer.fromJson<String>(json['currency']),
+      ),
+      fetchedAt: serializer.fromJson<DateTime>(json['fetchedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'symbol': serializer.toJson<String>(symbol),
+      'source': serializer.toJson<String>(
+        $PriceQuotesTableTable.$convertersource.toJson(source),
+      ),
+      'priceAmount': serializer.toJson<int>(
+        $PriceQuotesTableTable.$converterpriceAmount.toJson(priceAmount),
+      ),
+      'currency': serializer.toJson<String>(
+        $PriceQuotesTableTable.$convertercurrency.toJson(currency),
+      ),
+      'fetchedAt': serializer.toJson<DateTime>(fetchedAt),
+    };
+  }
+
+  PriceQuotesTableData copyWith({
+    String? symbol,
+    PriceSource? source,
+    Money? priceAmount,
+    Currency? currency,
+    DateTime? fetchedAt,
+  }) => PriceQuotesTableData(
+    symbol: symbol ?? this.symbol,
+    source: source ?? this.source,
+    priceAmount: priceAmount ?? this.priceAmount,
+    currency: currency ?? this.currency,
+    fetchedAt: fetchedAt ?? this.fetchedAt,
+  );
+  PriceQuotesTableData copyWithCompanion(PriceQuotesTableCompanion data) {
+    return PriceQuotesTableData(
+      symbol: data.symbol.present ? data.symbol.value : this.symbol,
+      source: data.source.present ? data.source.value : this.source,
+      priceAmount: data.priceAmount.present
+          ? data.priceAmount.value
+          : this.priceAmount,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      fetchedAt: data.fetchedAt.present ? data.fetchedAt.value : this.fetchedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PriceQuotesTableData(')
+          ..write('symbol: $symbol, ')
+          ..write('source: $source, ')
+          ..write('priceAmount: $priceAmount, ')
+          ..write('currency: $currency, ')
+          ..write('fetchedAt: $fetchedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(symbol, source, priceAmount, currency, fetchedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PriceQuotesTableData &&
+          other.symbol == this.symbol &&
+          other.source == this.source &&
+          other.priceAmount == this.priceAmount &&
+          other.currency == this.currency &&
+          other.fetchedAt == this.fetchedAt);
+}
+
+class PriceQuotesTableCompanion extends UpdateCompanion<PriceQuotesTableData> {
+  final Value<String> symbol;
+  final Value<PriceSource> source;
+  final Value<Money> priceAmount;
+  final Value<Currency> currency;
+  final Value<DateTime> fetchedAt;
+  final Value<int> rowid;
+  const PriceQuotesTableCompanion({
+    this.symbol = const Value.absent(),
+    this.source = const Value.absent(),
+    this.priceAmount = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.fetchedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PriceQuotesTableCompanion.insert({
+    required String symbol,
+    required PriceSource source,
+    required Money priceAmount,
+    required Currency currency,
+    required DateTime fetchedAt,
+    this.rowid = const Value.absent(),
+  }) : symbol = Value(symbol),
+       source = Value(source),
+       priceAmount = Value(priceAmount),
+       currency = Value(currency),
+       fetchedAt = Value(fetchedAt);
+  static Insertable<PriceQuotesTableData> custom({
+    Expression<String>? symbol,
+    Expression<String>? source,
+    Expression<int>? priceAmount,
+    Expression<String>? currency,
+    Expression<DateTime>? fetchedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (symbol != null) 'symbol': symbol,
+      if (source != null) 'source': source,
+      if (priceAmount != null) 'price_amount': priceAmount,
+      if (currency != null) 'currency': currency,
+      if (fetchedAt != null) 'fetched_at': fetchedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PriceQuotesTableCompanion copyWith({
+    Value<String>? symbol,
+    Value<PriceSource>? source,
+    Value<Money>? priceAmount,
+    Value<Currency>? currency,
+    Value<DateTime>? fetchedAt,
+    Value<int>? rowid,
+  }) {
+    return PriceQuotesTableCompanion(
+      symbol: symbol ?? this.symbol,
+      source: source ?? this.source,
+      priceAmount: priceAmount ?? this.priceAmount,
+      currency: currency ?? this.currency,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (symbol.present) {
+      map['symbol'] = Variable<String>(symbol.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(
+        $PriceQuotesTableTable.$convertersource.toSql(source.value),
+      );
+    }
+    if (priceAmount.present) {
+      map['price_amount'] = Variable<int>(
+        $PriceQuotesTableTable.$converterpriceAmount.toSql(priceAmount.value),
+      );
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(
+        $PriceQuotesTableTable.$convertercurrency.toSql(currency.value),
+      );
+    }
+    if (fetchedAt.present) {
+      map['fetched_at'] = Variable<DateTime>(fetchedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PriceQuotesTableCompanion(')
+          ..write('symbol: $symbol, ')
+          ..write('source: $source, ')
+          ..write('priceAmount: $priceAmount, ')
+          ..write('currency: $currency, ')
+          ..write('fetchedAt: $fetchedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1838,6 +2231,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AssetClassesTableTable assetClassesTable =
       $AssetClassesTableTable(this);
   late final $HoldingsTableTable holdingsTable = $HoldingsTableTable(this);
+  late final $PriceQuotesTableTable priceQuotesTable = $PriceQuotesTableTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1846,6 +2242,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     settingsTable,
     assetClassesTable,
     holdingsTable,
+    priceQuotesTable,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2959,6 +3356,222 @@ typedef $$HoldingsTableTableProcessedTableManager =
       HoldingsTableData,
       PrefetchHooks Function({bool assetClassId})
     >;
+typedef $$PriceQuotesTableTableCreateCompanionBuilder =
+    PriceQuotesTableCompanion Function({
+      required String symbol,
+      required PriceSource source,
+      required Money priceAmount,
+      required Currency currency,
+      required DateTime fetchedAt,
+      Value<int> rowid,
+    });
+typedef $$PriceQuotesTableTableUpdateCompanionBuilder =
+    PriceQuotesTableCompanion Function({
+      Value<String> symbol,
+      Value<PriceSource> source,
+      Value<Money> priceAmount,
+      Value<Currency> currency,
+      Value<DateTime> fetchedAt,
+      Value<int> rowid,
+    });
+
+class $$PriceQuotesTableTableFilterComposer
+    extends Composer<_$AppDatabase, $PriceQuotesTableTable> {
+  $$PriceQuotesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get symbol => $composableBuilder(
+    column: $table.symbol,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<PriceSource, PriceSource, String> get source =>
+      $composableBuilder(
+        column: $table.source,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<Money, Money, int> get priceAmount =>
+      $composableBuilder(
+        column: $table.priceAmount,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<Currency, Currency, String> get currency =>
+      $composableBuilder(
+        column: $table.currency,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PriceQuotesTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $PriceQuotesTableTable> {
+  $$PriceQuotesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get symbol => $composableBuilder(
+    column: $table.symbol,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get priceAmount => $composableBuilder(
+    column: $table.priceAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get fetchedAt => $composableBuilder(
+    column: $table.fetchedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PriceQuotesTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PriceQuotesTableTable> {
+  $$PriceQuotesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get symbol =>
+      $composableBuilder(column: $table.symbol, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<PriceSource, String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Money, int> get priceAmount =>
+      $composableBuilder(
+        column: $table.priceAmount,
+        builder: (column) => column,
+      );
+
+  GeneratedColumnWithTypeConverter<Currency, String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get fetchedAt =>
+      $composableBuilder(column: $table.fetchedAt, builder: (column) => column);
+}
+
+class $$PriceQuotesTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PriceQuotesTableTable,
+          PriceQuotesTableData,
+          $$PriceQuotesTableTableFilterComposer,
+          $$PriceQuotesTableTableOrderingComposer,
+          $$PriceQuotesTableTableAnnotationComposer,
+          $$PriceQuotesTableTableCreateCompanionBuilder,
+          $$PriceQuotesTableTableUpdateCompanionBuilder,
+          (
+            PriceQuotesTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $PriceQuotesTableTable,
+              PriceQuotesTableData
+            >,
+          ),
+          PriceQuotesTableData,
+          PrefetchHooks Function()
+        > {
+  $$PriceQuotesTableTableTableManager(
+    _$AppDatabase db,
+    $PriceQuotesTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PriceQuotesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PriceQuotesTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PriceQuotesTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> symbol = const Value.absent(),
+                Value<PriceSource> source = const Value.absent(),
+                Value<Money> priceAmount = const Value.absent(),
+                Value<Currency> currency = const Value.absent(),
+                Value<DateTime> fetchedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PriceQuotesTableCompanion(
+                symbol: symbol,
+                source: source,
+                priceAmount: priceAmount,
+                currency: currency,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String symbol,
+                required PriceSource source,
+                required Money priceAmount,
+                required Currency currency,
+                required DateTime fetchedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => PriceQuotesTableCompanion.insert(
+                symbol: symbol,
+                source: source,
+                priceAmount: priceAmount,
+                currency: currency,
+                fetchedAt: fetchedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PriceQuotesTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PriceQuotesTableTable,
+      PriceQuotesTableData,
+      $$PriceQuotesTableTableFilterComposer,
+      $$PriceQuotesTableTableOrderingComposer,
+      $$PriceQuotesTableTableAnnotationComposer,
+      $$PriceQuotesTableTableCreateCompanionBuilder,
+      $$PriceQuotesTableTableUpdateCompanionBuilder,
+      (
+        PriceQuotesTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $PriceQuotesTableTable,
+          PriceQuotesTableData
+        >,
+      ),
+      PriceQuotesTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2969,4 +3582,6 @@ class $AppDatabaseManager {
       $$AssetClassesTableTableTableManager(_db, _db.assetClassesTable);
   $$HoldingsTableTableTableManager get holdingsTable =>
       $$HoldingsTableTableTableManager(_db, _db.holdingsTable);
+  $$PriceQuotesTableTableTableManager get priceQuotesTable =>
+      $$PriceQuotesTableTableTableManager(_db, _db.priceQuotesTable);
 }

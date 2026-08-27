@@ -44,11 +44,19 @@ void main() {
       await verifier.migrateAndValidate(db, 1);
     });
 
-    test('phiên bản schema hiện tại là 1', () {
-      expect(GeneratedHelper.versions.last, 1);
+    test('phiên bản schema hiện tại là 2', () {
+      expect(GeneratedHelper.versions.last, 2);
       final db = AppDatabase(NativeDatabase.memory());
       addTearDown(db.close);
       expect(db.schemaVersion, GeneratedHelper.versions.last);
+    });
+
+    test('schema thực tế khớp đúng ảnh chụp phiên bản 2', () async {
+      final connection = await verifier.startAt(2);
+      final db = AppDatabase(connection);
+      addTearDown(db.close);
+
+      await verifier.migrateAndValidate(db, 2);
     });
   });
 
@@ -104,16 +112,14 @@ void main() {
 
       final userVersion =
           await second.customSelect('PRAGMA user_version').getSingle();
-      expect(userVersion.data.values.first, 1);
+      expect(userVersion.data.values.first, second.schemaVersion);
     });
 
-    test('dữ liệu ghi ở schema v1 còn nguyên khi mở bằng phiên bản hiện tại',
-        () async {
-      // Đây là khuôn mẫu cho mọi lần nâng schema về sau: dựng cơ sở dữ liệu ở
-      // phiên bản cũ, ghi dữ liệu bằng SQL thô đúng như dữ liệu đang nằm trên
-      // máy người dùng, rồi mở bằng mã hiện tại và kiểm chứng còn nguyên. Khi
-      // lên schema 2, đổi `startAt(1)` thành phiên bản cũ và `migrateAndValidate`
-      // sang phiên bản mới — phần còn lại giữ nguyên.
+    test('dữ liệu ghi ở schema v1 còn nguyên sau khi nâng lên v2', () async {
+      // Đây là bài test thật sự bảo vệ dữ liệu người dùng: dựng cơ sở dữ liệu
+      // ở phiên bản 1, ghi dữ liệu bằng SQL thô đúng như dữ liệu đang nằm trên
+      // máy người dùng đã cài bản cũ, rồi nâng lên phiên bản 2 và kiểm chứng
+      // từng con số còn nguyên.
       final connection = await verifier.startAt(1);
       final db = AppDatabase(connection);
       addTearDown(db.close);
@@ -137,7 +143,7 @@ void main() {
         "'$startDate')",
       );
 
-      await verifier.migrateAndValidate(db, 1);
+      await verifier.migrateAndValidate(db, 2);
 
       final settings = await db.select(db.settingsTable).getSingle();
       expect(settings.initialContributionAmount, const Money(333000000));
@@ -149,6 +155,30 @@ void main() {
       expect(holding.quantityRaw, 12345678);
       expect(holding.decimals, 8);
       expect(holding.currency, Currency.usd);
+
+      // Bảng mới của phiên bản 2 phải có mặt và dùng được ngay.
+      expect(await db.select(db.priceQuotesTable).get(), isEmpty);
+    });
+
+    test('nâng cấp không đụng tới số dòng của các bảng cũ', () async {
+      final connection = await verifier.startAt(1);
+      final db = AppDatabase(connection);
+      addTearDown(db.close);
+
+      await db.customStatement(
+        'INSERT INTO asset_classes (id, name, kind, in_investment_group, '
+        'hidden, sort_order, color_value, icon_code_point) '
+        "VALUES (1, 'Crypto', 'crypto', 1, 0, 0, 1, 1), "
+        "(2, 'Vàng', 'gold', 0, 0, 1, 2, 2)",
+      );
+
+      await verifier.migrateAndValidate(db, 2);
+
+      // onCreate gieo năm lớp mặc định, nhưng đây là nâng cấp chứ không phải
+      // tạo mới — hai lớp của người dùng phải còn đúng hai, không bị gieo đè.
+      final classes = await db.select(db.assetClassesTable).get();
+      expect(classes, hasLength(2));
+      expect(classes.map((c) => c.name), ['Crypto', 'Vàng']);
     });
   });
 }

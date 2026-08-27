@@ -89,6 +89,55 @@ void main() {
     });
   });
 
+  group('AD-8 — mạng chỉ được dùng để hỏi giá', () {
+    test('mọi lời gọi mạng nằm trong đúng thư mục lib/data/remote', () {
+      // Ràng buộc này giữ điều quan trọng nhất của sản phẩm: không có
+      // backend, không tài khoản, không đồng bộ. Một lời gọi mạng lọt ra
+      // ngoài thư mục đó là chỗ số liệu tài chính có thể rời khỏi máy mà
+      // không ai để ý.
+      const networkPackages = [
+        'package:http/',
+        'package:dio/',
+        'dart:io',
+        'package:web_socket_channel/',
+        'package:googleapis',
+        'package:firebase',
+      ];
+
+      final hits = <String>[];
+      for (final file in _dartFilesIn('lib')) {
+        final path = _relative(file);
+        if (path.startsWith('lib/data/remote/')) continue;
+
+        final lines = file.readAsLinesSync();
+        for (var i = 0; i < lines.length; i++) {
+          final line = lines[i].trimLeft();
+          if (!line.startsWith('import ') && !line.startsWith('export ')) {
+            continue;
+          }
+          for (final package in networkPackages) {
+            if (lines[i].contains(package)) {
+              hits.add('$path:${i + 1} → $package');
+            }
+          }
+        }
+      }
+
+      expect(
+        hits,
+        isEmpty,
+        reason: 'chuyển lời gọi mạng vào lib/data/remote/ rồi cho tầng trên '
+            'dùng qua hợp đồng trừu tượng:\n${hits.join('\n')}',
+      );
+    });
+
+    test('thư mục data/remote thực sự tồn tại và có hợp đồng nguồn giá', () {
+      // Nếu ai đó xoá thư mục thì bài test trên xanh một cách rỗng.
+      final files = _dartFilesIn('lib/data/remote').map(_relative);
+      expect(files, contains('lib/data/remote/remote_price_source.dart'));
+    });
+  });
+
   group('Hướng phụ thuộc một chiều — presentation → domain ← data', () {
     test('lib/domain không import flutter, drift, http, data hay presentation',
         () {

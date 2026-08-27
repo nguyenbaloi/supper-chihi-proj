@@ -13,8 +13,8 @@ void main() {
   tearDown(() => db.close());
 
   group('Cơ sở dữ liệu', () {
-    test('mở được và ở phiên bản schema 1', () async {
-      expect(db.schemaVersion, 1);
+    test('mở được và ở phiên bản schema mới nhất', () async {
+      expect(db.schemaVersion, 2);
       // Chạm vào một bảng để buộc drift thực sự tạo schema.
       await db.select(db.assetClassesTable).get();
     });
