@@ -1,6 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:drift/drift.dart';
 
+import '../../core/format/decimal_input.dart';
 import '../../core/money/money.dart';
 import '../../core/money/quantity.dart';
 import '../../domain/models/enums.dart';
@@ -176,14 +177,23 @@ class HoldingRepositoryImpl implements HoldingRepository {
       return const _InputRejected(MissingRequiredInput(InputMode.quantity));
     }
 
+    final allowed = kind.quantityDecimals;
+
+    // Chấp nhận cả dấu phẩy lẫn dấu chấm làm dấu thập phân: ứng dụng hiển thị
+    // số kiểu Việt Nam nên người dùng gõ lại đúng như thế, và bàn phím số
+    // trên máy tiếng Việt cũng cho ra dấu phẩy. Chỗ nào thật sự nhập nhằng
+    // thì `DecimalInput` trả `null` để người dùng nhận thông báo, chứ không
+    // đoán ra một con số khác.
+    final normalized = DecimalInput.normalize(text, allowedDecimals: allowed);
+    if (normalized == null) return _InputRejected(InvalidQuantity(text));
+
     final Decimal value;
     try {
-      value = Decimal.parse(text);
+      value = Decimal.parse(normalized);
     } on FormatException {
       return _InputRejected(InvalidQuantity(text));
     }
 
-    final allowed = kind.quantityDecimals;
     try {
       return _InputAccepted(quantity: Quantity.fromDecimal(value, allowed));
     } on ArgumentError {

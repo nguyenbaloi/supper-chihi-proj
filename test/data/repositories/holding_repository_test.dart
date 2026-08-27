@@ -109,6 +109,84 @@ void main() {
     });
   });
 
+  group('Nhập số kiểu Việt Nam', () {
+    test('0,16 BTC nhận được như 0.16 — lỗi người dùng báo', () async {
+      // Ứng dụng hiển thị `0,12 BTC` nên người dùng gõ lại dấu phẩy, và bàn
+      // phím số trên máy tiếng Việt cũng cho ra dấu phẩy.
+      final result = await holdings.add(
+        assetClassId: await idOf(AssetKind.crypto),
+        symbol: 'BTC',
+        quantityText: '0,16',
+      );
+
+      final holding = (result as HoldingSaved).holding;
+      expect(holding.quantity!.toPlainString(), '0.16');
+    });
+
+    test('dấu phẩy và dấu chấm cho cùng một kết quả', () async {
+      final cryptoId = await idOf(AssetKind.crypto);
+      final withComma = await holdings.add(
+        assetClassId: cryptoId,
+        symbol: 'BTC',
+        quantityText: '0,12345678',
+      );
+      final withDot = await holdings.add(
+        assetClassId: cryptoId,
+        symbol: 'ETH',
+        quantityText: '0.12345678',
+      );
+
+      expect(
+        (withComma as HoldingSaved).holding.quantity,
+        (withDot as HoldingSaved).holding.quantity,
+      );
+    });
+
+    test('vàng 7,25 chỉ nhận được', () async {
+      final result = await holdings.add(
+        assetClassId: await idOf(AssetKind.gold),
+        symbol: 'SJC',
+        quantityText: '7,25',
+      );
+      expect((result as HoldingSaved).holding.quantity!.toPlainString(), '7.25');
+    });
+
+    test('cổ phiếu nhận ngăn nghìn kiểu Việt Nam', () async {
+      final result = await holdings.add(
+        assetClassId: await idOf(AssetKind.stock),
+        symbol: 'FPT',
+        quantityText: '10.000',
+      );
+      expect((result as HoldingSaved).holding.quantity!.toPlainString(), '10000');
+    });
+
+    test('cổ phiếu 10,5 bị từ chối kèm lý do cụ thể', () async {
+      // Chấp nhận dấu phẩy không được kéo theo việc đoán bừa, và thông báo
+      // phải nói rõ loại này chỉ nhận số nguyên.
+      final result = await holdings.add(
+        assetClassId: await idOf(AssetKind.stock),
+        symbol: 'HCM',
+        quantityText: '10,5',
+      );
+      expect(result, isA<QuantityTooPrecise>());
+      expect((result as QuantityTooPrecise).allowedDecimals, 0);
+      expect(await holdings.all(), isEmpty);
+    });
+
+    test('sửa số lượng cũng nhận dấu phẩy', () async {
+      final added = await holdings.add(
+        assetClassId: await idOf(AssetKind.crypto),
+        symbol: 'BTC',
+        quantityText: '0.12',
+      );
+      final id = (added as HoldingSaved).holding.id;
+
+      await holdings.update(id, quantityText: '0,16');
+
+      expect((await holdings.byId(id))!.quantity!.toPlainString(), '0.16');
+    });
+  });
+
   group('Thêm khoản nắm giữ theo giá trị', () {
     test('tiền mặt nhập thẳng số tiền, không hỏi số lượng', () async {
       final result = await holdings.add(

@@ -27,6 +27,34 @@ void main() {
     });
   });
 
+  group('Số tiền trần theo đơn vị tiền', () {
+    test('VND không có phần thập phân', () {
+      expect(VnFormat.amount(const Money(680000000)), '680.000.000');
+      expect(VnFormat.amount(const Money(1000)), '1.000');
+      expect(VnFormat.amount(Money.zero), '0');
+    });
+
+    test('USD lưu bằng xu nên hiện đúng thang', () {
+      // Cùng dãy số 6743218 mang hai nghĩa khác hẳn nhau tuỳ đơn vị tiền.
+      expect(VnFormat.amount(const Money(6743218)), '6.743.218');
+      expect(
+        VnFormat.amount(const Money(6743218), decimals: 2),
+        '67.432,18',
+      );
+    });
+
+    test('bỏ số 0 thừa nhưng giữ xu thật', () {
+      expect(VnFormat.amount(const Money(6743200), decimals: 2), '67.432');
+      expect(VnFormat.amount(const Money(105), decimals: 2), '1,05');
+      expect(VnFormat.amount(const Money(1), decimals: 2), '0,01');
+    });
+
+    test('số âm giữ dấu', () {
+      expect(VnFormat.amount(const Money(-60000000)), '-60.000.000');
+      expect(VnFormat.amount(const Money(-105), decimals: 2), '-1,05');
+    });
+  });
+
   group('Số tiền rút gọn', () {
     test('680.000.000 hiện thành 680 tr', () {
       expect(VnFormat.moneyCompact(const Money(680000000)), '680 tr');

@@ -29,6 +29,32 @@ class VnFormat {
     return '$signed $dongSymbol';
   }
 
+  /// Số tiền trần, không kèm ký hiệu tiền tệ: `67.432,18`.
+  ///
+  /// [decimals] là số chữ số thập phân của **đơn vị tiền đang hiển thị** — 0
+  /// với VND, 2 với USD. Mọi số tiền lưu bằng đơn vị nhỏ nhất, nên con số này
+  /// quyết định thang: cùng `6743218` là `6.743.218 đ` hoặc `67.432,18 USD`.
+  ///
+  /// Bỏ chữ số 0 thừa ở cuối phần thập phân.
+  static String amount(Money value, {int decimals = 0}) {
+    final digits = value.amount.abs();
+    if (decimals == 0) {
+      final grouped = _groupDigits(digits.toString());
+      return value.isNegative ? '-$grouped' : grouped;
+    }
+
+    final scaled = Decimal.fromInt(digits).shift(-decimals);
+    final parts = scaled.toStringAsFixed(decimals).split('.');
+    final buffer = StringBuffer(value.isNegative ? '-' : '')
+      ..write(_groupDigits(parts.first));
+
+    final fraction = parts.length > 1
+        ? parts[1].replaceFirst(RegExp(r'0+$'), '')
+        : '';
+    if (fraction.isNotEmpty) buffer.write(',$fraction');
+    return buffer.toString();
+  }
+
   /// Số tiền rút gọn: `680 tr`, `1,2 tỷ`.
   ///
   /// Dưới một triệu thì hiện đủ chữ số — rút gọn một con số nhỏ không tiết

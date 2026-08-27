@@ -399,6 +399,30 @@ abstract class AppL10n {
   /// **'Giá hiệu lực'**
   String get holdingEffectivePrice;
 
+  /// No description provided for @holdingConvertedValue.
+  ///
+  /// In vi, this message translates to:
+  /// **'Giá trị quy đổi'**
+  String get holdingConvertedValue;
+
+  /// No description provided for @holdingPriceOnlyManual.
+  ///
+  /// In vi, this message translates to:
+  /// **'Loại tài sản này chưa có nguồn giá tự động — giá bạn nhập ở đây là giá duy nhất được dùng'**
+  String get holdingPriceOnlyManual;
+
+  /// No description provided for @holdingPriceOverridesMarket.
+  ///
+  /// In vi, this message translates to:
+  /// **'Để trống thì dùng giá thị trường tự lấy'**
+  String get holdingPriceOverridesMarket;
+
+  /// No description provided for @holdingPriceMissingForValue.
+  ///
+  /// In vi, this message translates to:
+  /// **'Nhập giá để thấy giá trị quy đổi'**
+  String get holdingPriceMissingForValue;
+
   /// No description provided for @holdingWeightInClass.
   ///
   /// In vi, this message translates to:
@@ -657,6 +681,12 @@ abstract class AppL10n {
   /// **'Tỷ trọng mục tiêu'**
   String get targetWeight;
 
+  /// No description provided for @targetWeightShort.
+  ///
+  /// In vi, this message translates to:
+  /// **'Mục tiêu'**
+  String get targetWeightShort;
+
   /// No description provided for @actualWeight.
   ///
   /// In vi, this message translates to:
@@ -704,6 +734,24 @@ abstract class AppL10n {
   /// In vi, this message translates to:
   /// **'Chưa đặt mục tiêu nào.'**
   String get targetNoneSet;
+
+  /// No description provided for @targetProgress.
+  ///
+  /// In vi, this message translates to:
+  /// **'Mức đạt'**
+  String get targetProgress;
+
+  /// No description provided for @targetActualVsTarget.
+  ///
+  /// In vi, this message translates to:
+  /// **'Thực tế {actual} / mục tiêu {target}'**
+  String targetActualVsTarget(String actual, String target);
+
+  /// No description provided for @targetProgressNoBase.
+  ///
+  /// In vi, this message translates to:
+  /// **'Chưa có tài sản để so'**
+  String get targetProgressNoBase;
 
   /// No description provided for @driftThreshold.
   ///

@@ -7,6 +7,7 @@ import '../../core/money/money.dart';
 import '../../domain/models/debt.dart';
 import '../../presentation/providers/repository_providers.dart';
 import '../../presentation/widgets/confirm_dialog.dart';
+import '../../presentation/widgets/form_sheet.dart';
 import '../../presentation/widgets/money_field.dart';
 
 Future<void> showDebtEditor(
@@ -14,15 +15,9 @@ Future<void> showDebtEditor(
   WidgetRef ref, {
   Debt? existing,
 }) =>
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: _DebtForm(existing: existing),
-      ),
+    showFormSheet<void>(
+      context,
+      builder: (_) => _DebtForm(existing: existing),
     );
 
 class _DebtForm extends ConsumerStatefulWidget {

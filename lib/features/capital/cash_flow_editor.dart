@@ -6,6 +6,7 @@ import '../../core/l10n/generated/app_localizations.dart';
 import '../../core/money/money.dart';
 import '../../domain/models/cash_flow.dart';
 import '../../presentation/providers/repository_providers.dart';
+import '../../presentation/widgets/form_sheet.dart';
 import '../../presentation/widgets/money_field.dart';
 import 'profit_loss_screen.dart';
 
@@ -15,15 +16,9 @@ Future<void> showCashFlowEditor(
   WidgetRef ref, {
   CashFlow? existing,
 }) =>
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: _CashFlowForm(existing: existing),
-      ),
+    showFormSheet<void>(
+      context,
+      builder: (_) => _CashFlowForm(existing: existing),
     );
 
 class _CashFlowForm extends ConsumerStatefulWidget {

@@ -37,9 +37,10 @@ Future<void> showManualPriceEditor(
               label: l10n.holdingPrice,
               initial: amount,
               onChanged: (value) => amount = value,
-              helperText: selectedCurrency == Currency.usd
-                  ? '${l10n.holdingCurrency}: USD'
-                  : null,
+              // USD lưu bằng xu nên ô nhập phải nhận hai chữ số thập phân;
+              // thiếu tham số này thì gõ `67.432` USD ra 674,32 USD.
+              decimals: selectedCurrency.decimals,
+              suffixText: selectedCurrency.code,
             ),
             const SizedBox(height: 12),
             SegmentedButton<Currency>(

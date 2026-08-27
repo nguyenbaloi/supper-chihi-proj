@@ -60,6 +60,11 @@ _bmad/_config/
 #  - drift_schemas/*.json: ảnh chụp cấu trúc cơ sở dữ liệu từng phiên bản.
 #    Thiếu nó thì không chạy được test migration, tức là mất lưới an toàn
 #    duy nhất bảo vệ dữ liệu người dùng khi nâng cấp — xem AD-10.
+#
+#  - ios/Podfile.lock: ghim phiên bản chính xác của từng pod. Cùng lý do với
+#    pubspec.lock — đây là ứng dụng, không phải thư viện, nên hai máy phải
+#    dựng ra đúng một bộ phụ thuộc.
 !pubspec.lock
 !drift_schemas/
 !drift_schemas/*.json
+!ios/Podfile.lock

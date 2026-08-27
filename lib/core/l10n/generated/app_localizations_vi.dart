@@ -200,6 +200,20 @@ class AppL10nVi extends AppL10n {
   String get holdingEffectivePrice => 'Giá hiệu lực';
 
   @override
+  String get holdingConvertedValue => 'Giá trị quy đổi';
+
+  @override
+  String get holdingPriceOnlyManual =>
+      'Loại tài sản này chưa có nguồn giá tự động — giá bạn nhập ở đây là giá duy nhất được dùng';
+
+  @override
+  String get holdingPriceOverridesMarket =>
+      'Để trống thì dùng giá thị trường tự lấy';
+
+  @override
+  String get holdingPriceMissingForValue => 'Nhập giá để thấy giá trị quy đổi';
+
+  @override
   String get holdingWeightInClass => 'Tỷ trọng trong lớp';
 
   @override
@@ -349,6 +363,9 @@ class AppL10nVi extends AppL10n {
   String get targetWeight => 'Tỷ trọng mục tiêu';
 
   @override
+  String get targetWeightShort => 'Mục tiêu';
+
+  @override
   String get actualWeight => 'Tỷ trọng thực tế';
 
   @override
@@ -373,6 +390,17 @@ class AppL10nVi extends AppL10n {
 
   @override
   String get targetNoneSet => 'Chưa đặt mục tiêu nào.';
+
+  @override
+  String get targetProgress => 'Mức đạt';
+
+  @override
+  String targetActualVsTarget(String actual, String target) {
+    return 'Thực tế $actual / mục tiêu $target';
+  }
+
+  @override
+  String get targetProgressNoBase => 'Chưa có tài sản để so';
 
   @override
   String get driftThreshold => 'Ngưỡng cảnh báo lệch';
