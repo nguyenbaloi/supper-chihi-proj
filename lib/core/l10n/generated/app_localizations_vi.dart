@@ -392,6 +392,44 @@ class AppL10nVi extends AppL10n {
   String get targetNoneSet => 'Chưa đặt mục tiêu nào.';
 
   @override
+  String get allocationPlan => 'Phân bổ chuẩn';
+
+  @override
+  String get allocationBuy => 'Mua thêm';
+
+  @override
+  String get allocationSell => 'Bán bớt';
+
+  @override
+  String get allocationHold => 'Đang cân';
+
+  @override
+  String allocationCurrentToTarget(String current, String target) {
+    return 'Hiện $current · chuẩn $target';
+  }
+
+  @override
+  String get allocationTotalBuy => 'Tổng mua';
+
+  @override
+  String get allocationTotalSell => 'Tổng bán';
+
+  @override
+  String get allocationNetNeeded => 'Cần nạp thêm';
+
+  @override
+  String get allocationNetSpare => 'Bán ra còn dư';
+
+  @override
+  String get allocationBalanced => 'Kế hoạch tự cân';
+
+  @override
+  String get allocationUntargeted => 'Đang ở lớp chưa đặt mục tiêu';
+
+  @override
+  String get allocationNoBasis => 'Chưa có tài sản để phân bổ.';
+
+  @override
   String get targetProgress => 'Mức đạt';
 
   @override

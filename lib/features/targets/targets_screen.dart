@@ -5,14 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/vn_format.dart';
 import '../../core/l10n/generated/app_localizations.dart';
+import '../../core/money/money.dart';
 import '../../domain/models/action_note.dart';
-import '../../domain/models/portfolio_valuation.dart';
+import '../../domain/rules/allocation.dart';
 import '../../domain/rules/rebalancing.dart';
 import '../../presentation/providers/portfolio_providers.dart';
 import '../../presentation/providers/repository_providers.dart';
 import '../../presentation/theme/app_theme.dart';
 import '../../presentation/widgets/confirm_dialog.dart';
 import '../../presentation/widgets/money_text.dart';
+import 'allocation_plan_card.dart';
 import 'target_editor.dart';
 
 /// Màn hình Mục tiêu — biến những dòng ghi chú định tính cuối sheet Excel
@@ -44,11 +46,13 @@ class TargetsScreen extends ConsumerWidget {
       );
     }
 
-    final drifts = _driftsOf(valuation);
+    // Một nguồn duy nhất cho cả thẻ Khoảng lệch lẫn Kế hoạch phân bổ: hai
+    // phần nằm cạnh nhau trên cùng màn hình, lệch nhau một danh mục là người
+    // dùng hết tin cả hai.
+    final units = ref.watch(targetUnitsProvider);
+    final drifts = _driftsOf(units, valuation.totalAssets);
     final totalBp = Rebalancing.totalTargetBp(
-      valuation.visible
-          .map((e) => e.assetClass.targetWeightBp ?? 0)
-          .where((bp) => bp > 0),
+      units.map((u) => u.targetWeightBp),
     );
 
     return Scaffold(
@@ -105,6 +109,7 @@ class TargetsScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+            const AllocationPlanCard(),
             for (final drift in drifts)
               _DriftCard(
                 drift: drift,
@@ -157,21 +162,23 @@ class TargetsScreen extends ConsumerWidget {
     );
   }
 
-  static List<TargetDrift> _driftsOf(PortfolioValuation valuation) {
-    final total = valuation.totalAssets;
-    return valuation.visible
-        .where((entry) => entry.assetClass.targetWeightBp != null)
-        .map(
-          (entry) => TargetDrift(
-            label: entry.assetClass.name,
-            currentValue: entry.value,
-            actualWeight: entry.value.ratioTo(total),
-            targetWeightBp: entry.assetClass.targetWeightBp!,
-            totalAssets: total,
-          ),
-        )
-        .toList(growable: false);
-  }
+  /// Khoảng lệch cho từng Lớp tài sản **hoặc Nhóm mục tiêu** có Tỷ trọng mục
+  /// tiêu. Xem FR-20.
+  static List<TargetDrift> _driftsOf(
+    List<AllocationTarget> units,
+    Money totalAssets,
+  ) =>
+      units
+          .map(
+            (unit) => TargetDrift(
+              label: unit.label,
+              currentValue: unit.currentValue,
+              actualWeight: unit.currentValue.ratioTo(totalAssets),
+              targetWeightBp: unit.targetWeightBp,
+              totalAssets: totalAssets,
+            ),
+          )
+          .toList(growable: false);
 
   Future<void> _addNote(BuildContext context, WidgetRef ref) async {
     final l10n = AppL10n.of(context);

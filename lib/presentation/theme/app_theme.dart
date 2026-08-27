@@ -30,6 +30,20 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
       ),
+      // Nhãn thanh điều hướng đậm hơn mặc định M3 (`labelMedium`, w500). Phải
+      // ghi luôn màu: khi `labelTextStyle` bị ghi đè, NavigationBar không còn
+      // áp màu mặc định theo trạng thái nữa.
+      navigationBarTheme: NavigationBarThemeData(
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return TextStyle(
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+            letterSpacing: 0.5,
+            color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
+          );
+        }),
+      ),
       cardTheme: CardThemeData(
         elevation: 0,
         color: scheme.surfaceContainerLow,

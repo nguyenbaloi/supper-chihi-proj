@@ -735,6 +735,78 @@ abstract class AppL10n {
   /// **'Chưa đặt mục tiêu nào.'**
   String get targetNoneSet;
 
+  /// No description provided for @allocationPlan.
+  ///
+  /// In vi, this message translates to:
+  /// **'Phân bổ chuẩn'**
+  String get allocationPlan;
+
+  /// No description provided for @allocationBuy.
+  ///
+  /// In vi, this message translates to:
+  /// **'Mua thêm'**
+  String get allocationBuy;
+
+  /// No description provided for @allocationSell.
+  ///
+  /// In vi, this message translates to:
+  /// **'Bán bớt'**
+  String get allocationSell;
+
+  /// No description provided for @allocationHold.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đang cân'**
+  String get allocationHold;
+
+  /// No description provided for @allocationCurrentToTarget.
+  ///
+  /// In vi, this message translates to:
+  /// **'Hiện {current} · chuẩn {target}'**
+  String allocationCurrentToTarget(String current, String target);
+
+  /// No description provided for @allocationTotalBuy.
+  ///
+  /// In vi, this message translates to:
+  /// **'Tổng mua'**
+  String get allocationTotalBuy;
+
+  /// No description provided for @allocationTotalSell.
+  ///
+  /// In vi, this message translates to:
+  /// **'Tổng bán'**
+  String get allocationTotalSell;
+
+  /// No description provided for @allocationNetNeeded.
+  ///
+  /// In vi, this message translates to:
+  /// **'Cần nạp thêm'**
+  String get allocationNetNeeded;
+
+  /// No description provided for @allocationNetSpare.
+  ///
+  /// In vi, this message translates to:
+  /// **'Bán ra còn dư'**
+  String get allocationNetSpare;
+
+  /// No description provided for @allocationBalanced.
+  ///
+  /// In vi, this message translates to:
+  /// **'Kế hoạch tự cân'**
+  String get allocationBalanced;
+
+  /// No description provided for @allocationUntargeted.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đang ở lớp chưa đặt mục tiêu'**
+  String get allocationUntargeted;
+
+  /// No description provided for @allocationNoBasis.
+  ///
+  /// In vi, this message translates to:
+  /// **'Chưa có tài sản để phân bổ.'**
+  String get allocationNoBasis;
+
   /// No description provided for @targetProgress.
   ///
   /// In vi, this message translates to:

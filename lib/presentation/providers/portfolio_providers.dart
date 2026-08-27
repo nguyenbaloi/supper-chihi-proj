@@ -11,6 +11,7 @@ import '../../domain/models/portfolio_valuation.dart';
 import '../../domain/models/snapshot.dart';
 import '../../domain/models/target_group.dart';
 import '../../domain/models/valued_holding.dart';
+import '../../domain/rules/allocation.dart';
 import '../../domain/rules/contribution.dart';
 import '../../domain/rules/debt_math.dart';
 import '../../domain/rules/profit_loss.dart';
@@ -117,4 +118,49 @@ final snapshotSeriesProvider = FutureProvider<List<SnapshotPoint>>((ref) {
   ref.watch(settingsProvider);
   final repo = ref.watch(snapshotRepositoryProvider);
   return (repo as SnapshotRepositoryImpl).series();
+});
+
+/// Các đơn vị đang có Tỷ trọng mục tiêu: Lớp tài sản đặt mục tiêu riêng, cộng
+/// các Nhóm mục tiêu.
+///
+/// Lớp đã xếp vào Nhóm mục tiêu không xuất hiện riêng — mục tiêu của nó đặt ở
+/// cấp nhóm, liệt kê thêm lần nữa là cộng trùng. Giá trị của nhóm suy ra từ
+/// các lớp thành viên, không lưu ở đâu cả. Xem AD-5 và FR-19.
+final targetUnitsProvider = Provider<List<AllocationTarget>>((ref) {
+  final valuation = ref.watch(portfolioValuationProvider).value;
+  if (valuation == null) return const [];
+  final groups = ref.watch(targetGroupsProvider).value ?? const <TargetGroup>[];
+
+  return [
+    for (final entry in valuation.visible)
+      if (entry.assetClass.targetGroupId == null &&
+          entry.assetClass.targetWeightBp != null)
+        AllocationTarget(
+          label: entry.assetClass.name,
+          currentValue: entry.value,
+          targetWeightBp: entry.assetClass.targetWeightBp!,
+        ),
+    for (final group in groups)
+      AllocationTarget(
+        label: group.name,
+        currentValue: Money.sum(
+          valuation.visible
+              .where((e) => e.assetClass.targetGroupId == group.id)
+              .map((e) => e.value),
+        ),
+        targetWeightBp: group.targetWeightBp,
+      ),
+  ];
+});
+
+/// Kế hoạch phân bổ: mỗi danh mục nên có bao nhiêu, và phải mua bán bao nhiêu
+/// để tới đó. Suy ra từ Tổng tài sản hiện tại, không lưu ở đâu. Xem AD-5.
+final allocationPlanProvider = Provider<AllocationPlan>((ref) {
+  final valuation = ref.watch(portfolioValuationProvider).value;
+  if (valuation == null) return AllocationPlan.empty;
+
+  return Allocation.plan(
+    targets: ref.watch(targetUnitsProvider),
+    totalAssets: valuation.totalAssets,
+  );
 });
