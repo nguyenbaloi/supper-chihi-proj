@@ -397,11 +397,32 @@ lib/
 | FR-31…FR-32 Sao lưu | `data/backup/` | AD-11 |
 | FR-33…FR-34 Offline, cài đặt | toàn bộ `pubspec.yaml`, `core/l10n/` | AD-6, AD-10 |
 
+## Sai lệch có chủ đích so với PRD
+
+Ba điểm dưới đây khác PRD, đều có lý do kỹ thuật cụ thể và đã được ghi lại để
+không bị hiểu là trôi dạt.
+
+**1. Tên lớp Dart của `Action` là `ProjectAction`.**
+`Action` đã là một lớp của `package:flutter/widgets.dart`; đặt trùng buộc mọi
+widget phải dùng tiền tố import. Thuật ngữ nghiệp vụ, nhãn giao diện và tên
+bảng cơ sở dữ liệu vẫn là `Action` / `actions` — chỉ tên lớp Dart đổi.
+
+**2. Lớp l10n là hằng số Dart, không phải bộ sinh mã ARB.**
+Ứng dụng chỉ có một ngôn ngữ. Toàn bộ chuỗi hiển thị nằm ở `core/l10n/strings.dart`
+dưới dạng `abstract final class S`, đúng tinh thần "một nơi duy nhất chứa chuỗi
+hiển thị" của FR-34. Thêm ngôn ngữ thứ hai chỉ cần đổi các hằng số thành tra cứu
+theo locale; chỗ gọi không đổi. `flutter_localizations` vẫn được giữ vì định dạng
+ngày và số cần dữ liệu locale `vi_VN`.
+
+**3. Markdown do ứng dụng tự dựng hình.**
+`presentation`-level `MarkdownView` xử lý tiêu đề, danh sách, đậm và nghiêng —
+đủ cho toàn bộ nội dung Ghi chú thật ở `addendum.md` §1.4. Tránh được một gói
+phụ thuộc phải qua vòng kiểm tra build hooks của AD-13.
+
 ## Hoãn lại
 
 Những quyết định dưới đây **cố ý chưa chốt**, vì chưa có đủ thông tin và việc chốt sớm không mang lại lợi ích:
 
-- **Thư viện dựng hình markdown cho Ghi chú.** Cần kiểm tra build hooks trước. Phương án dự phòng — tự dựng hình tập con markdown (đậm, nghiêng, danh sách, tiêu đề) — đủ cho nội dung thực tế ở `addendum.md` §1.4.
 - **Cách nhập file sao lưu.** `file_picker` chưa kiểm chứng. Phương án dán JSON vào ô văn bản đủ dùng và không thêm phụ thuộc nào.
 - **Ngưỡng "chậm nhịp" của Mục tiêu ở FR-24.** Bao nhiêu phần trăm lệch thì gọi là chậm — chờ dữ liệu thật sau vài tháng dùng.
 - **Có cần bảng `Idea` riêng khi làm Ngân hàng ý tưởng** hay tái dùng `Note` với `projectId` cho phép rỗng. Quyết khi bắt đầu hạng mục roadmap đó, không quyết trước.

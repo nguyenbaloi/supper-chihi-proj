@@ -13,6 +13,20 @@ updated: 2026-08-28
 
 Thứ tự Epic là thứ tự triển khai. Mỗi Epic kết thúc ở một trạng thái **dùng được thật**, không phải một tầng kỹ thuật xong dở. Epic 1 kết thúc là app chạy được và hiện danh sách Dự án rỗng; Epic 2 kết thúc là app đã thay thế được file `HÀNH ĐỘNG.pdf`.
 
+## Tình trạng triển khai — cập nhật 2026-08-28
+
+| Epic | Trạng thái |
+|---|---|
+| 1. Nền tảng dữ liệu và bộ khung | **Xong** — 7/7 story |
+| 2. Dự án và Hành động | **Xong** — 8/8 story |
+| 3. Mục tiêu và tiến độ | **Xong** — 6/6 story |
+| 4. Hôm nay và tìm kiếm | Một phần — Story 4.1 và 4.3 xong; 4.2 (tìm kiếm toàn cục) và 4.4 (đo hiệu năng) chưa làm |
+| 5. Ghi chú, Liên kết, hạt giống | **Xong** — 4/4 story |
+| 6. Sao lưu và hoàn thiện | Chưa làm — 0/4 story |
+
+Kiểm chứng: `fvm flutter analyze` sạch, 76 test xanh, gồm ba trong bốn kịch bản
+bắt buộc (kịch bản thứ tư — xuất/nhập sao lưu — thuộc Story 6.2 chưa làm).
+
 ## Bảng độ phủ yêu cầu
 
 | Epic | FR được phủ |
