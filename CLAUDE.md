@@ -194,6 +194,36 @@ Nhập là **thay thế toàn bộ**, chạy trong một giao dịch: kiểm tra
 ghi, lỗi giữa chừng cuộn ngược hoàn toàn. Cột `searchText` được **sinh lại** khi
 nhập chứ không lấy từ file, vì nó là dữ liệu dẫn xuất.
 
+## Gitignore toàn cục của máy này loại nhầm file quan trọng
+
+`~/.gitignore_global` trên máy này loại `project.pbxproj`, `Podfile`,
+`Podfile.lock`, `pubspec.lock` và **mọi file `*.json`**. Với một app Flutter,
+mất chúng nghĩa là clone về không dựng được.
+
+`.gitignore` của repo có một khối gỡ loại trừ ở cuối để giữ lại đúng những file
+bắt buộc. **Trước khi commit thứ gì liên quan tới `ios/`, `pubspec.lock` hay
+`drift_schemas/`, kiểm lại nó có thật sự vào repo không:**
+
+```bash
+git ls-files --error-unmatch <đường-dẫn> || echo "BỊ LOẠI"
+```
+
+Thêm file `.json` mới ở chỗ khác thì phải thêm dòng gỡ loại trừ tương ứng.
+
+## Không dựng Xcode song song với dòng lệnh
+
+Chạy `flutter build ios` trong khi Xcode đang build cùng dự án sẽ hỏng cả hai:
+hai tiến trình tranh nhau `DerivedData` và `.dart_tool`. Triệu chứng thấy được:
+
+```
+.dart_tool/package_config.json does not exist
+Command PhaseScriptExecution failed with a nonzero exit code
+accessing build database ... disk I/O error
+The build service has encountered an internal inconsistency error
+```
+
+Không phải lỗi của dự án. Dựng một chỗ một lúc thôi.
+
 ## Icon ứng dụng
 
 Nguồn duy nhất: `design/app_icon_chichi_projects.png`. Sinh lại toàn bộ bằng

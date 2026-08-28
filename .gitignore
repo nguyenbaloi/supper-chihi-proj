@@ -54,3 +54,19 @@ app.*.map.json
 # IDE
 .idea/
 *.iml
+
+# Gỡ loại trừ của ~/.gitignore_global cho những file BẮT BUỘC phải nằm trong repo.
+#
+# Gitignore toàn cục trên máy này loại `project.pbxproj`, `Podfile`,
+# `Podfile.lock`, `pubspec.lock` và `*.json`. Với một app Flutter thì mất chúng
+# nghĩa là clone về không dựng được: mất `IPHONEOS_DEPLOYMENT_TARGET = 14.0`
+# (AD-16), mất `platform :ios, '14.0'`, mất toàn bộ phiên bản đã ghim của
+# AD-13, mất danh mục icon và mất ảnh chụp schema drift.
+!ios/Runner.xcodeproj/project.pbxproj
+!ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+!ios/Podfile
+!ios/Podfile.lock
+!pubspec.lock
+!ios/Runner/Assets.xcassets/**/Contents.json
+!drift_schemas/*.json
+!android/app/src/main/res/**/*.json
