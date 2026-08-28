@@ -7,6 +7,7 @@ library;
 
 import '../../domain/models/enums.dart';
 import '../../domain/repositories/repositories.dart';
+import '../result/result.dart';
 
 abstract final class S {
   static const appTitle = 'Dự án & Mục tiêu';
@@ -185,7 +186,44 @@ abstract final class S {
   static const settingsThemeDark = 'Tối';
   static const settingsReseed = 'Nạp lại dữ liệu có sẵn';
   static const settingsReseedDone = 'Đã nạp xong, không tạo bản ghi trùng';
+
+  // Sao lưu và khôi phục
+  static const backupSection = 'Dữ liệu';
+  static const backupExport = 'Xuất bản sao lưu';
+  static const backupExportHint =
+      'Một file JSON chứa toàn bộ dữ liệu. Tự giữ file này để chuyển máy.';
+  static const backupImport = 'Nhập từ bản sao lưu';
+  static const backupImportHint = 'Thay thế toàn bộ dữ liệu hiện tại.';
+  static const backupImportTitle = 'Thay thế toàn bộ dữ liệu?';
+  static const backupImportConfirm =
+      'Toàn bộ dữ liệu hiện tại trong máy sẽ bị thay bằng nội dung file sao lưu. '
+      'Thao tác này không hoàn tác được.\n\n'
+      'Nếu chưa chắc, hãy xuất một bản sao lưu trước.';
+  static const backupImportReplace = 'Thay thế';
+  static const backupNoFile = 'Chưa chọn file nào';
+  static const backupWipe = 'Xoá sạch dữ liệu';
+  static const backupWipeStep1 =
+      'Xoá toàn bộ dự án, hành động, mục tiêu, ghi chú và đợt đánh giá. '
+      'Nên xuất một bản sao lưu trước.';
+  static const backupWipeStep2 =
+      'Bước cuối: xác nhận lần nữa để xoá sạch. Không có đường khôi phục nếu '
+      'chưa xuất sao lưu.';
+  static const backupWipeConfirm = 'Xoá sạch';
+  static const backupWipeDone = 'Đã xoá sạch dữ liệu';
+
+  static String backupExported(String fileName) => 'Đã xuất $fileName';
+  static String backupImported(int count) => 'Đã khôi phục $count bản ghi';
+  static String backupFailed(String reason) => 'Không nhập được: $reason';
+
+  static String backupFailureReason(FailureCode code) => switch (code) {
+        FailureCode.malformedBackup => 'file sai định dạng hoặc thiếu dữ liệu',
+        FailureCode.backupTooNew =>
+          'file thuộc phiên bản mới hơn, cần cập nhật ứng dụng',
+        _ => 'lỗi khi ghi dữ liệu',
+      };
   static const settingsStaleRange = 'Nhận giá trị từ 7 đến 180';
+
+  static String days(int value) => '$value ngày';
 
   // Nhãn enum
   static String projectStatus(ProjectStatus s) => switch (s) {

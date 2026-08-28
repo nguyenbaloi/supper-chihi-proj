@@ -22,12 +22,11 @@ Thứ tự Epic là thứ tự triển khai. Mỗi Epic kết thúc ở một tr
 | 3. Mục tiêu và tiến độ | **Xong** — 6/6 story |
 | 4. Hôm nay và tìm kiếm | Gần xong — 4.1, 4.2, 4.3 xong; 4.4 (đo hiệu năng có số liệu) chưa làm |
 | 5. Ghi chú, Liên kết, hạt giống | **Xong** — 4/4 story |
-| 6. Sao lưu và hoàn thiện | Chưa làm — 0/4 story |
+| 6. Sao lưu và hoàn thiện | **Xong** — 4/4 story |
 | 7. Đợt đánh giá định kỳ | **Xong** — 6/6 story |
 
-Kiểm chứng: `fvm flutter analyze` sạch, **101 test xanh**, `flutter build apk`
-thành công. Bốn trong năm kịch bản bắt buộc đã có test; kịch bản còn lại
-(xuất → xoá sạch → nhập) thuộc Story 6.2 chưa làm.
+Kiểm chứng: `fvm flutter analyze` sạch, **122 test xanh**, `flutter build apk`
+thành công. **Cả năm kịch bản bắt buộc đều đã có test.**
 
 Khoảng trống đã biết: test widget cấp ứng dụng bị bỏ vì drift chạy I/O thật nên
 treo trong vùng thời gian giả của `testWidgets`. Hành vi tương ứng được test

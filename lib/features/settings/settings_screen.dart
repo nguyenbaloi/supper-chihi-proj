@@ -5,6 +5,7 @@ import '../../core/l10n/strings.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/rules/stale.dart';
 import '../../presentation/providers/providers.dart';
+import 'backup_actions.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -22,7 +23,8 @@ class SettingsScreen extends ConsumerWidget {
               children: [
                 ListTile(
                   title: const Text(S.settingsStaleDays),
-                  subtitle: Text('${settings.staleDays} ngày · ${S.settingsStaleRange}'),
+                  subtitle: Text(
+                      '${S.days(settings.staleDays)} · ${S.settingsStaleRange}'),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -56,6 +58,27 @@ class SettingsScreen extends ConsumerWidget {
                         ),
                     ],
                   ),
+                ),
+                const Divider(),
+                const ListTile(title: Text(S.backupSection)),
+                ListTile(
+                  leading: const Icon(Icons.ios_share),
+                  title: const Text(S.backupExport),
+                  subtitle: const Text(S.backupExportHint),
+                  onTap: () => runExport(context, ref),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.file_open_outlined),
+                  title: const Text(S.backupImport),
+                  subtitle: const Text(S.backupImportHint),
+                  onTap: () => runImport(context, ref),
+                ),
+                ListTile(
+                  leading: Icon(Icons.delete_forever_outlined,
+                      color: Theme.of(context).colorScheme.error),
+                  title: const Text(S.backupWipe),
+                  subtitle: const Text(S.backupWipeStep1),
+                  onTap: () => runWipe(context, ref),
                 ),
                 const Divider(),
                 ListTile(

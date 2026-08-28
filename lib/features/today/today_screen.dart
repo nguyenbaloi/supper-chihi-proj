@@ -149,8 +149,11 @@ class TodayScreen extends ConsumerWidget {
                   leading: const Icon(Icons.hourglass_bottom_outlined),
                   title: Text(s.project.name),
                   subtitle: Text(
-                    '${S.staleProject} '
-                    '${idleDays(lastActivityAt: s.lastActivityAt, createdAt: s.project.createdAt, now: now)} ngày',
+                    '${S.staleProject} ${S.days(idleDays(
+                      lastActivityAt: s.lastActivityAt,
+                      createdAt: s.project.createdAt,
+                      now: now,
+                    ))}',
                   ),
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute<void>(

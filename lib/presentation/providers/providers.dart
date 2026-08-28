@@ -4,6 +4,7 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/backup/backup_service.dart';
 import '../../data/db/database.dart';
 import '../../data/repositories/drift_action_repository.dart';
 import '../../data/repositories/drift_content_repositories.dart';
@@ -62,6 +63,10 @@ final searchRepositoryProvider = Provider<SearchRepository>(
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => DriftSettingsRepository(ref.watch(databaseProvider)),
+);
+
+final backupServiceProvider = Provider<BackupService>(
+  (ref) => BackupService(ref.watch(databaseProvider)),
 );
 
 final seederProvider = Provider<Seeder>(

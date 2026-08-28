@@ -37,6 +37,9 @@ dependencies:
   path_provider: ^2.1.6
   share_plus: ^13.3.0   # xuất sao lưu — FR-31
   url_launcher: ^6.3.1  # mở Liên kết ngoài — FR-28, ngoại lệ duy nhất của AD-6
+  # Chọn file sao lưu để nhập — FR-32. Đã kiểm tra cả cây phụ thuộc không có
+  # thư mục hook/ và build_runner vẫn sinh mã drift được (AD-13).
+  file_picker: ^12.1.1
 
 # KHÔNG có package:http. Ứng dụng không gọi mạng — xem AD-6.
 

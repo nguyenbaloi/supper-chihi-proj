@@ -97,7 +97,7 @@ File trong `domain/` không được `import` bất cứ thứ gì từ `package
 
 ## Ngăn xếp
 
-Riverpod 3.3.2 · drift 2.31.0 · drift_flutter 0.2.8 · decimal 3.2.6 · fl_chart 1.2.0 · intl 0.20.2 · share_plus 13.3.0 · url_launcher 6.3.1
+Riverpod 3.3.2 · drift 2.31.0 · drift_flutter 0.2.8 · decimal 3.2.6 · fl_chart 1.2.0 · intl 0.20.2 · share_plus 13.3.0 · url_launcher 6.3.1 · file_picker 12.1.1
 
 **Không dùng code generation của Riverpod.** `riverpod_generator` cần `analyzer ^9/^12` còn `drift_dev` cần `^10/^13` — loại trừ nhau dưới Dart 3.10.9. Provider khai báo thủ công dưới dạng biến `final` cấp cao nhất trong `presentation/providers/`. Không thêm `riverpod_annotation`, `riverpod_lint`, `custom_lint`.
 
@@ -171,6 +171,19 @@ fvm dart run drift_dev schema generate drift_schemas/ test/data/db/generated/
 4. Thêm test `migrateAndValidate` cho cặp phiên bản mới vào `test/data/db/migration_test.dart`
 
 Cấm xoá cột đang chứa dữ liệu người dùng mà không có bước chuyển sang nơi khác.
+
+## Sao lưu là hợp đồng, không phải kết quả phụ
+
+Định dạng file sao lưu ở `lib/data/backup/backup_codec.dart` được viết tay, cố
+ý **không** dùng `toJson()` do drift sinh — thứ đó đổi theo phiên bản thư viện,
+còn file sao lưu phải đọc được sau nhiều năm.
+
+Đổi định dạng thì tăng `backupFormatVersion` và bổ sung nhánh đọc cho phiên bản
+cũ. File có phiên bản cao hơn ứng dụng bị **từ chối**, không cố đọc.
+
+Nhập là **thay thế toàn bộ**, chạy trong một giao dịch: kiểm tra xong hết mới
+ghi, lỗi giữa chừng cuộn ngược hoàn toàn. Cột `searchText` được **sinh lại** khi
+nhập chứ không lấy từ file, vì nó là dữ liệu dẫn xuất.
 
 ## Kiểm thử bắt buộc
 
