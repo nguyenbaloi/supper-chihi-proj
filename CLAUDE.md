@@ -194,6 +194,19 @@ Nhập là **thay thế toàn bộ**, chạy trong một giao dịch: kiểm tra
 ghi, lỗi giữa chừng cuộn ngược hoàn toàn. Cột `searchText` được **sinh lại** khi
 nhập chứ không lấy từ file, vì nó là dữ liệu dẫn xuất.
 
+## Icon ứng dụng
+
+Nguồn duy nhất: `design/app_icon_chichi_projects.png`. Sinh lại toàn bộ bằng
+`tool/icon/` — xem README ở đó. **Không sửa tay** các file trong
+`ios/Runner/Assets.xcassets/AppIcon.appiconset/` hay `android/.../mipmap-*/`;
+chúng là kết quả sinh ra, sửa tay là mất khi chạy lại công cụ.
+
+Ba ràng buộc: icon tràn viền không bo góc sẵn (iOS và Android tự bo), icon iOS
+không được có kênh trong suốt, và mọi tên file trong `Contents.json` phải tồn tại.
+
+Cố ý không dùng `flutter_launcher_icons`: mọi gói mới phải qua vòng kiểm tra
+build hooks của AD-13, mà việc sinh icon thì chạy một lần rồi thôi.
+
 ## Kiểm thử bắt buộc
 
 Mọi quy tắc trong `domain/rules/` phải có test. Đặc biệt bốn kịch bản dễ sai nhất:

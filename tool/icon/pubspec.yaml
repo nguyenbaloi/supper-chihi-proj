@@ -1,0 +1,7 @@
+name: icontool
+description: Sinh bộ icon iOS và Android từ ảnh nguồn trong design/.
+publish_to: 'none'
+environment:
+  sdk: ">=3.7.0 <4.0.0"
+dependencies:
+  image: ^4.5.4
