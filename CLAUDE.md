@@ -119,6 +119,15 @@ Hai ràng buộc đang giữ điều đó:
 ls ~/.pub-cache/hosted/pub.dev/<tên>-<phiên bản>/hook 2>/dev/null
 ```
 
+### Bộ công cụ iOS
+
+`platform :ios, '14.0'` trong `ios/Podfile` và `IPHONEOS_DEPLOYMENT_TARGET =
+14.0` ở **cả ba** cấu hình trong `ios/Runner.xcodeproj/project.pbxproj`. Ba chỗ
+phải khớp nhau.
+
+Template Flutter 3.38.10 sinh ra 13.0, nhưng `file_picker_darwin` yêu cầu 14.0.
+Đặt thấp hơn thì `pod install` chết và bản dựng iOS hỏng hoàn toàn.
+
 ### Bộ công cụ Android
 
 AGP **8.11.1** · Kotlin **2.2.20** · Gradle **8.14** — khớp phiên bản Flutter SDK dùng trong template. Khi nâng SDK, đối chiếu lại ba con số này trong `.fvm/flutter_sdk/packages/flutter_tools/lib/src/android/gradle_utils.dart`.

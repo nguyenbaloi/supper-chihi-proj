@@ -444,7 +444,7 @@ hai — đó là lý do đây là một nhóm thực thể riêng.
 | NFR-3 | Dữ liệu không bao giờ rời khỏi máy | Kiểm tra tĩnh: không có `package:http`, không `dart:io` `HttpClient` trong toàn bộ mã nguồn |
 | NFR-4 | Không mất dữ liệu khi nâng cấp phiên bản | Mỗi lần tăng `schemaVersion` phải có test `migrateAndValidate` cho cặp phiên bản đó |
 | NFR-5 | Toàn bộ quy tắc nghiệp vụ test được không cần giả lập thiết bị | Tầng `domain/` không import Flutter, drift, hay tầng khác |
-| NFR-6 | Chạy được trên Android 8+ và iOS 13+ | Cấu hình `minSdkVersion` và deployment target tương ứng |
+| NFR-6 | Chạy được trên Android 8+ và **iOS 14+** | Cấu hình `minSdkVersion` và deployment target tương ứng. Sửa từ iOS 13 lên 14 ngày 2026-08-28: `file_picker_darwin` yêu cầu tối thiểu 14.0, mà không có nó thì không nhập được file sao lưu (FR-32). Đánh đổi có ý thức — iOS 13 ra năm 2019 |
 | NFR-7 | Trạng thái và độ ưu tiên không chỉ phân biệt bằng màu | Mỗi mức luôn kèm nhãn chữ hoặc biểu tượng |
 | NFR-8 | Không phụ thuộc gói có build hooks | Kiểm tra `hook/` trong mỗi gói trước khi thêm — xem `addendum.md` §2.1 |
 

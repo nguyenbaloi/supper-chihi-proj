@@ -14,6 +14,8 @@ import '../../presentation/providers/providers.dart';
 Future<void> runExport(BuildContext context, WidgetRef ref) async {
   final service = ref.read(backupServiceProvider);
   final messenger = ScaffoldMessenger.of(context);
+  // Lấy điểm neo **trước** mọi lần await: sau await thì context có thể đã chết.
+  final anchor = _anchorOf(context);
 
   final json = await service.exportJson();
   final name = service.fileNameFor(DateTime.now());
@@ -21,8 +23,13 @@ Future<void> runExport(BuildContext context, WidgetRef ref) async {
   final file = File('${dir.path}/$name');
   await file.writeAsString(json);
 
+  // Trên iPad, bảng chia sẻ là popover và **bắt buộc** phải có điểm neo —
+  // thiếu nó là crash, không phải hiện sai chỗ.
   await SharePlus.instance.share(
-    ShareParams(files: [XFile(file.path, mimeType: 'application/json')]),
+    ShareParams(
+      files: [XFile(file.path, mimeType: 'application/json')],
+      sharePositionOrigin: anchor,
+    ),
   );
   messenger.showSnackBar(SnackBar(content: Text(S.backupExported(name))));
 }
@@ -105,4 +112,19 @@ Future<void> runWipe(BuildContext context, WidgetRef ref) async {
   final messenger = ScaffoldMessenger.of(context);
   await ref.read(backupServiceProvider).wipeAll();
   messenger.showSnackBar(const SnackBar(content: Text(S.backupWipeDone)));
+}
+
+/// Ô chữ nhật của widget vừa được chạm, dùng làm điểm neo popover trên iPad.
+/// Trả về một ô ở giữa màn hình nếu không lấy được — vẫn hơn là để `null`.
+Rect _anchorOf(BuildContext context) {
+  final box = context.findRenderObject() as RenderBox?;
+  if (box != null && box.hasSize) {
+    return box.localToGlobal(Offset.zero) & box.size;
+  }
+  final size = MediaQuery.of(context).size;
+  return Rect.fromCenter(
+    center: Offset(size.width / 2, size.height / 2),
+    width: 1,
+    height: 1,
+  );
 }

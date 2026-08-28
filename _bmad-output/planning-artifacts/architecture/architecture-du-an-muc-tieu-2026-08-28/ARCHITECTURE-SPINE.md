@@ -179,6 +179,21 @@ Trước khi thêm bất kỳ gói mới nào:
 ls ~/.pub-cache/hosted/pub.dev/<tên>-<phiên bản>/hook 2>/dev/null
 ```
 
+### AD-16 — iOS deployment target tối thiểu 14.0 `[ĐÃ CHỐT]`
+
+- **Ràng buộc:** `ios/Podfile`, `ios/Runner.xcodeproj/project.pbxproj`
+- **Ngăn chặn:** `pod install` thất bại với thông báo *"The plugin
+  file_picker_darwin requires a higher minimum iOS deployment version"* — bản
+  dựng iOS hỏng hoàn toàn, không phải hỏng một tính năng
+- **Quy tắc:** `platform :ios, '14.0'` trong Podfile và
+  `IPHONEOS_DEPLOYMENT_TARGET = 14.0` ở cả ba cấu hình trong pbxproj. Ba chỗ
+  phải khớp nhau.
+
+Template của Flutter 3.38.10 sinh ra 13.0. Nâng lên vì `file_picker_darwin
+1.0.3` đặt `s.ios.deployment_target = '14.0'`. Phát hiện bằng bản dựng thật,
+không phải bằng phân tích tĩnh — đây là lý do phải chạy `flutter build ios`
+trước khi giao cho người dùng thử.
+
 ### AD-14 — Bộ công cụ Android bám theo template của SDK `[ĐÃ CHỐT]`
 
 - **Ràng buộc:** `android/`
