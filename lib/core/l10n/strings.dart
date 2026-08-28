@@ -15,7 +15,7 @@ abstract final class S {
   // Điều hướng
   static const tabToday = 'Hôm nay';
   static const tabProjects = 'Dự án';
-  static const tabGoals = 'Mục tiêu';
+  static const tabStats = 'Thống kê';
   static const settings = 'Cài đặt';
   static const search = 'Tìm kiếm';
 
@@ -32,14 +32,49 @@ abstract final class S {
   static const optional = 'Không bắt buộc';
 
   // Hôm nay
-  static const todayOverdue = 'Quá hạn';
-  static const todayDoing = 'Đang làm';
-  static const todayDueSoon = 'Đến hạn trong 7 ngày';
+  static const todayDoNow = 'Làm ngay';
+  static const todayDoNowHint =
+      'Chỉ những việc bạn tự ghim mới xuất hiện ở đây.';
+  static const todayEmpty = 'Chưa ghim việc nào để làm ngay.';
+  static const todayGoToProjects = 'Mở danh sách dự án để chọn việc';
   static const todayAttention = 'Cần chú ý';
-  static const todayAllClear = 'Không có gì cần chú ý hôm nay.';
-  static const todayGoToProjects = 'Xem danh sách dự án';
+  static const todayAllClear = 'Không có gì cần chú ý.';
   static const staleProject = 'không hoạt động';
-  static const goalBehindPace = 'đang chậm nhịp';
+
+  static const pin = 'Ghim vào Làm ngay';
+  static const unpin = 'Bỏ khỏi Làm ngay';
+  static const pinned = 'Đã ghim';
+
+  static const attentionOverdue = 'Quá hạn';
+  static const attentionDueSoon = 'Sắp đến hạn';
+  static const attentionHighPriority = 'Ưu tiên cao, chưa bắt đầu';
+
+  static String attentionCount(int n) => '$n việc';
+  static String dueInDays(int n) => n == 0 ? 'đến hạn hôm nay' : 'còn $n ngày';
+
+  // Thống kê
+  static const statsTitle = 'Thống kê';
+  static const statsScopeAll = 'Tất cả';
+  static const statsByOutcome = 'Đầu việc theo hạn';
+  static const statsByTopic = 'Theo chủ đề';
+  static const statsOnTimeRatio = 'Tỷ lệ đúng hạn';
+  static const statsCompletionRatio = 'Tỷ lệ hoàn thành';
+  static const statsEmpty = 'Chưa có đầu việc nào để thống kê.';
+  static const statsOutcomeOnTime = 'Xong đúng hạn';
+  static const statsOutcomeLate = 'Xong muộn';
+  static const statsOutcomeOverdue = 'Quá hạn chưa xong';
+  static const statsOutcomePending = 'Còn hạn, chưa xong';
+  static const statsOutcomeNoDueDate = 'Không đặt hạn';
+  static const statsOutcomeDropped = 'Đã bỏ';
+
+  static const actionPriority = 'Độ ưu tiên';
+
+  static String projectCount(int n) => '$n dự án';
+  static String projectCountWithTally(int n, int done, int total) =>
+      '$n dự án · $done/$total';
+  static String highPriorityOpen(int n) => '$n ưu tiên cao';
+  static String overdueCount(int n) => '$n quá hạn';
+  static String finishedWithDueDate(int n) => '$n việc có hạn đã xong';
 
   // Dự án
   static const projectNew = 'Dự án mới';
@@ -53,7 +88,6 @@ abstract final class S {
   static const projectNameRequired = 'Tên dự án không được để trống';
   static const projectEmptyList = 'Chưa có dự án nào.';
   static const projectHistory = 'Lịch sử trạng thái';
-  static const projectLinkedGoals = 'Mục tiêu đã nối';
   static const projectNotes = 'Ghi chú';
   static const projectLinks = 'Liên kết';
   static const projectShowClosed = 'Hiện dự án đã đóng';
@@ -85,39 +119,6 @@ abstract final class S {
   static String actionDoingFor(int days) =>
       days <= 0 ? 'bắt đầu hôm nay' : 'đang làm $days ngày';
 
-  // Mục tiêu
-  static const goalNew = 'Mục tiêu mới';
-  static const goalName = 'Tên mục tiêu';
-  static const goalNumeric = 'Mục tiêu có số';
-  static const goalQualitative = 'Mục tiêu định tính';
-  static const goalTarget = 'Giá trị đích';
-  static const goalUnit = 'Đơn vị';
-  static const goalDueDate = 'Hạn chót';
-  static const goalEmptyList = 'Chưa có mục tiêu nào.';
-  static const goalNoProjects = 'Chưa có dự án nào phục vụ mục tiêu này';
-  static const goalMarks = 'Mốc tiến độ';
-  static const goalMarkNew = 'Thêm mốc';
-  static const goalMarkValue = 'Giá trị';
-  static const goalMarkDate = 'Ngày';
-  static const goalMarkNote = 'Ghi chú';
-  static const goalNeedTwoMarks = 'Cần ít nhất hai mốc để vẽ biểu đồ.';
-  static const goalNoMarks = 'Chưa có mốc nào.';
-  static const goalRemaining = 'Còn thiếu';
-  static const goalDaysLeft = 'Thời gian còn lại';
-  static const goalRequiredPerMonth = 'Cần thêm mỗi tháng';
-  static const goalActualPerMonth = 'Nhịp hiện tại';
-  static const goalNoDueDateHint =
-      'Chưa đặt hạn chót nên chưa tính được nhịp và dự báo.';
-  static const goalTargetRequired = 'Giá trị đích không hợp lệ';
-
-  static String goalDaysLeftValue(int days) => '$days ngày';
-  static String goalForecastLate(int months) => 'Nhịp hiện tại về đích chậm $months tháng';
-  static String goalForecastEarly(int months) => 'Nhịp hiện tại về đích sớm $months tháng';
-  static const goalForecastOnTime = 'Nhịp hiện tại vừa đủ về đích đúng hạn';
-  static const goalGoingBackwards = 'Giá trị đang đi lùi';
-  static const goalReached = 'Đã đạt đích';
-  static const goalPastDue = 'Đã qua hạn chót mà chưa đạt đích';
-
   // Ghi chú và liên kết
   static const noteNew = 'Ghi chú mới';
   static const noteTitle = 'Tiêu đề';
@@ -136,7 +137,6 @@ abstract final class S {
   static String searchKind(SearchKind kind) => switch (kind) {
         SearchKind.project => 'Dự án',
         SearchKind.action => 'Hành động',
-        SearchKind.goal => 'Mục tiêu',
         SearchKind.note => 'Ghi chú',
         SearchKind.link => 'Liên kết',
         SearchKind.review => 'Đánh giá',

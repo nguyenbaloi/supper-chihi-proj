@@ -10,9 +10,6 @@ part 'database.g.dart';
     Topics,
     Projects,
     Actions,
-    Goals,
-    GoalUpdates,
-    ProjectGoals,
     Notes,
     Links,
     Reviews,
@@ -26,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'personal_projects'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -41,6 +38,18 @@ class AppDatabase extends _$AppDatabase {
           if (from < 2) {
             await m.createTable(reviews);
             await m.createTable(reviewItems);
+          }
+          if (from < 3) {
+            // Hành động có độ ưu tiên riêng và cờ ghim "làm ngay" (FR-41, FR-42).
+            await m.addColumn(actions, actions.priority);
+            await m.addColumn(actions, actions.pinned);
+            await m.addColumn(actions, actions.pinnedAt);
+            // Bỏ hẳn Mục tiêu theo quyết định ngày 2026-08-28. Đây là lần duy
+            // nhất trong dự án này dữ liệu người dùng bị xoá theo chủ đích;
+            // đường lui là file sao lưu định dạng phiên bản 2.
+            await customStatement('DROP TABLE IF EXISTS project_goals');
+            await customStatement('DROP TABLE IF EXISTS goal_updates');
+            await customStatement('DROP TABLE IF EXISTS goals');
           }
         },
         beforeOpen: (details) async {

@@ -4,7 +4,6 @@
 library;
 
 import '../models/enums.dart';
-import '../models/goal.dart';
 import '../models/note.dart';
 import '../models/project.dart';
 import '../models/project_action.dart';
@@ -121,6 +120,7 @@ abstract interface class ActionRepository {
     required int projectId,
     required String title,
     String note = '',
+    Priority priority = Priority.medium,
     DateTime? dueDate,
   });
   Future<void> update(ProjectAction action);
@@ -131,39 +131,18 @@ abstract interface class ActionRepository {
 
   /// Khôi phục một Hành động vừa xoá — phục vụ thao tác hoàn tác (FR-15).
   Future<void> restore(ProjectAction action);
-}
 
-abstract interface class GoalRepository {
-  Stream<List<Goal>> watchAll();
-  Stream<Goal?> watchById(int id);
-  Stream<List<GoalUpdate>> watchUpdates(int goalId);
-  Future<List<GoalUpdate>> getUpdates(int goalId);
+  /// Ghim hoặc bỏ ghim khỏi danh sách "làm ngay" của màn hình Hôm nay — FR-42.
+  Future<void> setPinned(int actionId, bool pinned);
 
-  Future<Goal> create({
-    required String name,
-    String description = '',
-    required bool isNumeric,
-    int? targetRaw,
-    int decimals = 0,
-    String unit = 'VND',
-    DateTime? dueDate,
-  });
-  Future<void> update(Goal goal);
-  Future<void> delete(int id);
+  /// Mọi Hành động đang ghim, xếp theo thời điểm ghim.
+  Stream<List<ProjectAction>> watchPinned();
 
-  Future<GoalUpdate> addUpdate({
-    required int goalId,
-    required DateTime date,
-    required int valueRaw,
-    String note = '',
-  });
-  Future<void> updateMark(GoalUpdate mark);
-  Future<void> deleteMark(int id);
+  /// Mọi Hành động còn mở — nguồn của khối cảnh báo và của thống kê.
+  Stream<List<ProjectAction>> watchAllOpen();
 
-  Future<void> linkProject(int projectId, int goalId);
-  Future<void> unlinkProject(int projectId, int goalId);
-  Stream<List<int>> watchLinkedProjectIds(int goalId);
-  Stream<List<int>> watchLinkedGoalIds(int projectId);
+  /// Mọi Hành động, không lọc — nguồn của thống kê theo hạn.
+  Stream<List<ProjectAction>> watchAll();
 }
 
 abstract interface class NoteRepository {
@@ -255,7 +234,7 @@ abstract interface class ReviewRepository {
   });
 }
 
-enum SearchKind { project, action, goal, note, link, review }
+enum SearchKind { project, action, note, link, review }
 
 /// Một kết quả tìm kiếm, kèm đủ thông tin để mở đúng chỗ.
 final class SearchHit {
@@ -273,13 +252,13 @@ final class SearchHit {
   final String title;
   final String snippet;
 
-  /// Dự án chứa kết quả. `null` với Mục tiêu — nó không thuộc Dự án nào.
+  /// Dự án chứa kết quả.
   final int? projectId;
   final String? projectName;
 }
 
 abstract interface class SearchRepository {
-  /// FR-30: quét Dự án, Hành động, Mục tiêu, Ghi chú, Liên kết và Đợt đánh giá.
+  /// FR-30: quét Dự án, Hành động, Ghi chú, Liên kết và Đợt đánh giá.
   /// Không phân biệt hoa thường và không phân biệt dấu — AD-12.
   Future<List<SearchHit>> search(String query);
 }

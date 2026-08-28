@@ -6,13 +6,12 @@ import 'package:personal_projects/core/result/result.dart';
 import 'package:personal_projects/data/backup/backup_codec.dart';
 import 'package:personal_projects/data/backup/backup_service.dart';
 import 'package:personal_projects/data/db/database.dart';
-import 'package:personal_projects/data/repositories/drift_goal_repository.dart';
 import 'package:personal_projects/data/seed/seeder.dart';
 
 void main() {
   late AppDatabase db;
   late BackupService backup;
-  final clock = () => DateTime.utc(2026, 8, 28, 10);
+  DateTime clock() => DateTime.utc(2026, 8, 28, 10);
 
   /// Chụp lại toàn bộ nội dung cơ sở dữ liệu để so khớp sau khi khôi phục.
   Future<Map<String, List<Map<String, Object?>>>> snapshot() async {
@@ -35,7 +34,7 @@ void main() {
       expect(DateTime.parse(json['exportedAt']! as String), clock().toUtc());
     });
 
-    test('chứa đủ mười một mục và phần cài đặt', () async {
+    test('chứa đủ tám mục và phần cài đặt', () async {
       final json = jsonDecode(await backup.exportJson()) as Map<String, Object?>;
       for (final name in backupSections) {
         expect(json.containsKey(name), isTrue, reason: 'thiếu mục $name');
@@ -49,7 +48,6 @@ void main() {
       expect((json['actions']! as List).length, 17);
       expect((json['notes']! as List).length, 5);
       expect((json['links']! as List).length, 4);
-      expect((json['goals']! as List).length, 2);
       expect((json['reviews']! as List).length, 2);
       expect((json['reviewItems']! as List).length, 10);
     });
@@ -61,17 +59,6 @@ void main() {
 
   group('Story 6.2 — nhập khôi phục (FR-32)', () {
     test('KỊCH BẢN BẮT BUỘC 4 — xuất, xoá sạch, nhập, so khớp toàn bộ', () async {
-      // Thêm một Mốc để chắc chắn goalUpdates cũng đi trong chu trình.
-      final goals = DriftGoalRepository(db, clock: clock);
-      final billion = (await goals.watchAll().first)
-          .firstWhere((g) => g.name == 'Mục tiêu 1 tỷ');
-      await goals.addUpdate(
-        goalId: billion.id,
-        date: DateTime(2026, 8, 1),
-        valueRaw: 340000000,
-        note: 'đối chiếu từ app danh mục',
-      );
-
       final before = await snapshot();
       final json = await backup.exportJson();
 
@@ -236,7 +223,7 @@ void main() {
     test('xoá sạch rồi dựng lại sáu Chủ đề mặc định', () async {
       await backup.wipeAll();
       expect(await db.select(db.projects).get(), isEmpty);
-      expect(await db.select(db.goals).get(), isEmpty);
+      expect(await db.select(db.reviews).get(), isEmpty);
       expect(await db.select(db.statusEvents).get(), isEmpty);
       expect((await db.select(db.topics).get()).length, 6);
     });

@@ -64,6 +64,9 @@ class BackupService {
               'title': r.title,
               'note': r.note,
               'status': r.status,
+              'priority': r.priority,
+              'pinned': r.pinned,
+              'pinnedAt': isoOrNull(r.pinnedAt),
               'dueDate': isoOrNull(r.dueDate),
               'sortOrder': r.sortOrder,
               'createdAt': isoOrNull(r.createdAt),
@@ -116,37 +119,6 @@ class BackupService {
               'sortOrder': r.sortOrder,
               'sourceActionId': r.sourceActionId,
             }
-        ],
-        'goals': [
-          for (final r in await _db.select(_db.goals).get())
-            {
-              'id': r.id,
-              'name': r.name,
-              'description': r.description,
-              'isNumeric': r.isNumeric,
-              'targetRaw': r.targetRaw,
-              'decimals': r.decimals,
-              'unit': r.unit,
-              'dueDate': isoOrNull(r.dueDate),
-              'createdAt': isoOrNull(r.createdAt),
-              'updatedAt': isoOrNull(r.updatedAt),
-            }
-        ],
-        'goalUpdates': [
-          for (final r in await _db.select(_db.goalUpdates).get())
-            {
-              'id': r.id,
-              'goalId': r.goalId,
-              'date': isoOrNull(r.date),
-              'valueRaw': r.valueRaw,
-              'decimals': r.decimals,
-              'note': r.note,
-              'createdAt': isoOrNull(r.createdAt),
-            }
-        ],
-        'projectGoals': [
-          for (final r in await _db.select(_db.projectGoals).get())
-            {'projectId': r.projectId, 'goalId': r.goalId}
         ],
         'statusEvents': [
           for (final r in await _db.select(_db.statusEvents).get())
@@ -243,12 +215,6 @@ class BackupService {
         await _db.delete(_db.reviews).go();
       case 'reviewItems':
         await _db.delete(_db.reviewItems).go();
-      case 'goals':
-        await _db.delete(_db.goals).go();
-      case 'goalUpdates':
-        await _db.delete(_db.goalUpdates).go();
-      case 'projectGoals':
-        await _db.delete(_db.projectGoals).go();
       case 'statusEvents':
         await _db.delete(_db.statusEvents).go();
     }
@@ -291,6 +257,9 @@ class BackupService {
                 title: readString(r, 'title'),
                 note: Value(readString(r, 'note')),
                 status: readString(r, 'status'),
+                priority: Value(readString(r, 'priority', fallback: 'medium')),
+                pinned: Value(readBool(r, 'pinned')),
+                pinnedAt: Value(readDateOrNull(r, 'pinnedAt')),
                 dueDate: Value(readDateOrNull(r, 'dueDate')),
                 sortOrder: Value(readInt(r, 'sortOrder')),
                 createdAt: readDate(r, 'createdAt'),
@@ -347,36 +316,9 @@ class BackupService {
                 searchText: Value(
                     _search([readString(r, 'label'), readString(r, 'note')])),
               ));
-        case 'goals':
-          await _db.into(_db.goals).insert(GoalsCompanion.insert(
-                id: Value(readInt(r, 'id')),
-                name: readString(r, 'name'),
-                description: Value(readString(r, 'description')),
-                isNumeric: Value(readBool(r, 'isNumeric', fallback: true)),
-                targetRaw: Value(readIntOrNull(r, 'targetRaw')),
-                decimals: Value(readInt(r, 'decimals')),
-                unit: Value(readString(r, 'unit', fallback: 'VND')),
-                dueDate: Value(readDateOrNull(r, 'dueDate')),
-                createdAt: readDate(r, 'createdAt'),
-                updatedAt: readDate(r, 'updatedAt'),
-                searchText: Value(_search(
-                    [readString(r, 'name'), readString(r, 'description')])),
-              ));
-        case 'goalUpdates':
-          await _db.into(_db.goalUpdates).insert(GoalUpdatesCompanion.insert(
-                id: Value(readInt(r, 'id')),
-                goalId: readInt(r, 'goalId'),
-                date: readDate(r, 'date'),
-                valueRaw: readInt(r, 'valueRaw'),
-                decimals: Value(readInt(r, 'decimals')),
-                note: Value(readString(r, 'note')),
-                createdAt: readDate(r, 'createdAt'),
-              ));
-        case 'projectGoals':
-          await _db.into(_db.projectGoals).insert(ProjectGoalsCompanion.insert(
-                projectId: readInt(r, 'projectId'),
-                goalId: readInt(r, 'goalId'),
-              ));
+
+
+
         case 'statusEvents':
           await _db.into(_db.statusEvents).insert(StatusEventsCompanion.insert(
                 id: Value(readInt(r, 'id')),

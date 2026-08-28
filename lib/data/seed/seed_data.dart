@@ -31,9 +31,10 @@ const List<SeedTopic> seedTopics = [
 ];
 
 final class SeedAction {
-  const SeedAction(this.title, this.status);
+  const SeedAction(this.title, this.status, {this.priority = Priority.medium});
   final String title;
   final ActionStatus status;
+  final Priority priority;
 }
 
 final class SeedNote {
@@ -207,9 +208,11 @@ final List<SeedProject> seedProjects = [
           ActionStatus.doing),
       SeedAction(
           'Phối hợp cô giáo can thiệp 1-1: chơi tương tác, chơi chờ lượt, chú ý chung',
-          ActionStatus.doing),
+          ActionStatus.doing,
+          priority: Priority.high),
       // Nhóm 3 — Kỹ năng tự phục vụ và vệ sinh
-      SeedAction('Tập đòi đi vệ sinh (tè, ị), tiến tới cai bỉm', ActionStatus.todo),
+      SeedAction('Tập đòi đi vệ sinh (tè, ị), tiến tới cai bỉm', ActionStatus.todo,
+          priority: Priority.high),
       SeedAction('Rèn thói quen ngồi bô đúng giờ cố định trong ngày', ActionStatus.todo),
       SeedAction('Luyện tự xúc ăn và tuyệt đối cai tivi, điện thoại khi ăn',
           ActionStatus.doing),
@@ -290,10 +293,10 @@ final List<SeedProject> seedProjects = [
       SeedAction('Chỉ mua 1 màn hình phục vụ công việc', ActionStatus.done),
       SeedAction('Sắp xếp lại góc làm việc riêng — Tầng 1', ActionStatus.done),
       SeedAction('Dồn tiền mua máy rửa bát', ActionStatus.todo),
-      SeedAction(
-          'Sắp xếp lại thời gian làm việc ở cty và cho cá nhân', ActionStatus.doing),
+      SeedAction('Sắp xếp lại thời gian làm việc ở cty và cho cá nhân',
+          ActionStatus.doing, priority: Priority.high),
       SeedAction('Cân nhắc vay đầu tư với số vốn hợp lý khi cảm thấy có cơ hội đến',
-          ActionStatus.todo),
+          ActionStatus.todo, priority: Priority.high),
       SeedAction('Cân bằng danh mục đầu tư — đã có ứng dụng tự làm', ActionStatus.done),
     ],
     notes: [
@@ -322,49 +325,3 @@ final List<SeedProject> seedProjects = [
 /// Ngày thuần, không giờ. Lưu ở mốc đầu ngày giờ địa phương.
 DateTime _d(int y, int m, int d) => DateTime(y, m, d);
 
-final class SeedGoal {
-  const SeedGoal({
-    required this.name,
-    required this.isNumeric,
-    this.description = '',
-    this.targetRaw,
-    this.unit = 'VND',
-    this.dueDate,
-    this.linkedProjectNames = const [],
-  });
-
-  final String name;
-  final bool isNumeric;
-  final String description;
-  final int? targetRaw;
-  final String unit;
-  final DateTime? dueDate;
-  final List<String> linkedProjectNames;
-}
-
-/// FR-3: hai Mục tiêu — một có số, một định tính.
-///
-/// `Mục tiêu 1 tỷ` được người dùng làm rõ ngày 2026-08-28: đo bằng **tổng tài
-/// sản ròng**, ghi lại và nhập tay từng Mốc, hạn chót **31/12/2027**. Có hạn
-/// chót nên nhịp và dự báo về đích có hiệu lực (FR-24).
-final List<SeedGoal> seedGoals = [
-  SeedGoal(
-    name: 'Mục tiêu 1 tỷ',
-    isNumeric: true,
-    description: 'Đo bằng tổng tài sản ròng. '
-        'Số liệu đối chiếu từ app theo dõi danh mục đầu tư, nhập tay từng mốc.',
-    targetRaw: 1000000000,
-    unit: 'VND',
-    dueDate: _d(2027, 12, 31),
-    linkedProjectNames: ['Kế hoạch tài chính'],
-  ),
-  const SeedGoal(
-    name: 'Tìm thêm một nguồn thu nhập khác',
-    isNumeric: false,
-    description: 'Ưu tiên số 1: tạo ra dòng tiền, thu nhập thụ động ngoài làm thuê.',
-    linkedProjectNames: [
-      'Kênh TikTok, YouTube tiếp thị liên kết',
-      'Viết app đẩy store kiếm thu nhập',
-    ],
-  ),
-];

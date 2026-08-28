@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_projects/data/db/database.dart';
 import 'package:personal_projects/data/repositories/drift_action_repository.dart';
 import 'package:personal_projects/data/repositories/drift_content_repositories.dart';
-import 'package:personal_projects/data/repositories/drift_goal_repository.dart';
 import 'package:personal_projects/data/repositories/drift_project_repository.dart';
 import 'package:personal_projects/data/repositories/drift_topic_repository.dart';
 import 'package:personal_projects/data/seed/seeder.dart';
@@ -14,7 +13,6 @@ void main() {
   late AppDatabase db;
   late DriftProjectRepository projects;
   late DriftActionRepository actions;
-  late DriftGoalRepository goals;
   late DriftTopicRepository topics;
   late Seeder seeder;
 
@@ -26,7 +24,6 @@ void main() {
     db = AppDatabase(NativeDatabase.memory());
     projects = DriftProjectRepository(db, clock: clock);
     actions = DriftActionRepository(db, clock: clock);
-    goals = DriftGoalRepository(db, clock: clock);
     topics = DriftTopicRepository(db);
     seeder = Seeder(db, clock: clock);
     await seeder.ensureTopics();
@@ -159,18 +156,12 @@ void main() {
       await actions.create(projectId: p.id, title: 'Việc 1');
       await notes.create(projectId: p.id, title: 'Nợ tốt', bodyMarkdown: '...');
       await links.create(projectId: p.id, label: 'Sheet', url: 'https://x.test');
-      final g = await goals.create(name: 'Mục tiêu 1 tỷ', isNumeric: true, targetRaw: 1000000000);
-      await goals.linkProject(p.id, g.id);
-
       await projects.delete(p.id);
 
       expect(await projects.getById(p.id), isNull);
       expect(await db.select(db.actions).get(), isEmpty);
       expect(await db.select(db.notes).get(), isEmpty);
       expect(await db.select(db.links).get(), isEmpty);
-      expect(await db.select(db.projectGoals).get(), isEmpty);
-      expect((await goals.watchAll().first).length, 1,
-          reason: 'Mục tiêu không bị xoá theo Dự án');
     });
   });
 
@@ -247,8 +238,6 @@ void main() {
       expect((await db.select(db.actions).get()).length, 17);
       expect((await db.select(db.notes).get()).length, 5);
       expect((await db.select(db.links).get()).length, 4);
-      expect((await db.select(db.goals).get()).length, 2);
-      expect((await db.select(db.projectGoals).get()).length, 3);
       expect((await db.select(db.reviews).get()).length, 2);
     });
 
@@ -264,63 +253,14 @@ void main() {
       expect(list.where((a) => a.status == ActionStatus.todo).length, 2);
     });
 
-    test('Mục tiêu 1 tỷ có số và có hạn chót; mục tiêu còn lại định tính', () async {
-      await seeder.applyProjectSeed();
-      final list = await goals.watchAll().first;
-      final billion = list.firstWhere((g) => g.name == 'Mục tiêu 1 tỷ');
-      expect(billion.isNumeric, isTrue);
-      expect(billion.targetRaw, 1000000000);
-      // Người dùng chốt ngày 2026-08-28: đo bằng tổng tài sản ròng, hạn 31/12/2027.
-      expect(billion.dueDate, isNotNull);
-
-      final other = list.firstWhere((g) => g.name != 'Mục tiêu 1 tỷ');
-      expect(other.isNumeric, isFalse);
-      expect(other.targetRaw, isNull);
-    });
-
     test('FR-4 — chạy lại không nhân đôi bản ghi', () async {
       await seeder.applyProjectSeed();
       await seeder.applyProjectSeed();
 
       expect((await db.select(db.projects).get()).length, 7);
       expect((await db.select(db.actions).get()).length, 17);
-      expect((await db.select(db.goals).get()).length, 2);
-      expect((await db.select(db.projectGoals).get()).length, 3);
       expect((await db.select(db.reviews).get()).length, 2);
     });
   });
 
-  group('Story 3.2 — sổ Mốc tiến độ (FR-21)', () {
-    test('ngày được chuẩn hoá về đầu ngày', () async {
-      final g = await goals.create(name: 'Mục tiêu 1 tỷ', isNumeric: true, targetRaw: 1000000000);
-      final m = await goals.addUpdate(
-        goalId: g.id,
-        date: DateTime(2026, 8, 28, 17, 42),
-        valueRaw: 340000000,
-      );
-      expect(m.date, DateTime(2026, 8, 28).toUtc());
-    });
-
-    test('sửa và xoá Mốc giữa chuỗi', () async {
-      final g = await goals.create(name: 'G', isNumeric: true, targetRaw: 1000000000);
-      final m1 = await goals.addUpdate(goalId: g.id, date: DateTime(2026, 3, 1), valueRaw: 200000000);
-      final m2 = await goals.addUpdate(goalId: g.id, date: DateTime(2026, 5, 1), valueRaw: 280000000);
-      await goals.addUpdate(goalId: g.id, date: DateTime(2026, 8, 1), valueRaw: 340000000);
-
-      await goals.updateMark(m2.copyWith(valueRaw: 500000000));
-      var list = await goals.getUpdates(g.id);
-      expect(list.firstWhere((u) => u.id == m2.id).valueRaw, 500000000);
-
-      await goals.deleteMark(m1.id);
-      list = await goals.getUpdates(g.id);
-      expect(list.length, 2);
-    });
-
-    test('xoá Mục tiêu xoá theo Mốc của nó', () async {
-      final g = await goals.create(name: 'G', isNumeric: true, targetRaw: 100);
-      await goals.addUpdate(goalId: g.id, date: DateTime(2026, 1, 1), valueRaw: 10);
-      await goals.delete(g.id);
-      expect(await db.select(db.goalUpdates).get(), isEmpty);
-    });
-  });
 }

@@ -4,9 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/l10n/strings.dart';
 import 'domain/models/enums.dart';
-import 'features/goals/goals_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/projects/projects_screen.dart';
+import 'features/stats/stats_screen.dart';
 import 'features/search/search_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/today/today_screen.dart';
@@ -102,7 +102,12 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
-  static const _screens = [TodayScreen(), ProjectsScreen(), GoalsScreen()];
+  static const _screens = [
+    TodayScreen(),
+    ProjectsScreen(),
+    StatsScreen(),
+    SettingsScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -111,23 +116,19 @@ class _HomeShellState extends State<HomeShell> {
         title: Text(switch (_index) {
           0 => S.tabToday,
           1 => S.tabProjects,
-          _ => S.tabGoals,
+          2 => S.tabStats,
+          _ => S.settings,
         }),
         actions: [
-          IconButton(
-            tooltip: S.search,
-            icon: const Icon(Icons.search),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const SearchScreen()),
+          // Cài đặt đã xuống thanh dưới nên chỉ còn tìm kiếm ở đây.
+          if (_index != 3)
+            IconButton(
+              tooltip: S.search,
+              icon: const Icon(Icons.search),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const SearchScreen()),
+              ),
             ),
-          ),
-          IconButton(
-            tooltip: S.settings,
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
-            ),
-          ),
         ],
       ),
       body: IndexedStack(index: _index, children: _screens),
@@ -146,9 +147,14 @@ class _HomeShellState extends State<HomeShell> {
             label: S.tabProjects,
           ),
           NavigationDestination(
-            icon: Icon(Icons.flag_outlined),
-            selectedIcon: Icon(Icons.flag),
-            label: S.tabGoals,
+            icon: Icon(Icons.bar_chart_outlined),
+            selectedIcon: Icon(Icons.bar_chart),
+            label: S.tabStats,
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: S.settings,
           ),
         ],
       ),

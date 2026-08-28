@@ -10,7 +10,11 @@ import 'dart:convert';
 import '../../core/result/result.dart';
 
 /// Phiên bản định dạng, đi theo `schemaVersion` của cơ sở dữ liệu.
-const int backupFormatVersion = 2;
+///
+/// Phiên bản 3 bỏ ba mục `goals`, `goalUpdates`, `projectGoals`. File phiên
+/// bản 2 vẫn nhập được: các mục lạ bị bỏ qua vì bộ nhập chỉ đọc đúng những tên
+/// có trong [backupSections].
+const int backupFormatVersion = 3;
 
 /// Thứ tự chèn tôn trọng khoá ngoại. Xoá thì đi ngược danh sách này.
 const List<String> backupSections = [
@@ -21,9 +25,6 @@ const List<String> backupSections = [
   'links',
   'reviews',
   'reviewItems',
-  'goals',
-  'goalUpdates',
-  'projectGoals',
   'statusEvents',
 ];
 
@@ -142,9 +143,6 @@ const Map<String, List<String>> _requiredFields = {
   'links': ['id', 'projectId', 'label', 'url'],
   'reviews': ['id', 'projectId', 'date', 'createdAt'],
   'reviewItems': ['id', 'reviewId', 'label', 'verdict'],
-  'goals': ['id', 'name', 'createdAt', 'updatedAt'],
-  'goalUpdates': ['id', 'goalId', 'date', 'valueRaw', 'createdAt'],
-  'projectGoals': ['projectId', 'goalId'],
   'statusEvents': ['id', 'entityType', 'entityId', 'fromStatus', 'toStatus', 'at'],
 };
 

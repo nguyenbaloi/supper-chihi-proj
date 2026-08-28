@@ -17,7 +17,10 @@ final class ProjectAction {
     required this.title,
     required this.note,
     required this.status,
+    required this.priority,
     required this.sortOrder,
+    this.pinned = false,
+    this.pinnedAt,
     required this.createdAt,
     required this.updatedAt,
     this.dueDate,
@@ -30,6 +33,15 @@ final class ProjectAction {
   final String title;
   final String note;
   final ActionStatus status;
+
+  /// Độ ưu tiên riêng của Hành động — FR-41.
+  final Priority priority;
+
+  /// Người dùng tự ghim vào danh sách "làm ngay" — FR-42.
+  final bool pinned;
+
+  /// Thời điểm ghim, dùng để xếp thứ tự màn hình Hôm nay.
+  final DateTime? pinnedAt;
 
   /// Hạn chót là **ngày**, không có giờ — FR-17.
   final DateTime? dueDate;
@@ -47,6 +59,10 @@ final class ProjectAction {
     String? title,
     String? note,
     ActionStatus? status,
+    Priority? priority,
+    bool? pinned,
+    DateTime? pinnedAt,
+    bool clearPinnedAt = false,
     int? sortOrder,
     DateTime? updatedAt,
     DateTime? dueDate,
@@ -61,6 +77,9 @@ final class ProjectAction {
         title: title ?? this.title,
         note: note ?? this.note,
         status: status ?? this.status,
+        priority: priority ?? this.priority,
+        pinned: pinned ?? this.pinned,
+        pinnedAt: clearPinnedAt ? null : (pinnedAt ?? this.pinnedAt),
         sortOrder: sortOrder ?? this.sortOrder,
         createdAt: createdAt,
         updatedAt: updatedAt ?? this.updatedAt,

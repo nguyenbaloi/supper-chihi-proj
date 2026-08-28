@@ -30,6 +30,7 @@ class DriftActionRepository implements ActionRepository {
     required int projectId,
     required String title,
     String note = '',
+    Priority priority = Priority.medium,
     DateTime? dueDate,
   }) async {
     final now = _now().toUtc();
@@ -40,6 +41,7 @@ class DriftActionRepository implements ActionRepository {
             title: title,
             note: Value(note),
             status: ActionStatus.todo.wire,
+            priority: Value(priority.wire),
             dueDate: Value(dueDate),
             sortOrder: Value(next),
             createdAt: now,
@@ -53,6 +55,7 @@ class DriftActionRepository implements ActionRepository {
       title: title,
       note: note,
       status: ActionStatus.todo,
+      priority: priority,
       sortOrder: next,
       createdAt: now,
       updatedAt: now,
@@ -75,6 +78,7 @@ class DriftActionRepository implements ActionRepository {
       ActionsCompanion(
         title: Value(action.title),
         note: Value(action.note),
+        priority: Value(action.priority.wire),
         dueDate: Value(action.dueDate),
         updatedAt: Value(_now().toUtc()),
         searchText: Value(buildSearchText([action.title, action.note])),
@@ -105,6 +109,13 @@ class DriftActionRepository implements ActionRepository {
               : (current == ActionStatus.done ? const Value(null) : const Value.absent()),
         ),
       );
+      // Việc đã xong hoặc đã bỏ thì tự rời danh sách "làm ngay" — để lại đó
+      // chỉ làm màn hình Hôm nay dài ra mà không mang thêm thông tin gì.
+      if (!next.isOpen && row.pinned) {
+        await (_db.update(_db.actions)..where((a) => a.id.equals(actionId)))
+            .write(const ActionsCompanion(
+                pinned: Value(false), pinnedAt: Value(null)));
+      }
       await _db.into(_db.statusEvents).insert(
             StatusEventsCompanion.insert(
               entityType: StatusEntityType.action.wire,
@@ -165,6 +176,9 @@ class DriftActionRepository implements ActionRepository {
             title: action.title,
             note: Value(action.note),
             status: action.status.wire,
+            priority: Value(action.priority.wire),
+            pinned: Value(action.pinned),
+            pinnedAt: Value(action.pinnedAt),
             dueDate: Value(action.dueDate),
             sortOrder: Value(action.sortOrder),
             createdAt: action.createdAt,
@@ -176,4 +190,39 @@ class DriftActionRepository implements ActionRepository {
           mode: InsertMode.insertOrReplace,
         );
   }
+
+  /// FR-42: ghim là hành động **của người dùng**. Không chỗ nào trong ứng dụng
+  /// được tự ghim hộ — đó là điều giữ cho màn hình Hôm nay không phình ra.
+  @override
+  Future<void> setPinned(int actionId, bool pinned) async {
+    await (_db.update(_db.actions)..where((a) => a.id.equals(actionId))).write(
+      ActionsCompanion(
+        pinned: Value(pinned),
+        pinnedAt: pinned ? Value(_now().toUtc()) : const Value(null),
+        updatedAt: Value(_now().toUtc()),
+      ),
+    );
+  }
+
+  @override
+  Stream<List<ProjectAction>> watchPinned() => (_db.select(_db.actions)
+        ..where((a) => a.pinned.equals(true))
+        ..orderBy([
+          (a) => OrderingTerm(expression: a.pinnedAt),
+          (a) => OrderingTerm(expression: a.id),
+        ]))
+      .watch()
+      .map((rows) => rows.map((r) => r.toModel()).toList());
+
+  @override
+  Stream<List<ProjectAction>> watchAllOpen() => (_db.select(_db.actions)
+        ..where((a) => a.status.isIn([ActionStatus.todo.wire, ActionStatus.doing.wire])))
+      .watch()
+      .map((rows) => rows.map((r) => r.toModel()).toList());
+
+  @override
+  Stream<List<ProjectAction>> watchAll() => _db
+      .select(_db.actions)
+      .watch()
+      .map((rows) => rows.map((r) => r.toModel()).toList());
 }

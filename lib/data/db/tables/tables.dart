@@ -52,7 +52,18 @@ class Actions extends Table {
   TextColumn get title => text().withLength(min: 1, max: 300)();
   TextColumn get note => text().withDefault(const Constant(''))();
   TextColumn get status => text().withLength(max: 20)();
+
+  /// Độ ưu tiên riêng của Hành động — FR-41. Trước v3 chỉ Dự án mới có.
+  TextColumn get priority => text().withLength(max: 10).withDefault(const Constant('medium'))();
+
   DateTimeColumn get dueDate => dateTime().nullable()();
+
+  /// Người dùng tự ghim "làm ngay" — FR-42. Đây là **nguồn duy nhất** của
+  /// danh sách chính trên màn hình Hôm nay; app không tự thêm gì vào đó.
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+
+  /// Thời điểm ghim, để xếp thứ tự trong danh sách Hôm nay.
+  DateTimeColumn get pinnedAt => dateTime().nullable()();
 
   /// Thứ tự kéo thả — FR-18.
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
@@ -61,49 +72,6 @@ class Actions extends Table {
   DateTimeColumn get startedAt => dateTime().nullable()();
   DateTimeColumn get completedAt => dateTime().nullable()();
   TextColumn get searchText => text().withDefault(const Constant(''))();
-}
-
-@DataClassName('GoalRow')
-class Goals extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  TextColumn get name => text().withLength(min: 1, max: 200)();
-  TextColumn get description => text().withDefault(const Constant(''))();
-
-  /// `false` với mục tiêu định tính — FR-20.
-  BoolColumn get isNumeric => boolean().withDefault(const Constant(true))();
-
-  /// Giá trị đích đã nhân hệ số. Không bao giờ là `real` — AD-4.
-  IntColumn get targetRaw => integer().nullable()();
-  IntColumn get decimals => integer().withDefault(const Constant(0))();
-  TextColumn get unit => text().withDefault(const Constant('VND'))();
-  DateTimeColumn get dueDate => dateTime().nullable()();
-  DateTimeColumn get createdAt => dateTime()();
-  DateTimeColumn get updatedAt => dateTime()();
-  TextColumn get searchText => text().withDefault(const Constant(''))();
-}
-
-@DataClassName('GoalUpdateRow')
-class GoalUpdates extends Table {
-  IntColumn get id => integer().autoIncrement()();
-  IntColumn get goalId =>
-      integer().references(Goals, #id, onDelete: KeyAction.cascade)();
-  DateTimeColumn get date => dateTime()();
-  IntColumn get valueRaw => integer()();
-  IntColumn get decimals => integer().withDefault(const Constant(0))();
-  TextColumn get note => text().withDefault(const Constant(''))();
-  DateTimeColumn get createdAt => dateTime()();
-}
-
-/// Bảng nối nhiều-nhiều giữa Dự án và Mục tiêu — FR-25.
-@DataClassName('ProjectGoalRow')
-class ProjectGoals extends Table {
-  IntColumn get projectId =>
-      integer().references(Projects, #id, onDelete: KeyAction.cascade)();
-  IntColumn get goalId =>
-      integer().references(Goals, #id, onDelete: KeyAction.cascade)();
-
-  @override
-  Set<Column> get primaryKey => {projectId, goalId};
 }
 
 @DataClassName('NoteRow')

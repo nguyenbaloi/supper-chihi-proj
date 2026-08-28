@@ -1,235 +1,193 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/format/vn_format.dart';
 import '../../core/l10n/strings.dart';
-import '../../domain/models/enums.dart';
-import '../../domain/models/goal.dart';
 import '../../domain/models/project_action.dart';
 import '../../domain/repositories/repositories.dart';
-import '../../domain/rules/day.dart';
-import '../../domain/rules/pace.dart';
-import '../../domain/rules/review.dart';
-import '../../domain/rules/stale.dart';
+import '../../domain/rules/attention.dart';
 import '../../presentation/providers/providers.dart';
 import '../actions/action_tile.dart';
-import '../goals/goal_detail_screen.dart';
 import '../projects/project_detail_screen.dart';
 
-/// FR-29 — lý do tồn tại của ứng dụng ở nhịp dùng hằng ngày.
+/// Màn hình Hôm nay — FR-42, FR-43.
 ///
-/// Bốn nhóm, đúng thứ tự: Quá hạn → Đang làm → Đến hạn trong 7 ngày →
-/// Cần chú ý. Màn hình này **không bao giờ** liệt kê toàn bộ Hành động chưa
-/// xong; nhóm rỗng biến mất hoàn toàn.
+/// Hai khối tách bạch, và ranh giới giữa chúng là điều quan trọng nhất ở đây:
+///
+/// **Làm ngay** chỉ gồm việc người dùng **tự ghim**. Ứng dụng không bao giờ tự
+/// thêm gì vào đó. Trước đây màn này tự suy ra danh sách từ trạng thái và hạn,
+/// và kết quả là một danh sách dài không ai đọc.
+///
+/// **Cần chú ý** là phần ứng dụng chủ động nhắc: quá hạn, sắp đến hạn, ưu tiên
+/// cao mà chưa bắt đầu. Nó nằm dưới, và nó là *thông tin*, không phải danh sách
+/// việc phải làm.
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.watch(nowProvider)();
+    final pinned = ref.watch(pinnedActionsProvider).value ?? const [];
+    final open = ref.watch(openActionsProvider).value ?? const [];
     final summaries = ref.watch(allProjectSummariesProvider).value ?? const [];
-    final staleDays =
-        ref.watch(settingsProvider).value?.staleDays ?? defaultStaleDays;
-    final goals = ref.watch(goalsProvider).value ?? const [];
-
     final projectById = {for (final s in summaries) s.project.id: s};
-    final actions = <ProjectAction>[
-      for (final s in summaries)
-        ...(ref.watch(projectActionsProvider(s.project.id)).value ?? const []),
-    ];
 
-    final overdue = actions
-        .where((a) =>
-            a.status.isOpen &&
-            a.dueDate != null &&
-            isOverdue(dueDate: a.dueDate!, now: now))
-        .toList()
-      ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
+    // Việc đã ghim không lặp lại ở khối cảnh báo — người dùng đã thấy nó rồi.
+    final pinnedIds = pinned.map((a) => a.id).toSet();
+    final attention = buildAttention(
+      open.where((a) => !pinnedIds.contains(a.id)),
+      now: now,
+    );
 
-    final doing = actions.where((a) => a.status == ActionStatus.doing).toList();
-
-    final dueSoon = actions
-        .where((a) =>
-            a.status.isOpen &&
-            a.dueDate != null &&
-            isDueSoon(dueDate: a.dueDate!, now: now))
-        .toList()
-      ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
-
-    final staleProjects = summaries
-        .where((s) => isProjectStale(
-              status: s.project.status,
-              lastActivityAt: s.lastActivityAt,
-              createdAt: s.project.createdAt,
-              now: now,
-              staleDays: staleDays,
-            ))
-        .toList();
-
-    // FR-40: chỉ Đợt gần nhất của mỗi Dự án được xét, và Dự án đã đóng thì
-    // không bao giờ nhắc.
-    final allReviews = ref.watch(allReviewsProvider).value ?? const [];
-    final dueReview = <ProjectSummary>[];
-    for (final s in summaries) {
-      final ofProject =
-          allReviews.where((r) => r.projectId == s.project.id).toList();
-      if (isReviewDue(status: s.project.status, reviews: ofProject, now: now)) {
-        dueReview.add(s);
-      }
+    if (pinned.isEmpty && attention.isEmpty) {
+      return const _AllClear();
     }
-
-    final behindGoals = <Goal>[];
-    for (final g in goals) {
-      if (g.dueDate == null) continue;
-      final updates = ref.watch(goalUpdatesProvider(g.id)).value ?? const [];
-      final pace = computePace(goal: g, updates: updates, now: now);
-      if (pace.verdict == PaceVerdict.behind ||
-          pace.verdict == PaceVerdict.goingBackwards ||
-          pace.verdict == PaceVerdict.pastDue) {
-        behindGoals.add(g);
-      }
-    }
-
-    final hasAnything = overdue.isNotEmpty ||
-        doing.isNotEmpty ||
-        dueSoon.isNotEmpty ||
-        staleProjects.isNotEmpty ||
-        dueReview.isNotEmpty ||
-        behindGoals.isNotEmpty;
-
-    if (!hasAnything) return const _AllClear();
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: [
-        if (overdue.isNotEmpty)
-          _Group(
-            title: S.todayOverdue,
-            emphasise: true,
-            children: [
-              for (final a in overdue)
-                _ActionRow(action: a, project: projectById[a.projectId]),
-            ],
-          ),
-        if (doing.isNotEmpty)
-          _Group(
-            title: S.todayDoing,
-            children: [
-              for (final a in doing)
-                _ActionRow(action: a, project: projectById[a.projectId]),
-            ],
-          ),
-        if (dueSoon.isNotEmpty)
-          _Group(
-            title: S.todayDueSoon,
-            children: [
-              for (final a in dueSoon)
-                _ActionRow(action: a, project: projectById[a.projectId]),
-            ],
-          ),
-        if (staleProjects.isNotEmpty ||
-            dueReview.isNotEmpty ||
-            behindGoals.isNotEmpty)
-          _Group(
+        _SectionHeader(title: S.todayDoNow, subtitle: S.todayDoNowHint),
+        if (pinned.isEmpty)
+          const _EmptyPinned()
+        else
+          for (final a in pinned)
+            _Row(action: a, project: projectById[a.projectId]),
+        if (attention.isNotEmpty) ...[
+          const Divider(height: 32),
+          _SectionHeader(
             title: S.todayAttention,
-            children: [
-              for (final s in dueReview)
-                ListTile(
-                  leading: const Icon(Icons.rate_review_outlined),
-                  title: Text(s.project.name),
-                  subtitle: Text(S.reviewDue),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => ProjectDetailScreen(projectId: s.project.id),
-                    ),
-                  ),
-                ),
-              for (final s in staleProjects)
-                ListTile(
-                  leading: const Icon(Icons.hourglass_bottom_outlined),
-                  title: Text(s.project.name),
-                  subtitle: Text(
-                    '${S.staleProject} ${S.days(idleDays(
-                      lastActivityAt: s.lastActivityAt,
-                      createdAt: s.project.createdAt,
-                      now: now,
-                    ))}',
-                  ),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => ProjectDetailScreen(projectId: s.project.id),
-                    ),
-                  ),
-                ),
-              for (final g in behindGoals)
-                ListTile(
-                  leading: const Icon(Icons.flag_outlined),
-                  title: Text(g.name),
-                  subtitle: Text(
-                    '${S.goalBehindPace}'
-                    '${g.dueDate == null ? '' : ' · ${VnFormat.date(g.dueDate!)}'}',
-                  ),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => GoalDetailScreen(goalId: g.id),
-                    ),
-                  ),
-                ),
-            ],
+            subtitle: S.attentionCount(attention.length),
+            emphasise: true,
           ),
+          for (final kind in AttentionKind.values)
+            ..._groupFor(context, attention, kind, projectById),
+        ],
       ],
+    );
+  }
+
+  List<Widget> _groupFor(
+    BuildContext context,
+    List<AttentionItem> all,
+    AttentionKind kind,
+    Map<int, ProjectSummary> projectById,
+  ) {
+    final items = all.where((i) => i.kind == kind).toList();
+    if (items.isEmpty) return const [];
+    final theme = Theme.of(context);
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 2),
+        child: Text(
+          '${_label(kind)} · ${S.attentionCount(items.length)}',
+          style: theme.textTheme.labelLarge?.copyWith(color: _color(theme, kind)),
+        ),
+      ),
+      for (final i in items)
+        _Row(
+          action: i.action,
+          project: projectById[i.action.projectId],
+          note: _note(i),
+        ),
+    ];
+  }
+
+  static String _label(AttentionKind k) => switch (k) {
+        AttentionKind.overdue => S.attentionOverdue,
+        AttentionKind.dueSoon => S.attentionDueSoon,
+        AttentionKind.highPriorityNotStarted => S.attentionHighPriority,
+      };
+
+  static Color _color(ThemeData theme, AttentionKind k) => switch (k) {
+        AttentionKind.overdue => theme.colorScheme.error,
+        AttentionKind.dueSoon => const Color(0xFFEF6C00),
+        AttentionKind.highPriorityNotStarted => theme.colorScheme.primary,
+      };
+
+  static String? _note(AttentionItem i) => switch (i.kind) {
+        AttentionKind.dueSoon when i.days != null => S.dueInDays(i.days!),
+        _ => null,
+      };
+}
+
+class _Row extends ConsumerWidget {
+  const _Row({required this.action, this.project, this.note});
+
+  final ProjectAction action;
+  final ProjectSummary? project;
+  final String? note;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subtitle = [
+      if (project != null) project!.project.name,
+      if (note != null) note!,
+    ].join(' · ');
+
+    return ActionTile(
+      action: action,
+      subtitleOverride: subtitle.isEmpty ? null : subtitle,
+      showPriority: true,
+      trailing: IconButton(
+        tooltip: action.pinned ? S.unpin : S.pin,
+        icon: Icon(action.pinned ? Icons.push_pin : Icons.push_pin_outlined),
+        color: action.pinned ? Theme.of(context).colorScheme.primary : null,
+        onPressed: () => ref
+            .read(actionRepositoryProvider)
+            .setPinned(action.id, !action.pinned),
+      ),
+      onTap: project == null
+          ? null
+          : () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      ProjectDetailScreen(projectId: project!.project.id),
+                ),
+              ),
     );
   }
 }
 
-class _ActionRow extends StatelessWidget {
-  const _ActionRow({required this.action, this.project});
-
-  final ProjectAction action;
-  final ProjectSummary? project;
-
-  @override
-  Widget build(BuildContext context) => ActionTile(
-        action: action,
-        subtitleOverride: project?.project.name,
-        onTap: project == null
-            ? null
-            : () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) =>
-                        ProjectDetailScreen(projectId: project!.project.id),
-                  ),
-                ),
-      );
-}
-
-class _Group extends StatelessWidget {
-  const _Group({required this.title, required this.children, this.emphasise = false});
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.title,
+    required this.subtitle,
+    this.emphasise = false,
+  });
 
   final String title;
-  final List<Widget> children;
+  final String subtitle;
   final bool emphasise;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Text(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
             title,
-            style: theme.textTheme.titleSmall?.copyWith(
-              color: emphasise ? theme.colorScheme.error : theme.colorScheme.primary,
+            style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.w700,
+              color: emphasise ? theme.colorScheme.error : theme.colorScheme.primary,
             ),
           ),
-        ),
-        ...children,
-      ],
+          Text(subtitle, style: theme.textTheme.bodySmall),
+        ],
+      ),
     );
   }
+}
+
+class _EmptyPinned extends StatelessWidget {
+  const _EmptyPinned();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Text(S.todayEmpty, style: Theme.of(context).textTheme.bodyMedium),
+      );
 }
 
 class _AllClear extends StatelessWidget {
@@ -249,11 +207,9 @@ class _AllClear extends StatelessWidget {
             const SizedBox(height: 16),
             Text(S.todayAllClear,
                 style: theme.textTheme.bodyLarge, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: () {},
-              child: const Text(S.todayGoToProjects),
-            ),
+            const SizedBox(height: 8),
+            Text(S.todayGoToProjects,
+                style: theme.textTheme.bodySmall, textAlign: TextAlign.center),
           ],
         ),
       ),

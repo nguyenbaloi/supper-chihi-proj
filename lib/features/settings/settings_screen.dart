@@ -15,11 +15,9 @@ class SettingsScreen extends ConsumerWidget {
     final settings = ref.watch(settingsProvider).value;
     final repo = ref.read(settingsRepositoryProvider);
 
-    return Scaffold(
-      appBar: AppBar(title: const Text(S.settings)),
-      body: settings == null
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
+    return settings == null
+        ? const Center(child: CircularProgressIndicator())
+        : ListView(
               children: [
                 ListTile(
                   title: const Text(S.settingsStaleDays),
@@ -91,8 +89,7 @@ class SettingsScreen extends ConsumerWidget {
                         const SnackBar(content: Text(S.settingsReseedDone)));
                   },
                 ),
-              ],
-            ),
-    );
+            ],
+          );
   }
 }

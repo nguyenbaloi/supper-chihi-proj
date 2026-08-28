@@ -1191,12 +1191,49 @@ class $ActionsTable extends Actions with TableInfo<$ActionsTable, ActionRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<String> priority = GeneratedColumn<String>(
+    'priority',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 10),
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('medium'),
+  );
   static const VerificationMeta _dueDateMeta = const VerificationMeta(
     'dueDate',
   );
   @override
   late final GeneratedColumn<DateTime> dueDate = GeneratedColumn<DateTime>(
     'due_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pinnedMeta = const VerificationMeta('pinned');
+  @override
+  late final GeneratedColumn<bool> pinned = GeneratedColumn<bool>(
+    'pinned',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("pinned" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _pinnedAtMeta = const VerificationMeta(
+    'pinnedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> pinnedAt = GeneratedColumn<DateTime>(
+    'pinned_at',
     aliasedName,
     true,
     type: DriftSqlType.dateTime,
@@ -1277,7 +1314,10 @@ class $ActionsTable extends Actions with TableInfo<$ActionsTable, ActionRow> {
     title,
     note,
     status,
+    priority,
     dueDate,
+    pinned,
+    pinnedAt,
     sortOrder,
     createdAt,
     updatedAt,
@@ -1330,10 +1370,28 @@ class $ActionsTable extends Actions with TableInfo<$ActionsTable, ActionRow> {
     } else if (isInserting) {
       context.missing(_statusMeta);
     }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    }
     if (data.containsKey('due_date')) {
       context.handle(
         _dueDateMeta,
         dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+      );
+    }
+    if (data.containsKey('pinned')) {
+      context.handle(
+        _pinnedMeta,
+        pinned.isAcceptableOrUnknown(data['pinned']!, _pinnedMeta),
+      );
+    }
+    if (data.containsKey('pinned_at')) {
+      context.handle(
+        _pinnedAtMeta,
+        pinnedAt.isAcceptableOrUnknown(data['pinned_at']!, _pinnedAtMeta),
       );
     }
     if (data.containsKey('sort_order')) {
@@ -1408,9 +1466,21 @@ class $ActionsTable extends Actions with TableInfo<$ActionsTable, ActionRow> {
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}priority'],
+      )!,
       dueDate: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}due_date'],
+      ),
+      pinned: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}pinned'],
+      )!,
+      pinnedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}pinned_at'],
       ),
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -1454,7 +1524,17 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
   final String title;
   final String note;
   final String status;
+
+  /// Độ ưu tiên riêng của Hành động — FR-41. Trước v3 chỉ Dự án mới có.
+  final String priority;
   final DateTime? dueDate;
+
+  /// Người dùng tự ghim "làm ngay" — FR-42. Đây là **nguồn duy nhất** của
+  /// danh sách chính trên màn hình Hôm nay; app không tự thêm gì vào đó.
+  final bool pinned;
+
+  /// Thời điểm ghim, để xếp thứ tự trong danh sách Hôm nay.
+  final DateTime? pinnedAt;
 
   /// Thứ tự kéo thả — FR-18.
   final int sortOrder;
@@ -1469,7 +1549,10 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
     required this.title,
     required this.note,
     required this.status,
+    required this.priority,
     this.dueDate,
+    required this.pinned,
+    this.pinnedAt,
     required this.sortOrder,
     required this.createdAt,
     required this.updatedAt,
@@ -1485,8 +1568,13 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
     map['title'] = Variable<String>(title);
     map['note'] = Variable<String>(note);
     map['status'] = Variable<String>(status);
+    map['priority'] = Variable<String>(priority);
     if (!nullToAbsent || dueDate != null) {
       map['due_date'] = Variable<DateTime>(dueDate);
+    }
+    map['pinned'] = Variable<bool>(pinned);
+    if (!nullToAbsent || pinnedAt != null) {
+      map['pinned_at'] = Variable<DateTime>(pinnedAt);
     }
     map['sort_order'] = Variable<int>(sortOrder);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -1508,9 +1596,14 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
       title: Value(title),
       note: Value(note),
       status: Value(status),
+      priority: Value(priority),
       dueDate: dueDate == null && nullToAbsent
           ? const Value.absent()
           : Value(dueDate),
+      pinned: Value(pinned),
+      pinnedAt: pinnedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pinnedAt),
       sortOrder: Value(sortOrder),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -1535,7 +1628,10 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
       title: serializer.fromJson<String>(json['title']),
       note: serializer.fromJson<String>(json['note']),
       status: serializer.fromJson<String>(json['status']),
+      priority: serializer.fromJson<String>(json['priority']),
       dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
+      pinned: serializer.fromJson<bool>(json['pinned']),
+      pinnedAt: serializer.fromJson<DateTime?>(json['pinnedAt']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1553,7 +1649,10 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
       'title': serializer.toJson<String>(title),
       'note': serializer.toJson<String>(note),
       'status': serializer.toJson<String>(status),
+      'priority': serializer.toJson<String>(priority),
       'dueDate': serializer.toJson<DateTime?>(dueDate),
+      'pinned': serializer.toJson<bool>(pinned),
+      'pinnedAt': serializer.toJson<DateTime?>(pinnedAt),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1569,7 +1668,10 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
     String? title,
     String? note,
     String? status,
+    String? priority,
     Value<DateTime?> dueDate = const Value.absent(),
+    bool? pinned,
+    Value<DateTime?> pinnedAt = const Value.absent(),
     int? sortOrder,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1582,7 +1684,10 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
     title: title ?? this.title,
     note: note ?? this.note,
     status: status ?? this.status,
+    priority: priority ?? this.priority,
     dueDate: dueDate.present ? dueDate.value : this.dueDate,
+    pinned: pinned ?? this.pinned,
+    pinnedAt: pinnedAt.present ? pinnedAt.value : this.pinnedAt,
     sortOrder: sortOrder ?? this.sortOrder,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1597,7 +1702,10 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
       title: data.title.present ? data.title.value : this.title,
       note: data.note.present ? data.note.value : this.note,
       status: data.status.present ? data.status.value : this.status,
+      priority: data.priority.present ? data.priority.value : this.priority,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      pinned: data.pinned.present ? data.pinned.value : this.pinned,
+      pinnedAt: data.pinnedAt.present ? data.pinnedAt.value : this.pinnedAt,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1619,7 +1727,10 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
           ..write('title: $title, ')
           ..write('note: $note, ')
           ..write('status: $status, ')
+          ..write('priority: $priority, ')
           ..write('dueDate: $dueDate, ')
+          ..write('pinned: $pinned, ')
+          ..write('pinnedAt: $pinnedAt, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1637,7 +1748,10 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
     title,
     note,
     status,
+    priority,
     dueDate,
+    pinned,
+    pinnedAt,
     sortOrder,
     createdAt,
     updatedAt,
@@ -1654,7 +1768,10 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
           other.title == this.title &&
           other.note == this.note &&
           other.status == this.status &&
+          other.priority == this.priority &&
           other.dueDate == this.dueDate &&
+          other.pinned == this.pinned &&
+          other.pinnedAt == this.pinnedAt &&
           other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1669,7 +1786,10 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
   final Value<String> title;
   final Value<String> note;
   final Value<String> status;
+  final Value<String> priority;
   final Value<DateTime?> dueDate;
+  final Value<bool> pinned;
+  final Value<DateTime?> pinnedAt;
   final Value<int> sortOrder;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1682,7 +1802,10 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
     this.title = const Value.absent(),
     this.note = const Value.absent(),
     this.status = const Value.absent(),
+    this.priority = const Value.absent(),
     this.dueDate = const Value.absent(),
+    this.pinned = const Value.absent(),
+    this.pinnedAt = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1696,7 +1819,10 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
     required String title,
     this.note = const Value.absent(),
     required String status,
+    this.priority = const Value.absent(),
     this.dueDate = const Value.absent(),
+    this.pinned = const Value.absent(),
+    this.pinnedAt = const Value.absent(),
     this.sortOrder = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -1714,7 +1840,10 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
     Expression<String>? title,
     Expression<String>? note,
     Expression<String>? status,
+    Expression<String>? priority,
     Expression<DateTime>? dueDate,
+    Expression<bool>? pinned,
+    Expression<DateTime>? pinnedAt,
     Expression<int>? sortOrder,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -1728,7 +1857,10 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
       if (title != null) 'title': title,
       if (note != null) 'note': note,
       if (status != null) 'status': status,
+      if (priority != null) 'priority': priority,
       if (dueDate != null) 'due_date': dueDate,
+      if (pinned != null) 'pinned': pinned,
+      if (pinnedAt != null) 'pinned_at': pinnedAt,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -1744,7 +1876,10 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
     Value<String>? title,
     Value<String>? note,
     Value<String>? status,
+    Value<String>? priority,
     Value<DateTime?>? dueDate,
+    Value<bool>? pinned,
+    Value<DateTime?>? pinnedAt,
     Value<int>? sortOrder,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -1758,7 +1893,10 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
       title: title ?? this.title,
       note: note ?? this.note,
       status: status ?? this.status,
+      priority: priority ?? this.priority,
       dueDate: dueDate ?? this.dueDate,
+      pinned: pinned ?? this.pinned,
+      pinnedAt: pinnedAt ?? this.pinnedAt,
       sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -1786,8 +1924,17 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (priority.present) {
+      map['priority'] = Variable<String>(priority.value);
+    }
     if (dueDate.present) {
       map['due_date'] = Variable<DateTime>(dueDate.value);
+    }
+    if (pinned.present) {
+      map['pinned'] = Variable<bool>(pinned.value);
+    }
+    if (pinnedAt.present) {
+      map['pinned_at'] = Variable<DateTime>(pinnedAt.value);
     }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
@@ -1818,1325 +1965,16 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
           ..write('title: $title, ')
           ..write('note: $note, ')
           ..write('status: $status, ')
+          ..write('priority: $priority, ')
           ..write('dueDate: $dueDate, ')
+          ..write('pinned: $pinned, ')
+          ..write('pinnedAt: $pinnedAt, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('startedAt: $startedAt, ')
           ..write('completedAt: $completedAt, ')
           ..write('searchText: $searchText')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $GoalsTable extends Goals with TableInfo<$GoalsTable, GoalRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $GoalsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _nameMeta = const VerificationMeta('name');
-  @override
-  late final GeneratedColumn<String> name = GeneratedColumn<String>(
-    'name',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(
-      minTextLength: 1,
-      maxTextLength: 200,
-    ),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _descriptionMeta = const VerificationMeta(
-    'description',
-  );
-  @override
-  late final GeneratedColumn<String> description = GeneratedColumn<String>(
-    'description',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _isNumericMeta = const VerificationMeta(
-    'isNumeric',
-  );
-  @override
-  late final GeneratedColumn<bool> isNumeric = GeneratedColumn<bool>(
-    'is_numeric',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_numeric" IN (0, 1))',
-    ),
-    defaultValue: const Constant(true),
-  );
-  static const VerificationMeta _targetRawMeta = const VerificationMeta(
-    'targetRaw',
-  );
-  @override
-  late final GeneratedColumn<int> targetRaw = GeneratedColumn<int>(
-    'target_raw',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _decimalsMeta = const VerificationMeta(
-    'decimals',
-  );
-  @override
-  late final GeneratedColumn<int> decimals = GeneratedColumn<int>(
-    'decimals',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _unitMeta = const VerificationMeta('unit');
-  @override
-  late final GeneratedColumn<String> unit = GeneratedColumn<String>(
-    'unit',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('VND'),
-  );
-  static const VerificationMeta _dueDateMeta = const VerificationMeta(
-    'dueDate',
-  );
-  @override
-  late final GeneratedColumn<DateTime> dueDate = GeneratedColumn<DateTime>(
-    'due_date',
-    aliasedName,
-    true,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
-    'updatedAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _searchTextMeta = const VerificationMeta(
-    'searchText',
-  );
-  @override
-  late final GeneratedColumn<String> searchText = GeneratedColumn<String>(
-    'search_text',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    name,
-    description,
-    isNumeric,
-    targetRaw,
-    decimals,
-    unit,
-    dueDate,
-    createdAt,
-    updatedAt,
-    searchText,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'goals';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<GoalRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('name')) {
-      context.handle(
-        _nameMeta,
-        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_nameMeta);
-    }
-    if (data.containsKey('description')) {
-      context.handle(
-        _descriptionMeta,
-        description.isAcceptableOrUnknown(
-          data['description']!,
-          _descriptionMeta,
-        ),
-      );
-    }
-    if (data.containsKey('is_numeric')) {
-      context.handle(
-        _isNumericMeta,
-        isNumeric.isAcceptableOrUnknown(data['is_numeric']!, _isNumericMeta),
-      );
-    }
-    if (data.containsKey('target_raw')) {
-      context.handle(
-        _targetRawMeta,
-        targetRaw.isAcceptableOrUnknown(data['target_raw']!, _targetRawMeta),
-      );
-    }
-    if (data.containsKey('decimals')) {
-      context.handle(
-        _decimalsMeta,
-        decimals.isAcceptableOrUnknown(data['decimals']!, _decimalsMeta),
-      );
-    }
-    if (data.containsKey('unit')) {
-      context.handle(
-        _unitMeta,
-        unit.isAcceptableOrUnknown(data['unit']!, _unitMeta),
-      );
-    }
-    if (data.containsKey('due_date')) {
-      context.handle(
-        _dueDateMeta,
-        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
-      );
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
-    }
-    if (data.containsKey('updated_at')) {
-      context.handle(
-        _updatedAtMeta,
-        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_updatedAtMeta);
-    }
-    if (data.containsKey('search_text')) {
-      context.handle(
-        _searchTextMeta,
-        searchText.isAcceptableOrUnknown(data['search_text']!, _searchTextMeta),
-      );
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  GoalRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return GoalRow(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      name: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}name'],
-      )!,
-      description: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}description'],
-      )!,
-      isNumeric: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_numeric'],
-      )!,
-      targetRaw: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}target_raw'],
-      ),
-      decimals: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}decimals'],
-      )!,
-      unit: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}unit'],
-      )!,
-      dueDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}due_date'],
-      ),
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}updated_at'],
-      )!,
-      searchText: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}search_text'],
-      )!,
-    );
-  }
-
-  @override
-  $GoalsTable createAlias(String alias) {
-    return $GoalsTable(attachedDatabase, alias);
-  }
-}
-
-class GoalRow extends DataClass implements Insertable<GoalRow> {
-  final int id;
-  final String name;
-  final String description;
-
-  /// `false` với mục tiêu định tính — FR-20.
-  final bool isNumeric;
-
-  /// Giá trị đích đã nhân hệ số. Không bao giờ là `real` — AD-4.
-  final int? targetRaw;
-  final int decimals;
-  final String unit;
-  final DateTime? dueDate;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final String searchText;
-  const GoalRow({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.isNumeric,
-    this.targetRaw,
-    required this.decimals,
-    required this.unit,
-    this.dueDate,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.searchText,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['name'] = Variable<String>(name);
-    map['description'] = Variable<String>(description);
-    map['is_numeric'] = Variable<bool>(isNumeric);
-    if (!nullToAbsent || targetRaw != null) {
-      map['target_raw'] = Variable<int>(targetRaw);
-    }
-    map['decimals'] = Variable<int>(decimals);
-    map['unit'] = Variable<String>(unit);
-    if (!nullToAbsent || dueDate != null) {
-      map['due_date'] = Variable<DateTime>(dueDate);
-    }
-    map['created_at'] = Variable<DateTime>(createdAt);
-    map['updated_at'] = Variable<DateTime>(updatedAt);
-    map['search_text'] = Variable<String>(searchText);
-    return map;
-  }
-
-  GoalsCompanion toCompanion(bool nullToAbsent) {
-    return GoalsCompanion(
-      id: Value(id),
-      name: Value(name),
-      description: Value(description),
-      isNumeric: Value(isNumeric),
-      targetRaw: targetRaw == null && nullToAbsent
-          ? const Value.absent()
-          : Value(targetRaw),
-      decimals: Value(decimals),
-      unit: Value(unit),
-      dueDate: dueDate == null && nullToAbsent
-          ? const Value.absent()
-          : Value(dueDate),
-      createdAt: Value(createdAt),
-      updatedAt: Value(updatedAt),
-      searchText: Value(searchText),
-    );
-  }
-
-  factory GoalRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return GoalRow(
-      id: serializer.fromJson<int>(json['id']),
-      name: serializer.fromJson<String>(json['name']),
-      description: serializer.fromJson<String>(json['description']),
-      isNumeric: serializer.fromJson<bool>(json['isNumeric']),
-      targetRaw: serializer.fromJson<int?>(json['targetRaw']),
-      decimals: serializer.fromJson<int>(json['decimals']),
-      unit: serializer.fromJson<String>(json['unit']),
-      dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
-      searchText: serializer.fromJson<String>(json['searchText']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'name': serializer.toJson<String>(name),
-      'description': serializer.toJson<String>(description),
-      'isNumeric': serializer.toJson<bool>(isNumeric),
-      'targetRaw': serializer.toJson<int?>(targetRaw),
-      'decimals': serializer.toJson<int>(decimals),
-      'unit': serializer.toJson<String>(unit),
-      'dueDate': serializer.toJson<DateTime?>(dueDate),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-      'updatedAt': serializer.toJson<DateTime>(updatedAt),
-      'searchText': serializer.toJson<String>(searchText),
-    };
-  }
-
-  GoalRow copyWith({
-    int? id,
-    String? name,
-    String? description,
-    bool? isNumeric,
-    Value<int?> targetRaw = const Value.absent(),
-    int? decimals,
-    String? unit,
-    Value<DateTime?> dueDate = const Value.absent(),
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    String? searchText,
-  }) => GoalRow(
-    id: id ?? this.id,
-    name: name ?? this.name,
-    description: description ?? this.description,
-    isNumeric: isNumeric ?? this.isNumeric,
-    targetRaw: targetRaw.present ? targetRaw.value : this.targetRaw,
-    decimals: decimals ?? this.decimals,
-    unit: unit ?? this.unit,
-    dueDate: dueDate.present ? dueDate.value : this.dueDate,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-    searchText: searchText ?? this.searchText,
-  );
-  GoalRow copyWithCompanion(GoalsCompanion data) {
-    return GoalRow(
-      id: data.id.present ? data.id.value : this.id,
-      name: data.name.present ? data.name.value : this.name,
-      description: data.description.present
-          ? data.description.value
-          : this.description,
-      isNumeric: data.isNumeric.present ? data.isNumeric.value : this.isNumeric,
-      targetRaw: data.targetRaw.present ? data.targetRaw.value : this.targetRaw,
-      decimals: data.decimals.present ? data.decimals.value : this.decimals,
-      unit: data.unit.present ? data.unit.value : this.unit,
-      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      searchText: data.searchText.present
-          ? data.searchText.value
-          : this.searchText,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('GoalRow(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('description: $description, ')
-          ..write('isNumeric: $isNumeric, ')
-          ..write('targetRaw: $targetRaw, ')
-          ..write('decimals: $decimals, ')
-          ..write('unit: $unit, ')
-          ..write('dueDate: $dueDate, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('searchText: $searchText')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    name,
-    description,
-    isNumeric,
-    targetRaw,
-    decimals,
-    unit,
-    dueDate,
-    createdAt,
-    updatedAt,
-    searchText,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is GoalRow &&
-          other.id == this.id &&
-          other.name == this.name &&
-          other.description == this.description &&
-          other.isNumeric == this.isNumeric &&
-          other.targetRaw == this.targetRaw &&
-          other.decimals == this.decimals &&
-          other.unit == this.unit &&
-          other.dueDate == this.dueDate &&
-          other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt &&
-          other.searchText == this.searchText);
-}
-
-class GoalsCompanion extends UpdateCompanion<GoalRow> {
-  final Value<int> id;
-  final Value<String> name;
-  final Value<String> description;
-  final Value<bool> isNumeric;
-  final Value<int?> targetRaw;
-  final Value<int> decimals;
-  final Value<String> unit;
-  final Value<DateTime?> dueDate;
-  final Value<DateTime> createdAt;
-  final Value<DateTime> updatedAt;
-  final Value<String> searchText;
-  const GoalsCompanion({
-    this.id = const Value.absent(),
-    this.name = const Value.absent(),
-    this.description = const Value.absent(),
-    this.isNumeric = const Value.absent(),
-    this.targetRaw = const Value.absent(),
-    this.decimals = const Value.absent(),
-    this.unit = const Value.absent(),
-    this.dueDate = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.searchText = const Value.absent(),
-  });
-  GoalsCompanion.insert({
-    this.id = const Value.absent(),
-    required String name,
-    this.description = const Value.absent(),
-    this.isNumeric = const Value.absent(),
-    this.targetRaw = const Value.absent(),
-    this.decimals = const Value.absent(),
-    this.unit = const Value.absent(),
-    this.dueDate = const Value.absent(),
-    required DateTime createdAt,
-    required DateTime updatedAt,
-    this.searchText = const Value.absent(),
-  }) : name = Value(name),
-       createdAt = Value(createdAt),
-       updatedAt = Value(updatedAt);
-  static Insertable<GoalRow> custom({
-    Expression<int>? id,
-    Expression<String>? name,
-    Expression<String>? description,
-    Expression<bool>? isNumeric,
-    Expression<int>? targetRaw,
-    Expression<int>? decimals,
-    Expression<String>? unit,
-    Expression<DateTime>? dueDate,
-    Expression<DateTime>? createdAt,
-    Expression<DateTime>? updatedAt,
-    Expression<String>? searchText,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (name != null) 'name': name,
-      if (description != null) 'description': description,
-      if (isNumeric != null) 'is_numeric': isNumeric,
-      if (targetRaw != null) 'target_raw': targetRaw,
-      if (decimals != null) 'decimals': decimals,
-      if (unit != null) 'unit': unit,
-      if (dueDate != null) 'due_date': dueDate,
-      if (createdAt != null) 'created_at': createdAt,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (searchText != null) 'search_text': searchText,
-    });
-  }
-
-  GoalsCompanion copyWith({
-    Value<int>? id,
-    Value<String>? name,
-    Value<String>? description,
-    Value<bool>? isNumeric,
-    Value<int?>? targetRaw,
-    Value<int>? decimals,
-    Value<String>? unit,
-    Value<DateTime?>? dueDate,
-    Value<DateTime>? createdAt,
-    Value<DateTime>? updatedAt,
-    Value<String>? searchText,
-  }) {
-    return GoalsCompanion(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      description: description ?? this.description,
-      isNumeric: isNumeric ?? this.isNumeric,
-      targetRaw: targetRaw ?? this.targetRaw,
-      decimals: decimals ?? this.decimals,
-      unit: unit ?? this.unit,
-      dueDate: dueDate ?? this.dueDate,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      searchText: searchText ?? this.searchText,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (name.present) {
-      map['name'] = Variable<String>(name.value);
-    }
-    if (description.present) {
-      map['description'] = Variable<String>(description.value);
-    }
-    if (isNumeric.present) {
-      map['is_numeric'] = Variable<bool>(isNumeric.value);
-    }
-    if (targetRaw.present) {
-      map['target_raw'] = Variable<int>(targetRaw.value);
-    }
-    if (decimals.present) {
-      map['decimals'] = Variable<int>(decimals.value);
-    }
-    if (unit.present) {
-      map['unit'] = Variable<String>(unit.value);
-    }
-    if (dueDate.present) {
-      map['due_date'] = Variable<DateTime>(dueDate.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<DateTime>(updatedAt.value);
-    }
-    if (searchText.present) {
-      map['search_text'] = Variable<String>(searchText.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('GoalsCompanion(')
-          ..write('id: $id, ')
-          ..write('name: $name, ')
-          ..write('description: $description, ')
-          ..write('isNumeric: $isNumeric, ')
-          ..write('targetRaw: $targetRaw, ')
-          ..write('decimals: $decimals, ')
-          ..write('unit: $unit, ')
-          ..write('dueDate: $dueDate, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('searchText: $searchText')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $GoalUpdatesTable extends GoalUpdates
-    with TableInfo<$GoalUpdatesTable, GoalUpdateRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $GoalUpdatesTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
-  static const VerificationMeta _goalIdMeta = const VerificationMeta('goalId');
-  @override
-  late final GeneratedColumn<int> goalId = GeneratedColumn<int>(
-    'goal_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES goals (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _dateMeta = const VerificationMeta('date');
-  @override
-  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
-    'date',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _valueRawMeta = const VerificationMeta(
-    'valueRaw',
-  );
-  @override
-  late final GeneratedColumn<int> valueRaw = GeneratedColumn<int>(
-    'value_raw',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _decimalsMeta = const VerificationMeta(
-    'decimals',
-  );
-  @override
-  late final GeneratedColumn<int> decimals = GeneratedColumn<int>(
-    'decimals',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(0),
-  );
-  static const VerificationMeta _noteMeta = const VerificationMeta('note');
-  @override
-  late final GeneratedColumn<String> note = GeneratedColumn<String>(
-    'note',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant(''),
-  );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta(
-    'createdAt',
-  );
-  @override
-  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.dateTime,
-    requiredDuringInsert: true,
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    goalId,
-    date,
-    valueRaw,
-    decimals,
-    note,
-    createdAt,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'goal_updates';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<GoalUpdateRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('goal_id')) {
-      context.handle(
-        _goalIdMeta,
-        goalId.isAcceptableOrUnknown(data['goal_id']!, _goalIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_goalIdMeta);
-    }
-    if (data.containsKey('date')) {
-      context.handle(
-        _dateMeta,
-        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_dateMeta);
-    }
-    if (data.containsKey('value_raw')) {
-      context.handle(
-        _valueRawMeta,
-        valueRaw.isAcceptableOrUnknown(data['value_raw']!, _valueRawMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_valueRawMeta);
-    }
-    if (data.containsKey('decimals')) {
-      context.handle(
-        _decimalsMeta,
-        decimals.isAcceptableOrUnknown(data['decimals']!, _decimalsMeta),
-      );
-    }
-    if (data.containsKey('note')) {
-      context.handle(
-        _noteMeta,
-        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
-      );
-    }
-    if (data.containsKey('created_at')) {
-      context.handle(
-        _createdAtMeta,
-        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_createdAtMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  GoalUpdateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return GoalUpdateRow(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      goalId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}goal_id'],
-      )!,
-      date: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}date'],
-      )!,
-      valueRaw: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}value_raw'],
-      )!,
-      decimals: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}decimals'],
-      )!,
-      note: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}note'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}created_at'],
-      )!,
-    );
-  }
-
-  @override
-  $GoalUpdatesTable createAlias(String alias) {
-    return $GoalUpdatesTable(attachedDatabase, alias);
-  }
-}
-
-class GoalUpdateRow extends DataClass implements Insertable<GoalUpdateRow> {
-  final int id;
-  final int goalId;
-  final DateTime date;
-  final int valueRaw;
-  final int decimals;
-  final String note;
-  final DateTime createdAt;
-  const GoalUpdateRow({
-    required this.id,
-    required this.goalId,
-    required this.date,
-    required this.valueRaw,
-    required this.decimals,
-    required this.note,
-    required this.createdAt,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['goal_id'] = Variable<int>(goalId);
-    map['date'] = Variable<DateTime>(date);
-    map['value_raw'] = Variable<int>(valueRaw);
-    map['decimals'] = Variable<int>(decimals);
-    map['note'] = Variable<String>(note);
-    map['created_at'] = Variable<DateTime>(createdAt);
-    return map;
-  }
-
-  GoalUpdatesCompanion toCompanion(bool nullToAbsent) {
-    return GoalUpdatesCompanion(
-      id: Value(id),
-      goalId: Value(goalId),
-      date: Value(date),
-      valueRaw: Value(valueRaw),
-      decimals: Value(decimals),
-      note: Value(note),
-      createdAt: Value(createdAt),
-    );
-  }
-
-  factory GoalUpdateRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return GoalUpdateRow(
-      id: serializer.fromJson<int>(json['id']),
-      goalId: serializer.fromJson<int>(json['goalId']),
-      date: serializer.fromJson<DateTime>(json['date']),
-      valueRaw: serializer.fromJson<int>(json['valueRaw']),
-      decimals: serializer.fromJson<int>(json['decimals']),
-      note: serializer.fromJson<String>(json['note']),
-      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'goalId': serializer.toJson<int>(goalId),
-      'date': serializer.toJson<DateTime>(date),
-      'valueRaw': serializer.toJson<int>(valueRaw),
-      'decimals': serializer.toJson<int>(decimals),
-      'note': serializer.toJson<String>(note),
-      'createdAt': serializer.toJson<DateTime>(createdAt),
-    };
-  }
-
-  GoalUpdateRow copyWith({
-    int? id,
-    int? goalId,
-    DateTime? date,
-    int? valueRaw,
-    int? decimals,
-    String? note,
-    DateTime? createdAt,
-  }) => GoalUpdateRow(
-    id: id ?? this.id,
-    goalId: goalId ?? this.goalId,
-    date: date ?? this.date,
-    valueRaw: valueRaw ?? this.valueRaw,
-    decimals: decimals ?? this.decimals,
-    note: note ?? this.note,
-    createdAt: createdAt ?? this.createdAt,
-  );
-  GoalUpdateRow copyWithCompanion(GoalUpdatesCompanion data) {
-    return GoalUpdateRow(
-      id: data.id.present ? data.id.value : this.id,
-      goalId: data.goalId.present ? data.goalId.value : this.goalId,
-      date: data.date.present ? data.date.value : this.date,
-      valueRaw: data.valueRaw.present ? data.valueRaw.value : this.valueRaw,
-      decimals: data.decimals.present ? data.decimals.value : this.decimals,
-      note: data.note.present ? data.note.value : this.note,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('GoalUpdateRow(')
-          ..write('id: $id, ')
-          ..write('goalId: $goalId, ')
-          ..write('date: $date, ')
-          ..write('valueRaw: $valueRaw, ')
-          ..write('decimals: $decimals, ')
-          ..write('note: $note, ')
-          ..write('createdAt: $createdAt')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode =>
-      Object.hash(id, goalId, date, valueRaw, decimals, note, createdAt);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is GoalUpdateRow &&
-          other.id == this.id &&
-          other.goalId == this.goalId &&
-          other.date == this.date &&
-          other.valueRaw == this.valueRaw &&
-          other.decimals == this.decimals &&
-          other.note == this.note &&
-          other.createdAt == this.createdAt);
-}
-
-class GoalUpdatesCompanion extends UpdateCompanion<GoalUpdateRow> {
-  final Value<int> id;
-  final Value<int> goalId;
-  final Value<DateTime> date;
-  final Value<int> valueRaw;
-  final Value<int> decimals;
-  final Value<String> note;
-  final Value<DateTime> createdAt;
-  const GoalUpdatesCompanion({
-    this.id = const Value.absent(),
-    this.goalId = const Value.absent(),
-    this.date = const Value.absent(),
-    this.valueRaw = const Value.absent(),
-    this.decimals = const Value.absent(),
-    this.note = const Value.absent(),
-    this.createdAt = const Value.absent(),
-  });
-  GoalUpdatesCompanion.insert({
-    this.id = const Value.absent(),
-    required int goalId,
-    required DateTime date,
-    required int valueRaw,
-    this.decimals = const Value.absent(),
-    this.note = const Value.absent(),
-    required DateTime createdAt,
-  }) : goalId = Value(goalId),
-       date = Value(date),
-       valueRaw = Value(valueRaw),
-       createdAt = Value(createdAt);
-  static Insertable<GoalUpdateRow> custom({
-    Expression<int>? id,
-    Expression<int>? goalId,
-    Expression<DateTime>? date,
-    Expression<int>? valueRaw,
-    Expression<int>? decimals,
-    Expression<String>? note,
-    Expression<DateTime>? createdAt,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (goalId != null) 'goal_id': goalId,
-      if (date != null) 'date': date,
-      if (valueRaw != null) 'value_raw': valueRaw,
-      if (decimals != null) 'decimals': decimals,
-      if (note != null) 'note': note,
-      if (createdAt != null) 'created_at': createdAt,
-    });
-  }
-
-  GoalUpdatesCompanion copyWith({
-    Value<int>? id,
-    Value<int>? goalId,
-    Value<DateTime>? date,
-    Value<int>? valueRaw,
-    Value<int>? decimals,
-    Value<String>? note,
-    Value<DateTime>? createdAt,
-  }) {
-    return GoalUpdatesCompanion(
-      id: id ?? this.id,
-      goalId: goalId ?? this.goalId,
-      date: date ?? this.date,
-      valueRaw: valueRaw ?? this.valueRaw,
-      decimals: decimals ?? this.decimals,
-      note: note ?? this.note,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (goalId.present) {
-      map['goal_id'] = Variable<int>(goalId.value);
-    }
-    if (date.present) {
-      map['date'] = Variable<DateTime>(date.value);
-    }
-    if (valueRaw.present) {
-      map['value_raw'] = Variable<int>(valueRaw.value);
-    }
-    if (decimals.present) {
-      map['decimals'] = Variable<int>(decimals.value);
-    }
-    if (note.present) {
-      map['note'] = Variable<String>(note.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<DateTime>(createdAt.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('GoalUpdatesCompanion(')
-          ..write('id: $id, ')
-          ..write('goalId: $goalId, ')
-          ..write('date: $date, ')
-          ..write('valueRaw: $valueRaw, ')
-          ..write('decimals: $decimals, ')
-          ..write('note: $note, ')
-          ..write('createdAt: $createdAt')
-          ..write(')'))
-        .toString();
-  }
-}
-
-class $ProjectGoalsTable extends ProjectGoals
-    with TableInfo<$ProjectGoalsTable, ProjectGoalRow> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $ProjectGoalsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _projectIdMeta = const VerificationMeta(
-    'projectId',
-  );
-  @override
-  late final GeneratedColumn<int> projectId = GeneratedColumn<int>(
-    'project_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES projects (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _goalIdMeta = const VerificationMeta('goalId');
-  @override
-  late final GeneratedColumn<int> goalId = GeneratedColumn<int>(
-    'goal_id',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES goals (id) ON DELETE CASCADE',
-    ),
-  );
-  @override
-  List<GeneratedColumn> get $columns => [projectId, goalId];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'project_goals';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<ProjectGoalRow> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('project_id')) {
-      context.handle(
-        _projectIdMeta,
-        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_projectIdMeta);
-    }
-    if (data.containsKey('goal_id')) {
-      context.handle(
-        _goalIdMeta,
-        goalId.isAcceptableOrUnknown(data['goal_id']!, _goalIdMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_goalIdMeta);
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {projectId, goalId};
-  @override
-  ProjectGoalRow map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return ProjectGoalRow(
-      projectId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}project_id'],
-      )!,
-      goalId: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}goal_id'],
-      )!,
-    );
-  }
-
-  @override
-  $ProjectGoalsTable createAlias(String alias) {
-    return $ProjectGoalsTable(attachedDatabase, alias);
-  }
-}
-
-class ProjectGoalRow extends DataClass implements Insertable<ProjectGoalRow> {
-  final int projectId;
-  final int goalId;
-  const ProjectGoalRow({required this.projectId, required this.goalId});
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['project_id'] = Variable<int>(projectId);
-    map['goal_id'] = Variable<int>(goalId);
-    return map;
-  }
-
-  ProjectGoalsCompanion toCompanion(bool nullToAbsent) {
-    return ProjectGoalsCompanion(
-      projectId: Value(projectId),
-      goalId: Value(goalId),
-    );
-  }
-
-  factory ProjectGoalRow.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return ProjectGoalRow(
-      projectId: serializer.fromJson<int>(json['projectId']),
-      goalId: serializer.fromJson<int>(json['goalId']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'projectId': serializer.toJson<int>(projectId),
-      'goalId': serializer.toJson<int>(goalId),
-    };
-  }
-
-  ProjectGoalRow copyWith({int? projectId, int? goalId}) => ProjectGoalRow(
-    projectId: projectId ?? this.projectId,
-    goalId: goalId ?? this.goalId,
-  );
-  ProjectGoalRow copyWithCompanion(ProjectGoalsCompanion data) {
-    return ProjectGoalRow(
-      projectId: data.projectId.present ? data.projectId.value : this.projectId,
-      goalId: data.goalId.present ? data.goalId.value : this.goalId,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('ProjectGoalRow(')
-          ..write('projectId: $projectId, ')
-          ..write('goalId: $goalId')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(projectId, goalId);
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is ProjectGoalRow &&
-          other.projectId == this.projectId &&
-          other.goalId == this.goalId);
-}
-
-class ProjectGoalsCompanion extends UpdateCompanion<ProjectGoalRow> {
-  final Value<int> projectId;
-  final Value<int> goalId;
-  final Value<int> rowid;
-  const ProjectGoalsCompanion({
-    this.projectId = const Value.absent(),
-    this.goalId = const Value.absent(),
-    this.rowid = const Value.absent(),
-  });
-  ProjectGoalsCompanion.insert({
-    required int projectId,
-    required int goalId,
-    this.rowid = const Value.absent(),
-  }) : projectId = Value(projectId),
-       goalId = Value(goalId);
-  static Insertable<ProjectGoalRow> custom({
-    Expression<int>? projectId,
-    Expression<int>? goalId,
-    Expression<int>? rowid,
-  }) {
-    return RawValuesInsertable({
-      if (projectId != null) 'project_id': projectId,
-      if (goalId != null) 'goal_id': goalId,
-      if (rowid != null) 'rowid': rowid,
-    });
-  }
-
-  ProjectGoalsCompanion copyWith({
-    Value<int>? projectId,
-    Value<int>? goalId,
-    Value<int>? rowid,
-  }) {
-    return ProjectGoalsCompanion(
-      projectId: projectId ?? this.projectId,
-      goalId: goalId ?? this.goalId,
-      rowid: rowid ?? this.rowid,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (projectId.present) {
-      map['project_id'] = Variable<int>(projectId.value);
-    }
-    if (goalId.present) {
-      map['goal_id'] = Variable<int>(goalId.value);
-    }
-    if (rowid.present) {
-      map['rowid'] = Variable<int>(rowid.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('ProjectGoalsCompanion(')
-          ..write('projectId: $projectId, ')
-          ..write('goalId: $goalId, ')
-          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -5743,9 +4581,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TopicsTable topics = $TopicsTable(this);
   late final $ProjectsTable projects = $ProjectsTable(this);
   late final $ActionsTable actions = $ActionsTable(this);
-  late final $GoalsTable goals = $GoalsTable(this);
-  late final $GoalUpdatesTable goalUpdates = $GoalUpdatesTable(this);
-  late final $ProjectGoalsTable projectGoals = $ProjectGoalsTable(this);
   late final $NotesTable notes = $NotesTable(this);
   late final $LinksTable links = $LinksTable(this);
   late final $ReviewsTable reviews = $ReviewsTable(this);
@@ -5760,9 +4595,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     topics,
     projects,
     actions,
-    goals,
-    goalUpdates,
-    projectGoals,
     notes,
     links,
     reviews,
@@ -5778,27 +4610,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('actions', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'goals',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('goal_updates', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'projects',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('project_goals', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'goals',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('project_goals', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -6218,24 +5029,6 @@ final class $$ProjectsTableReferences
     );
   }
 
-  static MultiTypedResultKey<$ProjectGoalsTable, List<ProjectGoalRow>>
-  _projectGoalsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.projectGoals,
-    aliasName: $_aliasNameGenerator(db.projects.id, db.projectGoals.projectId),
-  );
-
-  $$ProjectGoalsTableProcessedTableManager get projectGoalsRefs {
-    final manager = $$ProjectGoalsTableTableManager(
-      $_db,
-      $_db.projectGoals,
-    ).filter((f) => f.projectId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_projectGoalsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
   static MultiTypedResultKey<$NotesTable, List<NoteRow>> _notesRefsTable(
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(
@@ -6397,31 +5190,6 @@ class $$ProjectsTableFilterComposer
           }) => $$ActionsTableFilterComposer(
             $db: $db,
             $table: $db.actions,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> projectGoalsRefs(
-    Expression<bool> Function($$ProjectGoalsTableFilterComposer f) f,
-  ) {
-    final $$ProjectGoalsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.projectGoals,
-      getReferencedColumn: (t) => t.projectId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProjectGoalsTableFilterComposer(
-            $db: $db,
-            $table: $db.projectGoals,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6691,31 +5459,6 @@ class $$ProjectsTableAnnotationComposer
     return f(composer);
   }
 
-  Expression<T> projectGoalsRefs<T extends Object>(
-    Expression<T> Function($$ProjectGoalsTableAnnotationComposer a) f,
-  ) {
-    final $$ProjectGoalsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.projectGoals,
-      getReferencedColumn: (t) => t.projectId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProjectGoalsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.projectGoals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
   Expression<T> notesRefs<T extends Object>(
     Expression<T> Function($$NotesTableAnnotationComposer a) f,
   ) {
@@ -6808,7 +5551,6 @@ class $$ProjectsTableTableManager
           PrefetchHooks Function({
             bool topicId,
             bool actionsRefs,
-            bool projectGoalsRefs,
             bool notesRefs,
             bool linksRefs,
             bool reviewsRefs,
@@ -6893,7 +5635,6 @@ class $$ProjectsTableTableManager
               ({
                 topicId = false,
                 actionsRefs = false,
-                projectGoalsRefs = false,
                 notesRefs = false,
                 linksRefs = false,
                 reviewsRefs = false,
@@ -6902,7 +5643,6 @@ class $$ProjectsTableTableManager
                   db: db,
                   explicitlyWatchedTables: [
                     if (actionsRefs) db.actions,
-                    if (projectGoalsRefs) db.projectGoals,
                     if (notesRefs) db.notes,
                     if (linksRefs) db.links,
                     if (reviewsRefs) db.reviews,
@@ -6956,27 +5696,6 @@ class $$ProjectsTableTableManager
                                 table,
                                 p0,
                               ).actionsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.projectId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (projectGoalsRefs)
-                        await $_getPrefetchedData<
-                          ProjectRow,
-                          $ProjectsTable,
-                          ProjectGoalRow
-                        >(
-                          currentTable: table,
-                          referencedTable: $$ProjectsTableReferences
-                              ._projectGoalsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$ProjectsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).projectGoalsRefs,
                           referencedItemsForCurrentItem:
                               (item, referencedItems) => referencedItems.where(
                                 (e) => e.projectId == item.id,
@@ -7069,7 +5788,6 @@ typedef $$ProjectsTableProcessedTableManager =
       PrefetchHooks Function({
         bool topicId,
         bool actionsRefs,
-        bool projectGoalsRefs,
         bool notesRefs,
         bool linksRefs,
         bool reviewsRefs,
@@ -7082,7 +5800,10 @@ typedef $$ActionsTableCreateCompanionBuilder =
       required String title,
       Value<String> note,
       required String status,
+      Value<String> priority,
       Value<DateTime?> dueDate,
+      Value<bool> pinned,
+      Value<DateTime?> pinnedAt,
       Value<int> sortOrder,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -7097,7 +5818,10 @@ typedef $$ActionsTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String> note,
       Value<String> status,
+      Value<String> priority,
       Value<DateTime?> dueDate,
+      Value<bool> pinned,
+      Value<DateTime?> pinnedAt,
       Value<int> sortOrder,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -7157,8 +5881,23 @@ class $$ActionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<DateTime> get dueDate => $composableBuilder(
     column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get pinned => $composableBuilder(
+    column: $table.pinned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get pinnedAt => $composableBuilder(
+    column: $table.pinnedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7245,8 +5984,23 @@ class $$ActionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get dueDate => $composableBuilder(
     column: $table.dueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get pinned => $composableBuilder(
+    column: $table.pinned,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get pinnedAt => $composableBuilder(
+    column: $table.pinnedAt,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7325,8 +6079,17 @@ class $$ActionsTableAnnotationComposer
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
+  GeneratedColumn<String> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
   GeneratedColumn<DateTime> get dueDate =>
       $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get pinned =>
+      $composableBuilder(column: $table.pinned, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get pinnedAt =>
+      $composableBuilder(column: $table.pinnedAt, builder: (column) => column);
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
@@ -7407,7 +6170,10 @@ class $$ActionsTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String> note = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<String> priority = const Value.absent(),
                 Value<DateTime?> dueDate = const Value.absent(),
+                Value<bool> pinned = const Value.absent(),
+                Value<DateTime?> pinnedAt = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -7420,7 +6186,10 @@ class $$ActionsTableTableManager
                 title: title,
                 note: note,
                 status: status,
+                priority: priority,
                 dueDate: dueDate,
+                pinned: pinned,
+                pinnedAt: pinnedAt,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -7435,7 +6204,10 @@ class $$ActionsTableTableManager
                 required String title,
                 Value<String> note = const Value.absent(),
                 required String status,
+                Value<String> priority = const Value.absent(),
                 Value<DateTime?> dueDate = const Value.absent(),
+                Value<bool> pinned = const Value.absent(),
+                Value<DateTime?> pinnedAt = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -7448,7 +6220,10 @@ class $$ActionsTableTableManager
                 title: title,
                 note: note,
                 status: status,
+                priority: priority,
                 dueDate: dueDate,
+                pinned: pinned,
+                pinnedAt: pinnedAt,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -7522,1210 +6297,6 @@ typedef $$ActionsTableProcessedTableManager =
       (ActionRow, $$ActionsTableReferences),
       ActionRow,
       PrefetchHooks Function({bool projectId})
-    >;
-typedef $$GoalsTableCreateCompanionBuilder =
-    GoalsCompanion Function({
-      Value<int> id,
-      required String name,
-      Value<String> description,
-      Value<bool> isNumeric,
-      Value<int?> targetRaw,
-      Value<int> decimals,
-      Value<String> unit,
-      Value<DateTime?> dueDate,
-      required DateTime createdAt,
-      required DateTime updatedAt,
-      Value<String> searchText,
-    });
-typedef $$GoalsTableUpdateCompanionBuilder =
-    GoalsCompanion Function({
-      Value<int> id,
-      Value<String> name,
-      Value<String> description,
-      Value<bool> isNumeric,
-      Value<int?> targetRaw,
-      Value<int> decimals,
-      Value<String> unit,
-      Value<DateTime?> dueDate,
-      Value<DateTime> createdAt,
-      Value<DateTime> updatedAt,
-      Value<String> searchText,
-    });
-
-final class $$GoalsTableReferences
-    extends BaseReferences<_$AppDatabase, $GoalsTable, GoalRow> {
-  $$GoalsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$GoalUpdatesTable, List<GoalUpdateRow>>
-  _goalUpdatesRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.goalUpdates,
-    aliasName: $_aliasNameGenerator(db.goals.id, db.goalUpdates.goalId),
-  );
-
-  $$GoalUpdatesTableProcessedTableManager get goalUpdatesRefs {
-    final manager = $$GoalUpdatesTableTableManager(
-      $_db,
-      $_db.goalUpdates,
-    ).filter((f) => f.goalId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_goalUpdatesRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-
-  static MultiTypedResultKey<$ProjectGoalsTable, List<ProjectGoalRow>>
-  _projectGoalsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.projectGoals,
-    aliasName: $_aliasNameGenerator(db.goals.id, db.projectGoals.goalId),
-  );
-
-  $$ProjectGoalsTableProcessedTableManager get projectGoalsRefs {
-    final manager = $$ProjectGoalsTableTableManager(
-      $_db,
-      $_db.projectGoals,
-    ).filter((f) => f.goalId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_projectGoalsRefsTable($_db));
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
-class $$GoalsTableFilterComposer extends Composer<_$AppDatabase, $GoalsTable> {
-  $$GoalsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<bool> get isNumeric => $composableBuilder(
-    column: $table.isNumeric,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get targetRaw => $composableBuilder(
-    column: $table.targetRaw,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get decimals => $composableBuilder(
-    column: $table.decimals,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get unit => $composableBuilder(
-    column: $table.unit,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get dueDate => $composableBuilder(
-    column: $table.dueDate,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get searchText => $composableBuilder(
-    column: $table.searchText,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  Expression<bool> goalUpdatesRefs(
-    Expression<bool> Function($$GoalUpdatesTableFilterComposer f) f,
-  ) {
-    final $$GoalUpdatesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.goalUpdates,
-      getReferencedColumn: (t) => t.goalId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GoalUpdatesTableFilterComposer(
-            $db: $db,
-            $table: $db.goalUpdates,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> projectGoalsRefs(
-    Expression<bool> Function($$ProjectGoalsTableFilterComposer f) f,
-  ) {
-    final $$ProjectGoalsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.projectGoals,
-      getReferencedColumn: (t) => t.goalId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProjectGoalsTableFilterComposer(
-            $db: $db,
-            $table: $db.projectGoals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$GoalsTableOrderingComposer
-    extends Composer<_$AppDatabase, $GoalsTable> {
-  $$GoalsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get name => $composableBuilder(
-    column: $table.name,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<bool> get isNumeric => $composableBuilder(
-    column: $table.isNumeric,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get targetRaw => $composableBuilder(
-    column: $table.targetRaw,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get decimals => $composableBuilder(
-    column: $table.decimals,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get unit => $composableBuilder(
-    column: $table.unit,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get dueDate => $composableBuilder(
-    column: $table.dueDate,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get searchText => $composableBuilder(
-    column: $table.searchText,
-    builder: (column) => ColumnOrderings(column),
-  );
-}
-
-class $$GoalsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $GoalsTable> {
-  $$GoalsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => column);
-
-  GeneratedColumn<String> get description => $composableBuilder(
-    column: $table.description,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<bool> get isNumeric =>
-      $composableBuilder(column: $table.isNumeric, builder: (column) => column);
-
-  GeneratedColumn<int> get targetRaw =>
-      $composableBuilder(column: $table.targetRaw, builder: (column) => column);
-
-  GeneratedColumn<int> get decimals =>
-      $composableBuilder(column: $table.decimals, builder: (column) => column);
-
-  GeneratedColumn<String> get unit =>
-      $composableBuilder(column: $table.unit, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get dueDate =>
-      $composableBuilder(column: $table.dueDate, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-
-  GeneratedColumn<String> get searchText => $composableBuilder(
-    column: $table.searchText,
-    builder: (column) => column,
-  );
-
-  Expression<T> goalUpdatesRefs<T extends Object>(
-    Expression<T> Function($$GoalUpdatesTableAnnotationComposer a) f,
-  ) {
-    final $$GoalUpdatesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.goalUpdates,
-      getReferencedColumn: (t) => t.goalId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GoalUpdatesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.goalUpdates,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<T> projectGoalsRefs<T extends Object>(
-    Expression<T> Function($$ProjectGoalsTableAnnotationComposer a) f,
-  ) {
-    final $$ProjectGoalsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.projectGoals,
-      getReferencedColumn: (t) => t.goalId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProjectGoalsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.projectGoals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-}
-
-class $$GoalsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $GoalsTable,
-          GoalRow,
-          $$GoalsTableFilterComposer,
-          $$GoalsTableOrderingComposer,
-          $$GoalsTableAnnotationComposer,
-          $$GoalsTableCreateCompanionBuilder,
-          $$GoalsTableUpdateCompanionBuilder,
-          (GoalRow, $$GoalsTableReferences),
-          GoalRow,
-          PrefetchHooks Function({bool goalUpdatesRefs, bool projectGoalsRefs})
-        > {
-  $$GoalsTableTableManager(_$AppDatabase db, $GoalsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$GoalsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$GoalsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$GoalsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> name = const Value.absent(),
-                Value<String> description = const Value.absent(),
-                Value<bool> isNumeric = const Value.absent(),
-                Value<int?> targetRaw = const Value.absent(),
-                Value<int> decimals = const Value.absent(),
-                Value<String> unit = const Value.absent(),
-                Value<DateTime?> dueDate = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-                Value<DateTime> updatedAt = const Value.absent(),
-                Value<String> searchText = const Value.absent(),
-              }) => GoalsCompanion(
-                id: id,
-                name: name,
-                description: description,
-                isNumeric: isNumeric,
-                targetRaw: targetRaw,
-                decimals: decimals,
-                unit: unit,
-                dueDate: dueDate,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                searchText: searchText,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required String name,
-                Value<String> description = const Value.absent(),
-                Value<bool> isNumeric = const Value.absent(),
-                Value<int?> targetRaw = const Value.absent(),
-                Value<int> decimals = const Value.absent(),
-                Value<String> unit = const Value.absent(),
-                Value<DateTime?> dueDate = const Value.absent(),
-                required DateTime createdAt,
-                required DateTime updatedAt,
-                Value<String> searchText = const Value.absent(),
-              }) => GoalsCompanion.insert(
-                id: id,
-                name: name,
-                description: description,
-                isNumeric: isNumeric,
-                targetRaw: targetRaw,
-                decimals: decimals,
-                unit: unit,
-                dueDate: dueDate,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                searchText: searchText,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) =>
-                    (e.readTable(table), $$GoalsTableReferences(db, table, e)),
-              )
-              .toList(),
-          prefetchHooksCallback:
-              ({goalUpdatesRefs = false, projectGoalsRefs = false}) {
-                return PrefetchHooks(
-                  db: db,
-                  explicitlyWatchedTables: [
-                    if (goalUpdatesRefs) db.goalUpdates,
-                    if (projectGoalsRefs) db.projectGoals,
-                  ],
-                  addJoins: null,
-                  getPrefetchedDataCallback: (items) async {
-                    return [
-                      if (goalUpdatesRefs)
-                        await $_getPrefetchedData<
-                          GoalRow,
-                          $GoalsTable,
-                          GoalUpdateRow
-                        >(
-                          currentTable: table,
-                          referencedTable: $$GoalsTableReferences
-                              ._goalUpdatesRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$GoalsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).goalUpdatesRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.goalId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                      if (projectGoalsRefs)
-                        await $_getPrefetchedData<
-                          GoalRow,
-                          $GoalsTable,
-                          ProjectGoalRow
-                        >(
-                          currentTable: table,
-                          referencedTable: $$GoalsTableReferences
-                              ._projectGoalsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$GoalsTableReferences(
-                                db,
-                                table,
-                                p0,
-                              ).projectGoalsRefs,
-                          referencedItemsForCurrentItem:
-                              (item, referencedItems) => referencedItems.where(
-                                (e) => e.goalId == item.id,
-                              ),
-                          typedResults: items,
-                        ),
-                    ];
-                  },
-                );
-              },
-        ),
-      );
-}
-
-typedef $$GoalsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $GoalsTable,
-      GoalRow,
-      $$GoalsTableFilterComposer,
-      $$GoalsTableOrderingComposer,
-      $$GoalsTableAnnotationComposer,
-      $$GoalsTableCreateCompanionBuilder,
-      $$GoalsTableUpdateCompanionBuilder,
-      (GoalRow, $$GoalsTableReferences),
-      GoalRow,
-      PrefetchHooks Function({bool goalUpdatesRefs, bool projectGoalsRefs})
-    >;
-typedef $$GoalUpdatesTableCreateCompanionBuilder =
-    GoalUpdatesCompanion Function({
-      Value<int> id,
-      required int goalId,
-      required DateTime date,
-      required int valueRaw,
-      Value<int> decimals,
-      Value<String> note,
-      required DateTime createdAt,
-    });
-typedef $$GoalUpdatesTableUpdateCompanionBuilder =
-    GoalUpdatesCompanion Function({
-      Value<int> id,
-      Value<int> goalId,
-      Value<DateTime> date,
-      Value<int> valueRaw,
-      Value<int> decimals,
-      Value<String> note,
-      Value<DateTime> createdAt,
-    });
-
-final class $$GoalUpdatesTableReferences
-    extends BaseReferences<_$AppDatabase, $GoalUpdatesTable, GoalUpdateRow> {
-  $$GoalUpdatesTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $GoalsTable _goalIdTable(_$AppDatabase db) => db.goals.createAlias(
-    $_aliasNameGenerator(db.goalUpdates.goalId, db.goals.id),
-  );
-
-  $$GoalsTableProcessedTableManager get goalId {
-    final $_column = $_itemColumn<int>('goal_id')!;
-
-    final manager = $$GoalsTableTableManager(
-      $_db,
-      $_db.goals,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_goalIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
-class $$GoalUpdatesTableFilterComposer
-    extends Composer<_$AppDatabase, $GoalUpdatesTable> {
-  $$GoalUpdatesTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get date => $composableBuilder(
-    column: $table.date,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get valueRaw => $composableBuilder(
-    column: $table.valueRaw,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get decimals => $composableBuilder(
-    column: $table.decimals,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get note => $composableBuilder(
-    column: $table.note,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  $$GoalsTableFilterComposer get goalId {
-    final $$GoalsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.goalId,
-      referencedTable: $db.goals,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GoalsTableFilterComposer(
-            $db: $db,
-            $table: $db.goals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$GoalUpdatesTableOrderingComposer
-    extends Composer<_$AppDatabase, $GoalUpdatesTable> {
-  $$GoalUpdatesTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get date => $composableBuilder(
-    column: $table.date,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get valueRaw => $composableBuilder(
-    column: $table.valueRaw,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<int> get decimals => $composableBuilder(
-    column: $table.decimals,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get note => $composableBuilder(
-    column: $table.note,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  $$GoalsTableOrderingComposer get goalId {
-    final $$GoalsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.goalId,
-      referencedTable: $db.goals,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GoalsTableOrderingComposer(
-            $db: $db,
-            $table: $db.goals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$GoalUpdatesTableAnnotationComposer
-    extends Composer<_$AppDatabase, $GoalUpdatesTable> {
-  $$GoalUpdatesTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get date =>
-      $composableBuilder(column: $table.date, builder: (column) => column);
-
-  GeneratedColumn<int> get valueRaw =>
-      $composableBuilder(column: $table.valueRaw, builder: (column) => column);
-
-  GeneratedColumn<int> get decimals =>
-      $composableBuilder(column: $table.decimals, builder: (column) => column);
-
-  GeneratedColumn<String> get note =>
-      $composableBuilder(column: $table.note, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  $$GoalsTableAnnotationComposer get goalId {
-    final $$GoalsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.goalId,
-      referencedTable: $db.goals,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GoalsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.goals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$GoalUpdatesTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $GoalUpdatesTable,
-          GoalUpdateRow,
-          $$GoalUpdatesTableFilterComposer,
-          $$GoalUpdatesTableOrderingComposer,
-          $$GoalUpdatesTableAnnotationComposer,
-          $$GoalUpdatesTableCreateCompanionBuilder,
-          $$GoalUpdatesTableUpdateCompanionBuilder,
-          (GoalUpdateRow, $$GoalUpdatesTableReferences),
-          GoalUpdateRow,
-          PrefetchHooks Function({bool goalId})
-        > {
-  $$GoalUpdatesTableTableManager(_$AppDatabase db, $GoalUpdatesTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$GoalUpdatesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$GoalUpdatesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$GoalUpdatesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<int> goalId = const Value.absent(),
-                Value<DateTime> date = const Value.absent(),
-                Value<int> valueRaw = const Value.absent(),
-                Value<int> decimals = const Value.absent(),
-                Value<String> note = const Value.absent(),
-                Value<DateTime> createdAt = const Value.absent(),
-              }) => GoalUpdatesCompanion(
-                id: id,
-                goalId: goalId,
-                date: date,
-                valueRaw: valueRaw,
-                decimals: decimals,
-                note: note,
-                createdAt: createdAt,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required int goalId,
-                required DateTime date,
-                required int valueRaw,
-                Value<int> decimals = const Value.absent(),
-                Value<String> note = const Value.absent(),
-                required DateTime createdAt,
-              }) => GoalUpdatesCompanion.insert(
-                id: id,
-                goalId: goalId,
-                date: date,
-                valueRaw: valueRaw,
-                decimals: decimals,
-                note: note,
-                createdAt: createdAt,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$GoalUpdatesTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({goalId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (goalId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.goalId,
-                                referencedTable: $$GoalUpdatesTableReferences
-                                    ._goalIdTable(db),
-                                referencedColumn: $$GoalUpdatesTableReferences
-                                    ._goalIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$GoalUpdatesTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $GoalUpdatesTable,
-      GoalUpdateRow,
-      $$GoalUpdatesTableFilterComposer,
-      $$GoalUpdatesTableOrderingComposer,
-      $$GoalUpdatesTableAnnotationComposer,
-      $$GoalUpdatesTableCreateCompanionBuilder,
-      $$GoalUpdatesTableUpdateCompanionBuilder,
-      (GoalUpdateRow, $$GoalUpdatesTableReferences),
-      GoalUpdateRow,
-      PrefetchHooks Function({bool goalId})
-    >;
-typedef $$ProjectGoalsTableCreateCompanionBuilder =
-    ProjectGoalsCompanion Function({
-      required int projectId,
-      required int goalId,
-      Value<int> rowid,
-    });
-typedef $$ProjectGoalsTableUpdateCompanionBuilder =
-    ProjectGoalsCompanion Function({
-      Value<int> projectId,
-      Value<int> goalId,
-      Value<int> rowid,
-    });
-
-final class $$ProjectGoalsTableReferences
-    extends BaseReferences<_$AppDatabase, $ProjectGoalsTable, ProjectGoalRow> {
-  $$ProjectGoalsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $ProjectsTable _projectIdTable(_$AppDatabase db) =>
-      db.projects.createAlias(
-        $_aliasNameGenerator(db.projectGoals.projectId, db.projects.id),
-      );
-
-  $$ProjectsTableProcessedTableManager get projectId {
-    final $_column = $_itemColumn<int>('project_id')!;
-
-    final manager = $$ProjectsTableTableManager(
-      $_db,
-      $_db.projects,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-
-  static $GoalsTable _goalIdTable(_$AppDatabase db) => db.goals.createAlias(
-    $_aliasNameGenerator(db.projectGoals.goalId, db.goals.id),
-  );
-
-  $$GoalsTableProcessedTableManager get goalId {
-    final $_column = $_itemColumn<int>('goal_id')!;
-
-    final manager = $$GoalsTableTableManager(
-      $_db,
-      $_db.goals,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_goalIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
-
-class $$ProjectGoalsTableFilterComposer
-    extends Composer<_$AppDatabase, $ProjectGoalsTable> {
-  $$ProjectGoalsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  $$ProjectsTableFilterComposer get projectId {
-    final $$ProjectsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.projectId,
-      referencedTable: $db.projects,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProjectsTableFilterComposer(
-            $db: $db,
-            $table: $db.projects,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$GoalsTableFilterComposer get goalId {
-    final $$GoalsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.goalId,
-      referencedTable: $db.goals,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GoalsTableFilterComposer(
-            $db: $db,
-            $table: $db.goals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$ProjectGoalsTableOrderingComposer
-    extends Composer<_$AppDatabase, $ProjectGoalsTable> {
-  $$ProjectGoalsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  $$ProjectsTableOrderingComposer get projectId {
-    final $$ProjectsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.projectId,
-      referencedTable: $db.projects,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProjectsTableOrderingComposer(
-            $db: $db,
-            $table: $db.projects,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$GoalsTableOrderingComposer get goalId {
-    final $$GoalsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.goalId,
-      referencedTable: $db.goals,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GoalsTableOrderingComposer(
-            $db: $db,
-            $table: $db.goals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$ProjectGoalsTableAnnotationComposer
-    extends Composer<_$AppDatabase, $ProjectGoalsTable> {
-  $$ProjectGoalsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  $$ProjectsTableAnnotationComposer get projectId {
-    final $$ProjectsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.projectId,
-      referencedTable: $db.projects,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$ProjectsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.projects,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$GoalsTableAnnotationComposer get goalId {
-    final $$GoalsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.goalId,
-      referencedTable: $db.goals,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$GoalsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.goals,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$ProjectGoalsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $ProjectGoalsTable,
-          ProjectGoalRow,
-          $$ProjectGoalsTableFilterComposer,
-          $$ProjectGoalsTableOrderingComposer,
-          $$ProjectGoalsTableAnnotationComposer,
-          $$ProjectGoalsTableCreateCompanionBuilder,
-          $$ProjectGoalsTableUpdateCompanionBuilder,
-          (ProjectGoalRow, $$ProjectGoalsTableReferences),
-          ProjectGoalRow,
-          PrefetchHooks Function({bool projectId, bool goalId})
-        > {
-  $$ProjectGoalsTableTableManager(_$AppDatabase db, $ProjectGoalsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () =>
-              $$ProjectGoalsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () =>
-              $$ProjectGoalsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$ProjectGoalsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> projectId = const Value.absent(),
-                Value<int> goalId = const Value.absent(),
-                Value<int> rowid = const Value.absent(),
-              }) => ProjectGoalsCompanion(
-                projectId: projectId,
-                goalId: goalId,
-                rowid: rowid,
-              ),
-          createCompanionCallback:
-              ({
-                required int projectId,
-                required int goalId,
-                Value<int> rowid = const Value.absent(),
-              }) => ProjectGoalsCompanion.insert(
-                projectId: projectId,
-                goalId: goalId,
-                rowid: rowid,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$ProjectGoalsTableReferences(db, table, e),
-                ),
-              )
-              .toList(),
-          prefetchHooksCallback: ({projectId = false, goalId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (projectId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.projectId,
-                                referencedTable: $$ProjectGoalsTableReferences
-                                    ._projectIdTable(db),
-                                referencedColumn: $$ProjectGoalsTableReferences
-                                    ._projectIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-                    if (goalId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.goalId,
-                                referencedTable: $$ProjectGoalsTableReferences
-                                    ._goalIdTable(db),
-                                referencedColumn: $$ProjectGoalsTableReferences
-                                    ._goalIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$ProjectGoalsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $ProjectGoalsTable,
-      ProjectGoalRow,
-      $$ProjectGoalsTableFilterComposer,
-      $$ProjectGoalsTableOrderingComposer,
-      $$ProjectGoalsTableAnnotationComposer,
-      $$ProjectGoalsTableCreateCompanionBuilder,
-      $$ProjectGoalsTableUpdateCompanionBuilder,
-      (ProjectGoalRow, $$ProjectGoalsTableReferences),
-      ProjectGoalRow,
-      PrefetchHooks Function({bool projectId, bool goalId})
     >;
 typedef $$NotesTableCreateCompanionBuilder =
     NotesCompanion Function({
@@ -10651,12 +8222,6 @@ class $AppDatabaseManager {
       $$ProjectsTableTableManager(_db, _db.projects);
   $$ActionsTableTableManager get actions =>
       $$ActionsTableTableManager(_db, _db.actions);
-  $$GoalsTableTableManager get goals =>
-      $$GoalsTableTableManager(_db, _db.goals);
-  $$GoalUpdatesTableTableManager get goalUpdates =>
-      $$GoalUpdatesTableTableManager(_db, _db.goalUpdates);
-  $$ProjectGoalsTableTableManager get projectGoals =>
-      $$ProjectGoalsTableTableManager(_db, _db.projectGoals);
   $$NotesTableTableManager get notes =>
       $$NotesTableTableManager(_db, _db.notes);
   $$LinksTableTableManager get links =>

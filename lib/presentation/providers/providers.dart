@@ -8,13 +8,11 @@ import '../../data/backup/backup_service.dart';
 import '../../data/db/database.dart';
 import '../../data/repositories/drift_action_repository.dart';
 import '../../data/repositories/drift_content_repositories.dart';
-import '../../data/repositories/drift_goal_repository.dart';
 import '../../data/repositories/drift_project_repository.dart';
 import '../../data/repositories/drift_review_repository.dart';
 import '../../data/repositories/drift_search_repository.dart';
 import '../../data/repositories/drift_topic_repository.dart';
 import '../../data/seed/seeder.dart';
-import '../../domain/models/goal.dart';
 import '../../domain/models/note.dart';
 import '../../domain/models/project.dart';
 import '../../domain/models/project_action.dart';
@@ -39,10 +37,6 @@ final projectRepositoryProvider = Provider<ProjectRepository>(
 
 final actionRepositoryProvider = Provider<ActionRepository>(
   (ref) => DriftActionRepository(ref.watch(databaseProvider)),
-);
-
-final goalRepositoryProvider = Provider<GoalRepository>(
-  (ref) => DriftGoalRepository(ref.watch(databaseProvider)),
 );
 
 final noteRepositoryProvider = Provider<NoteRepository>(
@@ -138,11 +132,6 @@ final projectStatusHistoryProvider = StreamProvider.family<List<StatusEvent>, in
       ref.watch(projectRepositoryProvider).watchStatusHistory(projectId),
 );
 
-final projectLinkedGoalIdsProvider = StreamProvider.family<List<int>, int>(
-  (ref, projectId) =>
-      ref.watch(goalRepositoryProvider).watchLinkedGoalIds(projectId),
-);
-
 final projectReviewsProvider = StreamProvider.family<List<ReviewSummary>, int>(
   (ref, projectId) => ref.watch(reviewRepositoryProvider).watchByProject(projectId),
 );
@@ -156,20 +145,19 @@ final allReviewsProvider = StreamProvider<List<Review>>(
   (ref) => ref.watch(reviewRepositoryProvider).watchAllReviews(),
 );
 
-final goalsProvider = StreamProvider<List<Goal>>(
-  (ref) => ref.watch(goalRepositoryProvider).watchAll(),
+/// Hành động đang ghim — nguồn duy nhất của danh sách "Làm ngay" (FR-42).
+final pinnedActionsProvider = StreamProvider<List<ProjectAction>>(
+  (ref) => ref.watch(actionRepositoryProvider).watchPinned(),
 );
 
-final goalProvider = StreamProvider.family<Goal?, int>(
-  (ref, id) => ref.watch(goalRepositoryProvider).watchById(id),
+/// Mọi Hành động còn mở — nguồn của khối cảnh báo (FR-43).
+final openActionsProvider = StreamProvider<List<ProjectAction>>(
+  (ref) => ref.watch(actionRepositoryProvider).watchAllOpen(),
 );
 
-final goalUpdatesProvider = StreamProvider.family<List<GoalUpdate>, int>(
-  (ref, goalId) => ref.watch(goalRepositoryProvider).watchUpdates(goalId),
-);
-
-final goalLinkedProjectIdsProvider = StreamProvider.family<List<int>, int>(
-  (ref, goalId) => ref.watch(goalRepositoryProvider).watchLinkedProjectIds(goalId),
+/// Mọi Hành động — nguồn của thống kê (FR-44).
+final allActionsProvider = StreamProvider<List<ProjectAction>>(
+  (ref) => ref.watch(actionRepositoryProvider).watchAll(),
 );
 
 /// Đồng hồ của ứng dụng. Tách ra để test dựng được "hôm nay" cố định.

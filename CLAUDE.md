@@ -6,7 +6,11 @@ Hướng dẫn cho Claude Code khi làm việc trong project này.
 
 App Flutter **quản lý dự án và mục tiêu cá nhân** — thay thế hai file `HÀNH ĐỘNG.pdf` và `Ý TƯỞNG.pdf` mà người dùng đang dùng làm nơi chứa bảy hướng đi cá nhân, danh sách hành động và mục tiêu dài hạn.
 
-Trật tự tổ chức: **Mục tiêu là gốc, Dự án là nhánh, Hành động là lá.**
+Trật tự tổ chức: **Chủ đề nhóm Dự án, Dự án chứa Hành động.** Mỗi Hành động có
+độ ưu tiên và hạn riêng.
+
+Tính năng **Mục tiêu đã bị bỏ hẳn** ngày 2026-08-28 theo yêu cầu người dùng —
+cả mã nguồn lẫn dữ liệu. Đừng thêm lại nếu không có yêu cầu mới rõ ràng.
 
 **Đây KHÔNG phải app theo dõi tài sản đầu tư.** Việc đó thuộc về project `personal_finance` bên cạnh. Ở đây chỉ có *ý chí* — mục tiêu, nguyên tắc, hành động — không có *số liệu tài sản*, không có giá thị trường, không có lãi lỗ. Nếu một yêu cầu nghe giống theo dõi danh mục đầu tư, hãy hỏi lại trước khi làm.
 
@@ -62,7 +66,20 @@ Từ khoá `double` không được xuất hiện trong `lib/domain/` và trong 
 
 Chính việc thiếu dấu thời gian là khuyết tật lớn nhất của hai file PDF gốc — app tồn tại một phần để chữa đúng chỗ đó.
 
-### 4. Đợt đánh giá không phải Hành động
+### 4. Màn hình Hôm nay không tự thêm việc
+
+Danh sách **Làm ngay** chỉ gồm Hành động người dùng **tự ghim** (`Action.pinned`).
+Không chỗ nào trong ứng dụng được tự ghim hộ. Đây là điều giữ cho màn hình đó
+ngắn và đáng đọc — bản trước tự suy ra danh sách và kết quả là không ai đọc.
+
+Khối **Cần chú ý** phía dưới là thứ ứng dụng chủ động nhắc (quá hạn, sắp đến
+hạn, ưu tiên cao chưa bắt đầu). Nó là *thông tin*, không phải danh sách việc.
+Mỗi Hành động chỉ xuất hiện một lần, ở loại nghiêm trọng nhất.
+
+Ngoại lệ duy nhất được phép động vào `pinned`: đánh dấu `Xong` hoặc `Bỏ` thì tự
+bỏ ghim.
+
+### 5. Đợt đánh giá không phải Hành động
 
 `Action` trả lời *"việc này làm xong chưa"* — vòng đời một chiều, kết thúc ở
 `Xong`. `Review` trả lời *"chu kỳ vừa rồi có tiến bộ không"* — cùng một nội
@@ -73,7 +90,7 @@ dung được chấm lại ở nhiều mốc thời gian, kết quả `Đạt` /
 khoá ngoại tới `Action`. Sửa một Hành động về sau **không được** làm đổi nội
 dung một Đợt đánh giá quá khứ — nhật ký phải giữ đúng chữ đã viết lúc đó.
 
-### 5. Không có mạng, điểm
+### 6. Không có mạng, điểm
 
 Không có `lib/data/remote/`. Không có `package:http` trong `pubspec.yaml`. Không `HttpClient`, không phân tích hành vi, không thu thập số liệu sử dụng, không quảng cáo, không backend, không tài khoản, không đồng bộ.
 
@@ -86,7 +103,7 @@ lib/
   core/        format · l10n · result · money
   domain/      models · rules · repositories (chỉ hợp đồng trừu tượng)
   data/        db (drift) · backup · seed · repositories (cài đặt)
-  features/    today · projects · actions · goals · notes · reviews
+  features/    today · projects · actions · notes · reviews · stats
                search · settings · onboarding
   presentation/ providers · widgets
 ```
@@ -134,7 +151,7 @@ AGP **8.11.1** · Kotlin **2.2.20** · Gradle **8.14** — khớp phiên bản F
 
 ## Thuật ngữ — dùng đúng, không đặt từ đồng nghĩa
 
-`Project` · `Action` · `Goal` · `GoalUpdate` · `Topic` · `Note` · `Link` · `StatusEvent` · `ProjectGoal` · `Review` · `ReviewItem`
+`Project` · `Action` · `Topic` · `Note` · `Link` · `StatusEvent` · `Review` · `ReviewItem`
 
 Tên lớp Dart của `Action` là **`ProjectAction`** — `Action` đã là một lớp của
 `package:flutter/widgets.dart`. Thuật ngữ, nhãn giao diện và tên bảng vẫn là
@@ -145,7 +162,7 @@ Trạng thái lưu bằng chuỗi ổn định, không lưu chỉ số enum:
 ```
 ProjectStatus : not_started · active · paused · done · dropped
 ActionStatus  :               todo · doing · done · dropped
-Priority      : high · medium · low
+Priority      : high · medium · low      (áp cho CẢ Project lẫn Action)
 ReviewVerdict : met · partial · not_met
 ```
 

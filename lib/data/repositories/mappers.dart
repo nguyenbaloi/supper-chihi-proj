@@ -1,5 +1,4 @@
 import '../../domain/models/enums.dart';
-import '../../domain/models/goal.dart';
 import '../../domain/models/note.dart';
 import '../../domain/models/project.dart';
 import '../../domain/models/project_action.dart';
@@ -44,39 +43,15 @@ extension ActionMapper on ActionRow {
         title: title,
         note: note,
         status: ActionStatus.fromWire(status),
+        priority: Priority.fromWire(priority),
+        pinned: pinned,
+        pinnedAt: pinnedAt,
         dueDate: dueDate,
         sortOrder: sortOrder,
         createdAt: createdAt,
         updatedAt: updatedAt,
         startedAt: startedAt,
         completedAt: completedAt,
-      );
-}
-
-extension GoalMapper on GoalRow {
-  Goal toModel() => Goal(
-        id: id,
-        name: name,
-        description: description,
-        isNumeric: isNumeric,
-        targetRaw: targetRaw,
-        decimals: decimals,
-        unit: unit,
-        dueDate: dueDate,
-        createdAt: createdAt,
-        updatedAt: updatedAt,
-      );
-}
-
-extension GoalUpdateMapper on GoalUpdateRow {
-  GoalUpdate toModel() => GoalUpdate(
-        id: id,
-        goalId: goalId,
-        date: date,
-        valueRaw: valueRaw,
-        decimals: decimals,
-        note: note,
-        createdAt: createdAt,
       );
 }
 

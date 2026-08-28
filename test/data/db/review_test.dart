@@ -233,18 +233,6 @@ void main() {
       expect(notes.length, 2);
     });
 
-    test('Mục tiêu 1 tỷ đo bằng tổng tài sản ròng, hạn 31/12/2027', () async {
-      await seeder.applyProjectSeed();
-      final goal = (await db.select(db.goals).get())
-          .firstWhere((g) => g.name == 'Mục tiêu 1 tỷ');
-      expect(goal.targetRaw, 1000000000);
-      expect(goal.dueDate, isNotNull);
-      expect(goal.dueDate!.toLocal().year, 2027);
-      expect(goal.dueDate!.toLocal().month, 12);
-      expect(goal.dueDate!.toLocal().day, 31);
-      expect(goal.description, contains('tổng tài sản ròng'));
-    });
-
     test('chạy lại bộ hạt giống không nhân đôi Đợt đánh giá', () async {
       await seeder.applyProjectSeed();
       await seeder.applyProjectSeed();

@@ -22,9 +22,6 @@ SELECT 'action', a.id, a.title, a.note, p.id, p.name
   FROM actions a JOIN projects p ON p.id = a.project_id
  WHERE a.search_text LIKE ?1
 UNION ALL
-SELECT 'goal', g.id, g.name, g.description, NULL, NULL
-  FROM goals g WHERE g.search_text LIKE ?1
-UNION ALL
 SELECT 'note', n.id, n.title, n.body_markdown, p.id, p.name
   FROM notes n JOIN projects p ON p.id = n.project_id
  WHERE n.search_text LIKE ?1
@@ -56,7 +53,6 @@ LIMIT 200
       readsFrom: {
         _db.projects,
         _db.actions,
-        _db.goals,
         _db.notes,
         _db.links,
         _db.reviews,
@@ -79,7 +75,6 @@ LIMIT 200
 
   static SearchKind _kind(String wire) => switch (wire) {
         'action' => SearchKind.action,
-        'goal' => SearchKind.goal,
         'note' => SearchKind.note,
         'link' => SearchKind.link,
         'review' => SearchKind.review,

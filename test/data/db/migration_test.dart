@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_projects/data/db/database.dart';
@@ -109,7 +108,8 @@ const List<String> _schemaV1 = [
 ];
 
 void main() {
-  test('v1 → v2: thêm bảng Đợt đánh giá, dữ liệu cũ còn nguyên', () async {
+  test('v1 → v3: thêm Đợt đánh giá, bỏ Mục tiêu, dữ liệu còn lại nguyên vẹn',
+      () async {
     final raw = sqlite.sqlite3.openInMemory();
     for (final stmt in _schemaV1) {
       raw.execute(stmt);
@@ -144,15 +144,26 @@ void main() {
     // Chạm vào cơ sở dữ liệu để buộc drift chạy migration.
     final projects = await db.select(db.projects).get();
 
-    expect(db.schemaVersion, 2);
-    expect(raw.select('PRAGMA user_version').first.values.first, 2);
+    expect(db.schemaVersion, 3);
+    expect(raw.select('PRAGMA user_version').first.values.first, 3);
 
     // Dữ liệu cũ nguyên vẹn.
     expect(projects.length, 1);
     expect(projects.single.name, 'Dạy Huy');
     expect((await db.select(db.actions).get()).single.title,
         'Ngủ sớm trước 11 giờ đêm');
-    expect((await db.select(db.goals).get()).single.targetRaw, 1000000000);
+    // v3 bỏ hẳn Mục tiêu theo quyết định 2026-08-28 — ba bảng phải biến mất.
+    for (final t in ['goals', 'goal_updates', 'project_goals']) {
+      final rows = raw.select(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name=?", [t]);
+      expect(rows, isEmpty, reason: 'bảng $t phải bị xoá ở v3');
+    }
+
+    // Hành động cũ nhận giá trị mặc định cho ba cột mới của v3.
+    final action = (await db.select(db.actions).get()).single;
+    expect(action.priority, 'medium');
+    expect(action.pinned, isFalse);
+    expect(action.pinnedAt, isNull);
 
     // Bảng mới đã tồn tại và dùng được.
     expect(await db.select(db.reviews).get(), isEmpty);
@@ -173,10 +184,10 @@ void main() {
     expect((await db.select(db.reviewItems).get()).single.verdict, 'met');
   });
 
-  test('cài mới ở v2 tạo đủ mười hai bảng', () async {
+  test('cài mới ở v3 tạo đủ chín bảng', () async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     await db.select(db.projects).get();
-    expect(db.allTables.length, 12);
+    expect(db.allTables.length, 9);
   });
 }

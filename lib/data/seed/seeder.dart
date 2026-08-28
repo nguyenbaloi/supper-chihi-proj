@@ -81,6 +81,7 @@ class Seeder {
                   projectId: projectId,
                   title: a.title,
                   status: a.status.wire,
+                  priority: Value(a.priority.wire),
                   sortOrder: Value(i),
                   createdAt: now,
                   updatedAt: now,
@@ -148,37 +149,6 @@ class Seeder {
         }
       }
 
-      final existingGoals = await _db.select(_db.goals).get();
-      final goalIdByName = {for (final g in existingGoals) g.name: g.id};
-
-      for (final seed in seedGoals) {
-        var goalId = goalIdByName[seed.name];
-        if (goalId == null) {
-          goalId = await _db.into(_db.goals).insert(
-                GoalsCompanion.insert(
-                  name: seed.name,
-                  description: Value(seed.description),
-                  isNumeric: Value(seed.isNumeric),
-                  targetRaw: Value(seed.targetRaw),
-                  unit: Value(seed.unit),
-                  dueDate: Value(
-                      seed.dueDate == null ? null : startOfDay(seed.dueDate!)),
-                  createdAt: now,
-                  updatedAt: now,
-                  searchText: Value(buildSearchText([seed.name, seed.description])),
-                ),
-              );
-          goalIdByName[seed.name] = goalId;
-        }
-        for (final projectName in seed.linkedProjectNames) {
-          final projectId = projectIdByName[projectName];
-          if (projectId == null) continue;
-          await _db.into(_db.projectGoals).insert(
-                ProjectGoalsCompanion.insert(projectId: projectId, goalId: goalId),
-                mode: InsertMode.insertOrIgnore,
-              );
-        }
-      }
     });
   }
 }

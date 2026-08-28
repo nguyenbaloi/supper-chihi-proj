@@ -3,14 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format/vn_format.dart';
 import '../../core/l10n/strings.dart';
+import '../../domain/models/enums.dart';
+import '../../domain/models/topic.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../domain/rules/completion.dart';
+import '../../domain/rules/day.dart';
 import '../../domain/rules/stale.dart';
 import '../../presentation/providers/providers.dart';
 import '../../presentation/widgets/chips.dart';
 import 'project_detail_screen.dart';
 import 'project_edit_sheet.dart';
 
+/// Danh sách Dự án **nhóm theo Chủ đề** — FR-45.
+///
+/// Trước đây đây là một danh sách phẳng, và với bảy dự án trải trên bốn chủ đề
+/// thì không nhìn ra được mảng nào đang nặng, mảng nào đang bỏ trống. Nhóm theo
+/// Chủ đề trả lại đúng cách người dùng đã tự tổ chức trong hai file gốc.
 class ProjectsScreen extends ConsumerWidget {
   const ProjectsScreen({super.key});
 
@@ -18,12 +26,12 @@ class ProjectsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summaries = ref.watch(projectSummariesProvider);
     final filter = ref.watch(projectFilterProvider);
-    final topics = ref.watch(topicsProvider).value ?? const [];
+    final topics = ref.watch(topicsProvider).value ?? const <Topic>[];
 
     return Scaffold(
       body: Column(
         children: [
-          _FilterBar(filter: filter, topics: topics),
+          _FilterBar(filter: filter),
           const Divider(height: 1),
           Expanded(
             child: summaries.when(
@@ -31,12 +39,7 @@ class ProjectsScreen extends ConsumerWidget {
               error: (e, _) => Center(child: Text('$e')),
               data: (list) => list.isEmpty
                   ? const _EmptyProjects()
-                  : ListView.separated(
-                      padding: const EdgeInsets.only(bottom: 88),
-                      itemCount: list.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, i) => _ProjectRow(summary: list[i]),
-                    ),
+                  : _GroupedList(summaries: list, topics: topics),
             ),
           ),
         ],
@@ -50,15 +53,249 @@ class ProjectsScreen extends ConsumerWidget {
   }
 }
 
+class _GroupedList extends StatelessWidget {
+  const _GroupedList({required this.summaries, required this.topics});
+
+  final List<ProjectSummary> summaries;
+  final List<Topic> topics;
+
+  @override
+  Widget build(BuildContext context) {
+    final byTopic = <int, List<ProjectSummary>>{};
+    for (final s in summaries) {
+      byTopic.putIfAbsent(s.project.topicId, () => []).add(s);
+    }
+    // Giữ đúng thứ tự Chủ đề người dùng đã đặt; chủ đề rỗng thì không hiện.
+    final ordered = topics.where((t) => byTopic.containsKey(t.id)).toList();
+
+    return ListView(
+      padding: const EdgeInsets.only(bottom: 88),
+      children: [
+        for (final topic in ordered) ...[
+          _TopicHeader(topic: topic, projects: byTopic[topic.id]!),
+          for (final s in byTopic[topic.id]!) _ProjectCard(summary: s),
+          const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+}
+
+class _TopicHeader extends StatelessWidget {
+  const _TopicHeader({required this.topic, required this.projects});
+
+  final Topic topic;
+  final List<ProjectSummary> projects;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = Color(topic.colorValue);
+    final done = projects.fold<int>(0, (n, s) => n + s.doneCount);
+    final total = projects.fold<int>(0, (n, s) => n + s.countedTotal);
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 22,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              topic.name,
+              style: theme.textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w700, color: color),
+            ),
+          ),
+          Text(
+            total == 0
+                ? S.projectCount(projects.length)
+                : S.projectCountWithTally(projects.length, done, total),
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectCard extends ConsumerWidget {
+  const _ProjectCard({required this.summary});
+
+  final ProjectSummary summary;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final now = ref.watch(nowProvider)();
+    final staleDays =
+        ref.watch(settingsProvider).value?.staleDays ?? defaultStaleDays;
+    final actions =
+        ref.watch(projectActionsProvider(summary.project.id)).value ?? const [];
+    final p = summary.project;
+
+    final tally = CompletionTally(
+      doneCount: summary.doneCount,
+      countedTotal: summary.countedTotal,
+    );
+    final stale = isProjectStale(
+      status: p.status,
+      lastActivityAt: summary.lastActivityAt,
+      createdAt: p.createdAt,
+      now: now,
+      staleDays: staleDays,
+    );
+    final idle = idleDays(
+      lastActivityAt: summary.lastActivityAt,
+      createdAt: p.createdAt,
+      now: now,
+    );
+
+    final open = actions.where((a) => a.status.isOpen).toList();
+    final highOpen =
+        open.where((a) => a.priority == Priority.high).length;
+    final overdue = open
+        .where((a) => a.dueDate != null && isOverdue(dueDate: a.dueDate!, now: now))
+        .length;
+
+    return Card(
+      margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => ProjectDetailScreen(projectId: p.id),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(p.name,
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600)),
+                  ),
+                  PriorityChip(p.priority),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Thanh tiến độ đọc nhanh hơn con số, nhưng con số vẫn phải có.
+              Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: tally.isEmpty
+                            ? 0
+                            : tally.doneCount / tally.countedTotal,
+                        minHeight: 6,
+                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    tally.isEmpty
+                        ? VnFormat.emptyValue
+                        : '${tally.doneCount}/${tally.countedTotal}',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  StatusChip.project(p.status),
+                  if (overdue > 0)
+                    _Badge(
+                      label: S.overdueCount(overdue),
+                      color: theme.colorScheme.error,
+                      icon: Icons.error_outline,
+                    ),
+                  if (highOpen > 0)
+                    _Badge(
+                      label: S.highPriorityOpen(highOpen),
+                      color: const Color(0xFFC62828),
+                      icon: Icons.keyboard_double_arrow_up,
+                    ),
+                  Text(
+                    VnFormat.daysAgo(idle),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: stale
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.outline,
+                      fontWeight: stale ? FontWeight.w600 : null,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Badge extends StatelessWidget {
+  const _Badge({required this.label, required this.color, required this.icon});
+
+  final String label;
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 3),
+            Text(label,
+                style: Theme.of(context)
+                    .textTheme
+                    .labelSmall
+                    ?.copyWith(color: color, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      );
+}
+
 class _FilterBar extends ConsumerWidget {
-  const _FilterBar({required this.filter, required this.topics});
+  const _FilterBar({required this.filter});
 
   final ProjectFilter filter;
-  final List<dynamic> topics;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(projectFilterProvider.notifier);
+    final topics = ref.watch(topicsProvider).value ?? const <Topic>[];
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -88,9 +325,9 @@ class _FilterBar extends ConsumerWidget {
           for (final t in topics) ...[
             const SizedBox(width: 8),
             FilterChip(
-              label: Text(t.name as String),
-              selected: filter.topicIds.contains(t.id as int),
-              onSelected: (_) => controller.toggleTopic(t.id as int),
+              label: Text(t.name),
+              selected: filter.topicIds.contains(t.id),
+              onSelected: (_) => controller.toggleTopic(t.id),
             ),
           ],
         ],
@@ -104,75 +341,6 @@ class _FilterBar extends ConsumerWidget {
         ProjectSort.name => S.sortName,
         ProjectSort.dueDate => S.sortDueDate,
       };
-}
-
-class _ProjectRow extends ConsumerWidget {
-  const _ProjectRow({required this.summary});
-
-  final ProjectSummary summary;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final now = ref.watch(nowProvider)();
-    final staleDays =
-        ref.watch(settingsProvider).value?.staleDays ?? defaultStaleDays;
-    final p = summary.project;
-
-    final tally = CompletionTally(
-      doneCount: summary.doneCount,
-      countedTotal: summary.countedTotal,
-    );
-    final stale = isProjectStale(
-      status: p.status,
-      lastActivityAt: summary.lastActivityAt,
-      createdAt: p.createdAt,
-      now: now,
-      staleDays: staleDays,
-    );
-    final idle = idleDays(
-      lastActivityAt: summary.lastActivityAt,
-      createdAt: p.createdAt,
-      now: now,
-    );
-
-    return ListTile(
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ProjectDetailScreen(projectId: p.id),
-        ),
-      ),
-      title: Text(p.name, style: theme.textTheme.titleMedium),
-      subtitle: Padding(
-        padding: const EdgeInsets.only(top: 6),
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            TopicChip(name: summary.topic.name, colorValue: summary.topic.colorValue),
-            StatusChip.project(p.status),
-            PriorityChip(p.priority),
-            Text(
-              // FR-12: Dự án chưa có Hành động hiện `—`, không hiện `0%`.
-              tally.isEmpty
-                  ? VnFormat.emptyValue
-                  : '${summary.doneCount}/${summary.countedTotal} · ${VnFormat.percent(tally.ratio, fractionDigits: 0)}',
-              style: theme.textTheme.bodySmall,
-            ),
-            Text(
-              VnFormat.daysAgo(idle),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: stale ? theme.colorScheme.error : theme.colorScheme.outline,
-                fontWeight: stale ? FontWeight.w600 : null,
-              ),
-            ),
-          ],
-        ),
-      ),
-      trailing: const Icon(Icons.chevron_right),
-    );
-  }
 }
 
 class _EmptyProjects extends StatelessWidget {

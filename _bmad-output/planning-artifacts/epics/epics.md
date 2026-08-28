@@ -13,6 +13,25 @@ updated: 2026-08-28
 
 Thứ tự Epic là thứ tự triển khai. Mỗi Epic kết thúc ở một trạng thái **dùng được thật**, không phải một tầng kỹ thuật xong dở. Epic 1 kết thúc là app chạy được và hiện danh sách Dự án rỗng; Epic 2 kết thúc là app đã thay thế được file `HÀNH ĐỘNG.pdf`.
 
+## Sửa hướng 2026-08-28 sau kiểm thử tay
+
+Người dùng gửi bảy điểm phản hồi. **Epic 3 (Mục tiêu và tiến độ) bị huỷ hoàn
+toàn** — tính năng và dữ liệu đều bỏ. Thêm **Epic 8** cho năm yêu cầu mới
+FR-41…FR-45. Chi tiết ở đầu PRD.
+
+| Epic | Trạng thái sau sửa hướng |
+|---|---|
+| 3. Mục tiêu và tiến độ | **HUỶ** — bỏ cả mã nguồn lẫn dữ liệu |
+| 8. Sửa hướng sau kiểm thử tay | **Xong** — 5/5 story |
+
+Epic 8 gồm: độ ưu tiên cho Hành động (FR-41), danh sách Làm ngay do người dùng
+tự ghim (FR-42), khối cảnh báo tách biệt (FR-43), thống kê theo hạn (FR-44),
+danh sách Dự án nhóm theo Chủ đề kèm thanh điều hướng mới (FR-45).
+
+Schema lên phiên bản 3: thêm `actions.priority`, `actions.pinned`,
+`actions.pinned_at`; bỏ ba bảng `goals`, `goal_updates`, `project_goals`. Có
+test nâng cấp thẳng từ v1 lên v3.
+
 ## Tình trạng triển khai — cập nhật 2026-08-28
 
 | Epic | Trạng thái |
@@ -25,8 +44,8 @@ Thứ tự Epic là thứ tự triển khai. Mỗi Epic kết thúc ở một tr
 | 6. Sao lưu và hoàn thiện | **Xong** — 4/4 story |
 | 7. Đợt đánh giá định kỳ | **Xong** — 6/6 story |
 
-Kiểm chứng: `fvm flutter analyze` sạch, **122 test xanh**, `flutter build apk`
-thành công. **Cả năm kịch bản bắt buộc đều đã có test.**
+Kiểm chứng sau sửa hướng: `fvm flutter analyze` sạch, **131 test xanh**,
+`flutter build apk` và `flutter build ios` đều thành công.
 
 Khoảng trống đã biết: test widget cấp ứng dụng bị bỏ vì drift chạy I/O thật nên
 treo trong vùng thời gian giả của `testWidgets`. Hành vi tương ứng được test

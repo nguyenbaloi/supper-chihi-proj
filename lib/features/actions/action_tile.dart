@@ -8,6 +8,7 @@ import '../../domain/models/enums.dart';
 import '../../domain/models/project_action.dart';
 import '../../domain/rules/day.dart';
 import '../../presentation/providers/providers.dart';
+import '../../presentation/widgets/chips.dart';
 
 /// FR-19: đánh dấu Xong bằng đúng một chạm, không mở màn hình nào khác.
 class ActionTile extends ConsumerWidget {
@@ -17,12 +18,17 @@ class ActionTile extends ConsumerWidget {
     this.subtitleOverride,
     this.onTap,
     this.trailing,
+    this.showPriority = false,
   });
 
   final ProjectAction action;
   final String? subtitleOverride;
   final VoidCallback? onTap;
   final Widget? trailing;
+
+  /// Hiện nhãn độ ưu tiên. Bật ở màn hình Hôm nay, tắt trong danh sách của
+  /// một Dự án nơi độ ưu tiên đã được nhóm sẵn.
+  final bool showPriority;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -66,12 +72,24 @@ class ActionTile extends ConsumerWidget {
               )
             : theme.textTheme.bodyLarge,
       ),
-      subtitle: parts.isEmpty
+      subtitle: parts.isEmpty && !showPriority
           ? null
-          : Text(
-              parts.join(' · '),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: overdue ? theme.colorScheme.error : null,
+          : Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  if (showPriority) PriorityChip(action.priority),
+                  if (parts.isNotEmpty)
+                    Text(
+                      parts.join(' · '),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: overdue ? theme.colorScheme.error : null,
+                      ),
+                    ),
+                ],
               ),
             ),
       trailing: trailing,

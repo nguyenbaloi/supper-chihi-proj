@@ -55,15 +55,12 @@ void main() {
     expect(names.contains('parent_id'), isFalse);
   });
 
-  test('mười hai bảng đúng như sơ đồ thực thể', () {
+  test('chín bảng đúng như sơ đồ thực thể', () {
     final names = db.allTables.map((t) => t.actualTableName).toSet();
     expect(names, {
       'topics',
       'projects',
       'actions',
-      'goals',
-      'goal_updates',
-      'project_goals',
       'notes',
       'links',
       'status_events',
@@ -75,6 +72,6 @@ void main() {
 
   test('mở cơ sở dữ liệu rỗng rồi đọc lại thành công', () async {
     expect(await db.select(db.projects).get(), isEmpty);
-    expect(db.schemaVersion, 2);
+    expect(db.schemaVersion, 3);
   });
 }

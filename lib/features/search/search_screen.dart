@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/l10n/strings.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../presentation/providers/providers.dart';
-import '../goals/goal_detail_screen.dart';
 import '../projects/project_detail_screen.dart';
 
 /// FR-30: một ô duy nhất quét mọi loại nội dung.
@@ -78,22 +77,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          onTap: () {
-                            if (hit.kind == SearchKind.goal) {
-                              Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => GoalDetailScreen(goalId: hit.id),
-                                ),
-                              );
-                            } else if (hit.projectId != null) {
-                              Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) =>
-                                      ProjectDetailScreen(projectId: hit.projectId!),
-                                ),
-                              );
-                            }
-                          },
+                          onTap: hit.projectId == null
+                              ? null
+                              : () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => ProjectDetailScreen(
+                                          projectId: hit.projectId!),
+                                    ),
+                                  ),
                         ),
                     ],
                   ],

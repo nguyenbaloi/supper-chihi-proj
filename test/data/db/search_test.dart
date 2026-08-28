@@ -29,10 +29,9 @@ void main() {
       expect(upper.length, lower.length);
     });
 
-    test('quét đủ sáu loại nội dung', () async {
+    test('quét đủ năm loại nội dung', () async {
       expect((await search.search('Kế hoạch tài chính')).any((h) => h.kind == SearchKind.project), isTrue);
       expect((await search.search('may rua bat')).any((h) => h.kind == SearchKind.action), isTrue);
-      expect((await search.search('1 ty')).any((h) => h.kind == SearchKind.goal), isTrue);
       expect((await search.search('no tot')).any((h) => h.kind == SearchKind.note), isTrue);
       expect((await search.search('appbox')).any((h) => h.kind == SearchKind.link), isTrue);
       expect((await search.search('giao tiep mat')).any((h) => h.kind == SearchKind.review), isTrue);
@@ -42,12 +41,6 @@ void main() {
       final hit = (await search.search('may rua bat'))
           .firstWhere((h) => h.kind == SearchKind.action);
       expect(hit.projectName, 'Kế hoạch tài chính');
-    });
-
-    test('Mục tiêu không thuộc Dự án nào nên không có tên dự án', () async {
-      final hit = (await search.search('1 ty'))
-          .firstWhere((h) => h.kind == SearchKind.goal);
-      expect(hit.projectId, isNull);
     });
 
     test('chuỗi rỗng không trả kết quả nào', () async {

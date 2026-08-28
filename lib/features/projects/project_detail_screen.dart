@@ -250,6 +250,7 @@ class _ActionsTabState extends ConsumerState<_ActionsTab> {
                       ActionTile(
                         key: ValueKey(a.id),
                         action: a,
+                        showPriority: true,
                         trailing: _ActionMenu(action: a),
                       ),
                   ],
@@ -268,15 +269,45 @@ class _ActionMenu extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return PopupMenuButton<String>(
+      icon: action.pinned
+          ? Icon(Icons.push_pin, color: Theme.of(context).colorScheme.primary)
+          : const Icon(Icons.more_vert),
       itemBuilder: (_) => [
+        PopupMenuItem(
+          value: 'pin',
+          child: Row(
+            children: [
+              Icon(action.pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                  size: 18),
+              const SizedBox(width: 8),
+              Text(action.pinned ? S.unpin : S.pin),
+            ],
+          ),
+        ),
+        const PopupMenuDivider(),
         for (final s in ActionStatus.values)
           PopupMenuItem(value: 'status:${s.wire}', child: Text(S.actionStatus(s))),
+        const PopupMenuDivider(),
+        for (final p in Priority.values)
+          PopupMenuItem(
+              value: 'priority:${p.wire}',
+              child: Text('${S.actionPriority}: ${S.priority(p)}')),
         const PopupMenuDivider(),
         const PopupMenuItem(value: 'delete', child: Text(S.delete)),
       ],
       onSelected: (value) async {
         final repo = ref.read(actionRepositoryProvider);
         final messenger = ScaffoldMessenger.of(context);
+        if (value == 'pin') {
+          await repo.setPinned(action.id, !action.pinned);
+          return;
+        }
+        if (value.startsWith('priority:')) {
+          await repo.update(action.copyWith(
+            priority: Priority.fromWire(value.substring('priority:'.length)),
+          ));
+          return;
+        }
         if (value == 'delete') {
           await repo.delete(action.id);
           messenger.showSnackBar(

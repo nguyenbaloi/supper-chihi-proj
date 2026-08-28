@@ -8,6 +8,29 @@ source_brief: "_bmad-output/planning-artifacts/briefs/brief-quan-ly-du-an-muc-ti
 
 # PRD: App Quản lý Dự án & Mục tiêu Cá nhân
 
+> **SỬA HƯỚNG NGÀY 2026-08-28 — đọc trước mọi thứ khác.**
+>
+> Sau lần kiểm thử tay đầu tiên, người dùng yêu cầu bảy thay đổi. Một trong đó
+> đảo lại nguyên tắc nền của tài liệu này: **tính năng Mục tiêu bị bỏ hẳn**, cả
+> mã nguồn lẫn dữ liệu.
+>
+> Trật tự cũ *"Mục tiêu là gốc, Dự án là nhánh, Hành động là lá"* không còn
+> hiệu lực. Trật tự mới: **Chủ đề nhóm Dự án, Dự án chứa Hành động**, và mỗi
+> Hành động có độ ưu tiên cùng hạn riêng.
+>
+> Hệ quả lên tài liệu này:
+>
+> - **§4.4 (FR-20…FR-26) — bỏ toàn bộ.** Mục tiêu, Mốc tiến độ, tiến độ, nhịp,
+>   dự báo về đích, mối nối Dự án–Mục tiêu: không còn.
+> - **FR-25** mối nối Dự án–Mục tiêu — bỏ.
+> - **FR-29** màn hình Hôm nay — **viết lại**, xem FR-42 và FR-43.
+> - **§7 mục 1 và 2** — hết hiệu lực cùng với Mục tiêu.
+> - Thêm **§4.9** với FR-41…FR-45.
+>
+> Phần văn bản gốc bên dưới được giữ nguyên làm hồ sơ, **không** phải mô tả sản
+> phẩm hiện tại ở những chỗ vừa nêu.
+
+
 ## 0. Mục đích tài liệu
 
 Tài liệu này định nghĩa **cái gì** ứng dụng phải làm được, không định nghĩa **làm bằng cách nào**. Mỗi yêu cầu chức năng (FR) được viết kèm phần *Hệ quả kiểm thử được* — những câu có thể chuyển thẳng thành tiêu chí nghiệm thu và test.
@@ -434,6 +457,64 @@ hai — đó là lý do đây là một nhóm thực thể riêng.
 - Dự án có Đợt đánh giá gần nhất mang **ngày xem lại tiếp theo** ≤ hôm nay được đưa vào nhóm *Cần chú ý* của màn hình Hôm nay.
 - Chỉ Đợt **gần nhất** của mỗi Dự án được xét; các Đợt cũ hơn không sinh nhắc nhở.
 - Dự án `Xong`, `Bỏ` không bao giờ sinh nhắc nhở đánh giá.
+
+### 4.9 Sửa hướng sau kiểm thử tay — FR-41…FR-45
+
+Năm yêu cầu này thay thế phần bị bỏ ở §4.4 và viết lại FR-29.
+
+#### FR-41: Hành động có độ ưu tiên riêng
+
+Trước đây chỉ Dự án mới có độ ưu tiên. Nhưng người dùng chọn *việc nào làm
+trước* ở cấp Hành động, không phải cấp Dự án.
+
+**Hệ quả kiểm thử được:**
+- Ba mức dùng chung với Dự án: `Cao` · `Trung bình` · `Thấp`, mặc định `Trung bình`.
+- Đặt được lúc tạo và sửa được sau đó.
+- Phân biệt bằng cả màu lẫn nhãn chữ — NFR-7.
+- Hiện trên dòng Hành động ở màn hình Hôm nay và trong chi tiết Dự án.
+
+#### FR-42: Danh sách "Làm ngay" do người dùng tự ghim
+
+**Hệ quả kiểm thử được:**
+- Mỗi Hành động ghim và bỏ ghim được bằng một thao tác, từ cả hai màn hình.
+- Danh sách Làm ngay trên màn hình Hôm nay **chỉ** gồm Hành động đang ghim.
+- **Ứng dụng không bao giờ tự ghim hộ.** Sau khi nạp dữ liệu hạt giống, không việc nào được ghim sẵn — có test.
+- Xếp theo thời điểm ghim, ghim trước lên trước.
+- Đánh dấu `Xong` hoặc `Bỏ` thì tự bỏ ghim; chuyển sang `Đang làm` thì **giữ** ghim.
+- Khôi phục một Hành động vừa xoá giữ nguyên trạng thái ghim.
+
+#### FR-43: Khối cảnh báo tách biệt
+
+**Hệ quả kiểm thử được:**
+- Ba loại, theo đúng thứ tự nghiêm trọng: **Quá hạn** → **Sắp đến hạn** (7 ngày) → **Ưu tiên cao chưa bắt đầu**.
+- Mỗi Hành động chỉ xuất hiện **một lần**, ở loại nghiêm trọng nhất — có test cho việc vừa quá hạn vừa ưu tiên cao.
+- Việc đã ghim không lặp lại ở khối cảnh báo.
+- Việc `Xong` và `Bỏ` không bao giờ cảnh báo. Ưu tiên cao nhưng `Đang làm` cũng không.
+- Đến hạn **đúng hôm nay** tính là *sắp đến hạn*, không phải *quá hạn*.
+- Trong cùng một loại, ưu tiên cao lên trước, rồi tới hạn gần nhất.
+
+#### FR-44: Thống kê đầu việc theo hạn
+
+Trục phân loại là **quan hệ giữa lúc xong và hạn đã đặt**, không phải
+`Xong`/`Chưa`. Câu hỏi cần trả lời: *"việc đến hạn thì mình có làm xong không,
+hay để trôi?"*
+
+**Hệ quả kiểm thử được:**
+- Sáu nhóm: `Xong đúng hạn` · `Xong muộn` · `Quá hạn chưa xong` · `Còn hạn, chưa xong` · `Không đặt hạn` · `Đã bỏ`.
+- Xong **trong ngày hạn** tính là đúng hạn, không phải muộn.
+- Tỷ lệ đúng hạn chỉ tính trên việc **có hạn và đã xong**; chưa có việc nào như vậy thì hiện `—`, không hiện `0%`.
+- Tỷ lệ hoàn thành **không** tính việc đã `Bỏ` vào mẫu số.
+- Có bảng phân tích theo Chủ đề.
+- Mỗi nhóm luôn kèm nhãn chữ và con số, không chỉ phân biệt bằng màu — NFR-7.
+
+#### FR-45: Danh sách Dự án nhóm theo Chủ đề
+
+**Hệ quả kiểm thử được:**
+- Dự án nhóm dưới tiêu đề Chủ đề, giữ đúng thứ tự Chủ đề người dùng đặt.
+- Chủ đề không có Dự án nào (sau khi lọc) thì không hiện tiêu đề rỗng.
+- Tiêu đề Chủ đề hiện số Dự án và tổng tiến độ của cả nhóm.
+- Mỗi Dự án hiện thanh tiến độ, trạng thái, độ ưu tiên, số việc quá hạn và số việc ưu tiên cao còn mở.
+- Thanh điều hướng: **Hôm nay · Dự án · Thống kê · Cài đặt**. Không còn tab Mục tiêu; Cài đặt chuyển từ thanh trên xuống thanh dưới.
 
 ## 5. Yêu cầu phi chức năng
 
