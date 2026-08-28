@@ -22,6 +22,10 @@ class AppTheme {
       seedColor: const Color(0xFF1565C0),
       brightness: brightness,
     );
+    // Lấy sẵn kiểu chữ mặc định để kế thừa họ font, chỉ đổi cỡ và độ đậm.
+    // Dựng `TextStyle` trần thì mất họ font và rơi vào font dự phòng.
+    final baseTextTheme =
+        ThemeData(colorScheme: scheme, useMaterial3: true).textTheme;
     return ThemeData(
       colorScheme: scheme,
       useMaterial3: true,
@@ -29,6 +33,14 @@ class AppTheme {
         backgroundColor: scheme.surface,
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
+        // Tiêu đề màn hình đậm và lớn hơn mặc định M3 (`titleLarge`: 22, w400).
+        // Phải ghi luôn màu: khi `titleTextStyle` bị ghi đè, AppBar không còn
+        // áp màu mặc định nữa.
+        titleTextStyle: baseTextTheme.titleLarge?.copyWith(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: scheme.onSurface,
+        ),
       ),
       // Nhãn thanh điều hướng đậm hơn mặc định M3 (`labelMedium`, w500). Phải
       // ghi luôn màu: khi `labelTextStyle` bị ghi đè, NavigationBar không còn
@@ -37,8 +49,8 @@ class AppTheme {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
             letterSpacing: 0.5,
             color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
           );
