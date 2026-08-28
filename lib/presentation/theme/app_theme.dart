@@ -37,8 +37,8 @@ class AppTheme {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
-            fontSize: 12,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
             letterSpacing: 0.5,
             color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
           );

@@ -96,7 +96,7 @@ abstract class AppL10n {
   /// No description provided for @appTitle.
   ///
   /// In vi, this message translates to:
-  /// **'Danh mục đầu tư'**
+  /// **'ChichiMonney'**
   String get appTitle;
 
   /// No description provided for @navDashboard.
@@ -806,6 +806,24 @@ abstract class AppL10n {
   /// In vi, this message translates to:
   /// **'Chưa có tài sản để phân bổ.'**
   String get allocationNoBasis;
+
+  /// No description provided for @targetBarTitle.
+  ///
+  /// In vi, this message translates to:
+  /// **'Thực tế so với chuẩn'**
+  String get targetBarTitle;
+
+  /// No description provided for @targetBarActual.
+  ///
+  /// In vi, this message translates to:
+  /// **'thực tế {percent}'**
+  String targetBarActual(String percent);
+
+  /// No description provided for @targetBarStandard.
+  ///
+  /// In vi, this message translates to:
+  /// **'chuẩn {percent} · {amount}'**
+  String targetBarStandard(String percent, String amount);
 
   /// No description provided for @targetProgress.
   ///

@@ -1,5 +1,4 @@
 import 'package:decimal/decimal.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -46,14 +45,12 @@ class TargetsScreen extends ConsumerWidget {
       );
     }
 
-    // Một nguồn duy nhất cho cả thẻ Khoảng lệch lẫn Kế hoạch phân bổ: hai
-    // phần nằm cạnh nhau trên cùng màn hình, lệch nhau một danh mục là người
-    // dùng hết tin cả hai.
-    final units = ref.watch(targetUnitsProvider);
-    final drifts = _driftsOf(units, valuation.totalAssets);
-    final totalBp = Rebalancing.totalTargetBp(
-      units.map((u) => u.targetWeightBp),
-    );
+    // Một nguồn duy nhất cho cả ba phần của màn hình: Kế hoạch phân bổ, thẻ
+    // Khoảng lệch và biểu đồ. Ba chỗ cùng nói về một con số mà lấy từ ba phép
+    // tính khác nhau thì chỉ cần lệch một đồng do làm tròn là người dùng hết
+    // tin cả ba.
+    final plan = ref.watch(allocationPlanProvider);
+    final totalBp = plan.totalTargetBp;
 
     return Scaffold(
       appBar: AppBar(
@@ -69,7 +66,7 @@ class TargetsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
-          if (drifts.isEmpty)
+          if (plan.lines.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Column(
@@ -110,9 +107,10 @@ class TargetsScreen extends ConsumerWidget {
                 ),
               ),
             const AllocationPlanCard(),
-            for (final drift in drifts)
+            for (final line in plan.lines)
               _DriftCard(
-                drift: drift,
+                line: line,
+                totalAssets: plan.totalAssets,
                 thresholdBp: settings?.driftThresholdBp ?? 500,
               ),
             TextButton.icon(
@@ -121,13 +119,15 @@ class TargetsScreen extends ConsumerWidget {
               label: Text(l10n.targetWeight),
             ),
             const SizedBox(height: 16),
-            _TargetBarChart(drifts: drifts),
+            _TargetBarList(plan: plan),
           ],
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(l10n.actionNotes, style: theme.textTheme.titleMedium),
+              Expanded(
+                child: Text(l10n.actionNotes, style: theme.textTheme.titleMedium),
+              ),
               TextButton.icon(
                 onPressed: () => _addNote(context, ref),
                 icon: const Icon(Icons.add),
@@ -162,24 +162,6 @@ class TargetsScreen extends ConsumerWidget {
     );
   }
 
-  /// Khoảng lệch cho từng Lớp tài sản **hoặc Nhóm mục tiêu** có Tỷ trọng mục
-  /// tiêu. Xem FR-20.
-  static List<TargetDrift> _driftsOf(
-    List<AllocationTarget> units,
-    Money totalAssets,
-  ) =>
-      units
-          .map(
-            (unit) => TargetDrift(
-              label: unit.label,
-              currentValue: unit.currentValue,
-              actualWeight: unit.currentValue.ratioTo(totalAssets),
-              targetWeightBp: unit.targetWeightBp,
-              totalAssets: totalAssets,
-            ),
-          )
-          .toList(growable: false);
-
   Future<void> _addNote(BuildContext context, WidgetRef ref) async {
     final l10n = AppL10n.of(context);
     final controller = TextEditingController();
@@ -211,15 +193,23 @@ class TargetsScreen extends ConsumerWidget {
 }
 
 class _DriftCard extends StatelessWidget {
-  final TargetDrift drift;
+  final AllocationLine line;
+  final Money totalAssets;
   final int thresholdBp;
 
-  const _DriftCard({required this.drift, required this.thresholdBp});
+  const _DriftCard({
+    required this.line,
+    required this.totalAssets,
+    required this.thresholdBp,
+  });
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppL10n.of(context);
     final theme = Theme.of(context);
+    // Phần trăm suy ra tại chỗ từ đúng dòng của Kế hoạch phân bổ, không tính
+    // song song một đường khác. Xem FR-20 và FR-21.
+    final drift = driftOf(line, totalAssets);
     final exceeds = drift.exceedsThreshold(thresholdBp);
 
     return Card(
@@ -232,7 +222,7 @@ class _DriftCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(drift.label, style: theme.textTheme.titleMedium),
+                  child: Text(line.label, style: theme.textTheme.titleMedium),
                 ),
                 if (exceeds)
                   Icon(
@@ -252,10 +242,12 @@ class _DriftCard extends StatelessWidget {
                       ? '—'
                       : VnFormat.percent(drift.actualWeight!),
                 ),
+                const SizedBox(width: 8),
                 _Metric(
                   label: l10n.targetWeight,
                   value: VnFormat.percent(drift.targetWeight),
                 ),
+                const SizedBox(width: 8),
                 _Metric(
                   label: l10n.targetDrift,
                   value: drift.weightDrift == null
@@ -269,22 +261,24 @@ class _DriftCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (drift.amountDrift != null) ...[
+            if (totalAssets.isPositive) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Text(
-                    drift.isOver ? l10n.targetOver : l10n.targetUnder,
-                    style: theme.textTheme.bodySmall,
-                  ),
-                  const SizedBox(width: 8),
-                  MoneyText(
-                    drift.amountDrift!,
-                    compact: true,
-                    colorBySign: true,
-                    showPlusSign: true,
-                    style: theme.textTheme.titleMedium,
-                  ),
+                  Text(actionLabel(l10n, line), style: theme.textTheme.bodySmall),
+                  if (line.action != AllocationAction.hold) ...[
+                    const SizedBox(width: 8),
+                    // Dấu và màu theo việc phải làm: cần mua là dương và xanh,
+                    // cần bán là âm và đỏ. Cùng một quy ước với thẻ Phân bổ
+                    // chuẩn ở đầu màn hình và với biểu đồ bên dưới.
+                    MoneyText(
+                      line.actionAmount,
+                      compact: true,
+                      colorBySign: true,
+                      showPlusSign: true,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -295,6 +289,10 @@ class _DriftCard extends StatelessWidget {
   }
 }
 
+/// Một ô số liệu trong thẻ Khoảng lệch.
+///
+/// Tự co giãn và cắt bớt khi hết chỗ: ba ô này vừa khít trên máy 360dp với cỡ
+/// chữ mặc định, nhưng người dùng tăng cỡ chữ hệ thống lên là tràn ngay.
 class _Metric extends StatelessWidget {
   final String label;
   final String value;
@@ -305,98 +303,272 @@ class _Metric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    return Flexible(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleSmall?.copyWith(color: color),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Dựng Khoảng lệch từ một dòng Kế hoạch phân bổ.
+TargetDrift driftOf(AllocationLine line, Money totalAssets) => TargetDrift(
+      label: line.label,
+      currentValue: line.currentValue,
+      actualWeight: line.currentValue.ratioTo(totalAssets),
+      targetWeightBp: line.targetWeightBp,
+      totalAssets: totalAssets,
+    );
+
+/// Nhãn việc cần làm với một danh mục.
+String actionLabel(AppL10n l10n, AllocationLine line) => switch (line.action) {
+      AllocationAction.buy => l10n.allocationBuy,
+      AllocationAction.sell => l10n.allocationSell,
+      AllocationAction.hold => l10n.allocationHold,
+    };
+
+/// Biểu đồ thanh **nằm ngang** so sánh Tỷ trọng thực tế với chuẩn. Xem FR-20.
+///
+/// Nằm ngang chứ không phải cột dọc vì tên Lớp tài sản tiếng Việt dài — "Tiền
+/// mặt & Tiết kiệm" nằm dưới cột dọc thì chồng lên tên bên cạnh và không đọc
+/// nổi. Nằm ngang thì tên có cả chiều rộng dòng, và còn chỗ đặt luôn con số
+/// chuẩn với số tiền lệch ngay cạnh thanh.
+class _TargetBarList extends StatelessWidget {
+  final AllocationPlan plan;
+
+  const _TargetBarList({required this.plan});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!plan.hasBasis) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final l10n = AppL10n.of(context);
+
+    // Thang chung cho mọi hàng. Mỗi hàng tự co giãn theo giá trị của nó thì
+    // hai thanh dài bằng nhau lại mang hai ý nghĩa khác nhau — đó là lúc biểu
+    // đồ nói dối.
+    var scaleMax = Decimal.zero;
+    for (final line in plan.lines) {
+      final actual = line.currentValue.ratioTo(plan.totalAssets);
+      if (actual != null && actual > scaleMax) scaleMax = actual;
+      final target = weightOf(line.targetWeightBp);
+      if (target > scaleMax) scaleMax = target;
+    }
+    if (scaleMax.sign <= 0) return const SizedBox.shrink();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.labelSmall
-              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
-        Text(
-          value,
-          style: theme.textTheme.titleSmall?.copyWith(color: color),
-        ),
+        Text(l10n.targetBarTitle, style: theme.textTheme.titleMedium),
+        const SizedBox(height: 4),
+        for (final line in plan.lines)
+          _TargetBar(
+            line: line,
+            totalAssets: plan.totalAssets,
+            scaleMax: scaleMax,
+          ),
       ],
     );
   }
 }
 
-/// Biểu đồ cột so sánh thực tế với mục tiêu. Xem FR-20.
-class _TargetBarChart extends StatelessWidget {
-  final List<TargetDrift> drifts;
+/// Tỷ trọng mục tiêu dưới dạng tỷ lệ.
+Decimal weightOf(int targetWeightBp) =>
+    (Decimal.fromInt(targetWeightBp) / Decimal.fromInt(10000))
+        .toDecimal(scaleOnInfinitePrecision: 10);
 
-  const _TargetBarChart({required this.drifts});
+/// Một hàng: thanh thực tế, vạch đánh dấu mức chuẩn, và số tiền phải mua bán.
+class _TargetBar extends StatelessWidget {
+  final AllocationLine line;
+  final Money totalAssets;
+  final Decimal scaleMax;
+
+  const _TargetBar({
+    required this.line,
+    required this.totalAssets,
+    required this.scaleMax,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppL10n.of(context);
     final theme = Theme.of(context);
-    if (drifts.isEmpty) return const SizedBox.shrink();
+    final muted = theme.textTheme.labelSmall
+        ?.copyWith(color: theme.colorScheme.onSurfaceVariant);
 
-    return SizedBox(
-      height: 220,
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-          barTouchData: BarTouchData(enabled: true),
-          titlesData: FlTitlesData(
-            leftTitles: const AxisTitles(),
-            topTitles: const AxisTitles(),
-            rightTitles: const AxisTitles(),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 36,
-                getTitlesWidget: (value, meta) {
-                  final index = value.toInt();
-                  if (index < 0 || index >= drifts.length) {
-                    return const SizedBox.shrink();
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      drifts[index].label,
-                      style: theme.textTheme.labelSmall,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  );
-                },
+    final actual = line.currentValue.ratioTo(totalAssets);
+    final target = weightOf(line.targetWeightBp);
+    // Cùng quy ước với thẻ Phân bổ chuẩn: cần mua là xanh, cần bán là đỏ.
+    final color = context.colorForAmount(line.actionAmount.amount);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  line.label,
+                  style: theme.textTheme.bodyMedium,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              if (line.action == AllocationAction.hold)
+                Text(l10n.allocationHold, style: muted?.copyWith(color: color))
+              else
+                MoneyText(
+                  line.actionAmount,
+                  compact: true,
+                  colorBySign: true,
+                  showPlusSign: true,
+                  style: theme.textTheme.titleSmall,
+                ),
+            ],
           ),
-          gridData: const FlGridData(show: false),
-          borderData: FlBorderData(show: false),
-          barGroups: [
-            for (var i = 0; i < drifts.length; i++)
-              BarChartGroupData(
-                x: i,
-                barRods: [
-                  BarChartRodData(
-                    toY: _percent(drifts[i].actualWeight),
-                    color: drifts[i].isOver
-                        ? context.lossColor
-                        : context.profitColor,
-                    width: 12,
-                    borderRadius: BorderRadius.circular(3),
+          const SizedBox(height: 6),
+          _Bar(
+            actualRatio: _ratio(actual),
+            targetRatio: _ratio(target),
+            color: color,
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  l10n.targetBarActual(
+                    actual == null ? '—' : VnFormat.percent(actual),
                   ),
-                  BarChartRodData(
-                    toY: _percent(drifts[i].targetWeight),
-                    color: theme.colorScheme.outlineVariant,
-                    width: 12,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: muted,
+                ),
               ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  l10n.targetBarStandard(
+                    VnFormat.percent(target),
+                    VnFormat.moneyCompact(line.targetAmount),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: muted,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  /// Toạ độ vẽ — ngoại lệ duy nhất được dùng số thực. Xem AD-3.
-  static double _percent(Object? weight) {
-    if (weight == null) return 0;
-    return double.parse(weight.toString()) * 100;
+  /// Vị trí trên thang, từ 0 tới 1.
+  ///
+  /// Toạ độ vẽ — ngoại lệ duy nhất được dùng số thực. Xem AD-3. Giá trị âm —
+  /// lớp Cho vay đang nợ ròng — kẹp về 0 để thanh không vẽ ngược.
+  double _ratio(Decimal? value) {
+    if (value == null || value.sign <= 0) return 0;
+    final ratio = (value / scaleMax).toDecimal(scaleOnInfinitePrecision: 6);
+    return double.parse(ratio.toString()).clamp(0.0, 1.0);
+  }
+}
+
+/// Thanh ngang: nền là thang đo, phần tô là thực tế, vạch đứng là mức chuẩn.
+class _Bar extends StatelessWidget {
+  final double actualRatio;
+  final double targetRatio;
+  final Color color;
+
+  static const double _height = 18;
+  static const double _trackHeight = 10;
+  static const double _markerWidth = 3;
+
+  const _Bar({
+    required this.actualRatio,
+    required this.targetRatio,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const radius = BorderRadius.all(Radius.circular(_trackHeight / 2));
+
+    return SizedBox(
+      height: _height,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          const top = (_height - _trackHeight) / 2;
+          final markerLeft = (width * targetRatio - _markerWidth / 2)
+              .clamp(0.0, width - _markerWidth);
+
+          return Stack(
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                top: top,
+                height: _trackHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: radius,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                top: top,
+                height: _trackHeight,
+                width: width * actualRatio,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: radius,
+                  ),
+                ),
+              ),
+              // Vạch chuẩn cao hơn thanh để không lẫn vào phần tô — đây là con
+              // số người dùng đang so, phải nhìn ra ngay.
+              Positioned(
+                left: markerLeft,
+                top: 0,
+                height: _height,
+                width: _markerWidth,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.onSurface,
+                    borderRadius: const BorderRadius.all(Radius.circular(1.5)),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 }
 

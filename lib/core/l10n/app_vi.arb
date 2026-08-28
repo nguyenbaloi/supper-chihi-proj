@@ -1,7 +1,7 @@
 {
   "@@locale": "vi",
 
-  "appTitle": "Danh mục đầu tư",
+  "appTitle": "ChichiMonney",
 
   "navDashboard": "Tổng quan",
   "navTargets": "Mục tiêu",
@@ -145,6 +145,11 @@
   "allocationBalanced": "Kế hoạch tự cân",
   "allocationUntargeted": "Đang ở lớp chưa đặt mục tiêu",
   "allocationNoBasis": "Chưa có tài sản để phân bổ.",
+  "targetBarTitle": "Thực tế so với chuẩn",
+  "targetBarActual": "thực tế {percent}",
+  "@targetBarActual": { "placeholders": { "percent": { "type": "String" } } },
+  "targetBarStandard": "chuẩn {percent} · {amount}",
+  "@targetBarStandard": { "placeholders": { "percent": { "type": "String" }, "amount": { "type": "String" } } },
   "targetProgress": "Mức đạt",
   "targetActualVsTarget": "Thực tế {actual} / mục tiêu {target}",
   "@targetActualVsTarget": { "placeholders": { "actual": { "type": "String" }, "target": { "type": "String" } } },

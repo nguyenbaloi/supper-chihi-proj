@@ -9,7 +9,7 @@ class AppL10nVi extends AppL10n {
   AppL10nVi([String locale = 'vi']) : super(locale);
 
   @override
-  String get appTitle => 'Danh mục đầu tư';
+  String get appTitle => 'ChichiMonney';
 
   @override
   String get navDashboard => 'Tổng quan';
@@ -428,6 +428,19 @@ class AppL10nVi extends AppL10n {
 
   @override
   String get allocationNoBasis => 'Chưa có tài sản để phân bổ.';
+
+  @override
+  String get targetBarTitle => 'Thực tế so với chuẩn';
+
+  @override
+  String targetBarActual(String percent) {
+    return 'thực tế $percent';
+  }
+
+  @override
+  String targetBarStandard(String percent, String amount) {
+    return 'chuẩn $percent · $amount';
+  }
 
   @override
   String get targetProgress => 'Mức đạt';
