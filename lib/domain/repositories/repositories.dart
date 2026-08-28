@@ -254,3 +254,32 @@ abstract interface class ReviewRepository {
     required List<ReviewItem> items,
   });
 }
+
+enum SearchKind { project, action, goal, note, link, review }
+
+/// Một kết quả tìm kiếm, kèm đủ thông tin để mở đúng chỗ.
+final class SearchHit {
+  const SearchHit({
+    required this.kind,
+    required this.id,
+    required this.title,
+    required this.snippet,
+    this.projectId,
+    this.projectName,
+  });
+
+  final SearchKind kind;
+  final int id;
+  final String title;
+  final String snippet;
+
+  /// Dự án chứa kết quả. `null` với Mục tiêu — nó không thuộc Dự án nào.
+  final int? projectId;
+  final String? projectName;
+}
+
+abstract interface class SearchRepository {
+  /// FR-30: quét Dự án, Hành động, Mục tiêu, Ghi chú, Liên kết và Đợt đánh giá.
+  /// Không phân biệt hoa thường và không phân biệt dấu — AD-12.
+  Future<List<SearchHit>> search(String query);
+}

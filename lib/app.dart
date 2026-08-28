@@ -7,6 +7,7 @@ import 'domain/models/enums.dart';
 import 'features/goals/goals_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/projects/projects_screen.dart';
+import 'features/search/search_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/today/today_screen.dart';
 import 'presentation/providers/providers.dart';
@@ -113,6 +114,13 @@ class _HomeShellState extends State<HomeShell> {
           _ => S.tabGoals,
         }),
         actions: [
+          IconButton(
+            tooltip: S.search,
+            icon: const Icon(Icons.search),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const SearchScreen()),
+            ),
+          ),
           IconButton(
             tooltip: S.settings,
             icon: const Icon(Icons.settings_outlined),

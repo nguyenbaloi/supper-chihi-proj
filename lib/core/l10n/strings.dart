@@ -6,6 +6,7 @@
 library;
 
 import '../../domain/models/enums.dart';
+import '../../domain/repositories/repositories.dart';
 
 abstract final class S {
   static const appTitle = 'Dự án & Mục tiêu';
@@ -128,6 +129,17 @@ abstract final class S {
   static const linkInvalid = 'Địa chỉ không hợp lệ';
   static const linkCopied = 'Đã sao chép địa chỉ';
   static const linkCopy = 'Sao chép địa chỉ';
+
+  static const searchNoResult = 'Không tìm thấy kết quả nào.';
+
+  static String searchKind(SearchKind kind) => switch (kind) {
+        SearchKind.project => 'Dự án',
+        SearchKind.action => 'Hành động',
+        SearchKind.goal => 'Mục tiêu',
+        SearchKind.note => 'Ghi chú',
+        SearchKind.link => 'Liên kết',
+        SearchKind.review => 'Đánh giá',
+      };
 
   // Đợt đánh giá
   static const reviews = 'Đánh giá';

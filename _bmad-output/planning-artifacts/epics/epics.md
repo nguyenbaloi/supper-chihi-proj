@@ -20,13 +20,18 @@ Thứ tự Epic là thứ tự triển khai. Mỗi Epic kết thúc ở một tr
 | 1. Nền tảng dữ liệu và bộ khung | **Xong** — 7/7 story |
 | 2. Dự án và Hành động | **Xong** — 8/8 story |
 | 3. Mục tiêu và tiến độ | **Xong** — 6/6 story |
-| 4. Hôm nay và tìm kiếm | Một phần — Story 4.1 và 4.3 xong; 4.2 (tìm kiếm toàn cục) và 4.4 (đo hiệu năng) chưa làm |
+| 4. Hôm nay và tìm kiếm | Gần xong — 4.1, 4.2, 4.3 xong; 4.4 (đo hiệu năng có số liệu) chưa làm |
 | 5. Ghi chú, Liên kết, hạt giống | **Xong** — 4/4 story |
 | 6. Sao lưu và hoàn thiện | Chưa làm — 0/4 story |
-| 7. Đợt đánh giá định kỳ | Đang làm — thêm ngày 2026-08-28 sau khi có `Dạy huy.pdf` |
+| 7. Đợt đánh giá định kỳ | **Xong** — 6/6 story |
 
-Kiểm chứng: `fvm flutter analyze` sạch, 76 test xanh, gồm ba trong bốn kịch bản
-bắt buộc (kịch bản thứ tư — xuất/nhập sao lưu — thuộc Story 6.2 chưa làm).
+Kiểm chứng: `fvm flutter analyze` sạch, **101 test xanh**, `flutter build apk`
+thành công. Bốn trong năm kịch bản bắt buộc đã có test; kịch bản còn lại
+(xuất → xoá sạch → nhập) thuộc Story 6.2 chưa làm.
+
+Khoảng trống đã biết: test widget cấp ứng dụng bị bỏ vì drift chạy I/O thật nên
+treo trong vùng thời gian giả của `testWidgets`. Hành vi tương ứng được test
+repository phủ.
 
 ## Bảng độ phủ yêu cầu
 

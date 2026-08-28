@@ -10,6 +10,7 @@ import '../../data/repositories/drift_content_repositories.dart';
 import '../../data/repositories/drift_goal_repository.dart';
 import '../../data/repositories/drift_project_repository.dart';
 import '../../data/repositories/drift_review_repository.dart';
+import '../../data/repositories/drift_search_repository.dart';
 import '../../data/repositories/drift_topic_repository.dart';
 import '../../data/seed/seeder.dart';
 import '../../domain/models/goal.dart';
@@ -53,6 +54,10 @@ final linkRepositoryProvider = Provider<LinkRepository>(
 
 final reviewRepositoryProvider = Provider<ReviewRepository>(
   (ref) => DriftReviewRepository(ref.watch(databaseProvider)),
+);
+
+final searchRepositoryProvider = Provider<SearchRepository>(
+  (ref) => DriftSearchRepository(ref.watch(databaseProvider)),
 );
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
