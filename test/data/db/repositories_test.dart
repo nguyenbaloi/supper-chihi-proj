@@ -1,0 +1,322 @@
+import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:personal_projects/data/db/database.dart';
+import 'package:personal_projects/data/repositories/drift_action_repository.dart';
+import 'package:personal_projects/data/repositories/drift_content_repositories.dart';
+import 'package:personal_projects/data/repositories/drift_goal_repository.dart';
+import 'package:personal_projects/data/repositories/drift_project_repository.dart';
+import 'package:personal_projects/data/repositories/drift_topic_repository.dart';
+import 'package:personal_projects/data/seed/seeder.dart';
+import 'package:personal_projects/domain/models/enums.dart';
+import 'package:personal_projects/domain/repositories/repositories.dart';
+
+void main() {
+  late AppDatabase db;
+  late DriftProjectRepository projects;
+  late DriftActionRepository actions;
+  late DriftGoalRepository goals;
+  late DriftTopicRepository topics;
+  late Seeder seeder;
+
+  DateTime now = DateTime.utc(2026, 8, 28, 10);
+  DateTime clock() => now;
+
+  setUp(() async {
+    now = DateTime.utc(2026, 8, 28, 10);
+    db = AppDatabase(NativeDatabase.memory());
+    projects = DriftProjectRepository(db, clock: clock);
+    actions = DriftActionRepository(db, clock: clock);
+    goals = DriftGoalRepository(db, clock: clock);
+    topics = DriftTopicRepository(db);
+    seeder = Seeder(db, clock: clock);
+    await seeder.ensureTopics();
+  });
+
+  tearDown(() => db.close());
+
+  group('Story 1.6 — sáu Chủ đề dựng sẵn (FR-1)', () {
+    test('đúng sáu Chủ đề với tên chuẩn', () async {
+      final all = await topics.getAll();
+      expect(all.map((t) => t.name).toList(),
+          ['Gia đình', 'Thu nhập', 'Tài chính', 'Sức khoẻ', 'Học tập', 'Khác']);
+    });
+
+    test('Khác là Chủ đề hệ thống và không xoá được', () async {
+      final other = (await topics.getAll()).firstWhere((t) => t.name == 'Khác');
+      expect(other.isSystemFallback, isTrue);
+      await topics.delete(other.id);
+      expect((await topics.getAll()).length, 6);
+    });
+
+    test('xoá Chủ đề thì Dự án chuyển về Khác, không bị xoá theo', () async {
+      final health = (await topics.getAll()).firstWhere((t) => t.name == 'Sức khoẻ');
+      final other = (await topics.getAll()).firstWhere((t) => t.name == 'Khác');
+      final p = await projects.create(name: 'Chạy bộ', topicId: health.id);
+
+      await topics.delete(health.id);
+
+      final reloaded = await projects.getById(p.id);
+      expect(reloaded, isNotNull);
+      expect(reloaded!.topicId, other.id);
+      expect((await topics.getAll()).length, 5);
+    });
+
+    test('chạy ensureTopics hai lần không nhân đôi', () async {
+      await seeder.ensureTopics();
+      expect((await topics.getAll()).length, 6);
+    });
+  });
+
+  group('Story 2.2 — trạng thái Dự án và dấu thời gian (FR-8, AD-5)', () {
+    test('KỊCH BẢN BẮT BUỘC 3 — Đang làm → Xong → Đang làm', () async {
+      final p = await projects.create(name: 'Kênh TikTok');
+      expect(p.startedAt, isNull);
+
+      now = DateTime.utc(2026, 8, 28, 11);
+      await projects.changeStatus(p.id, ProjectStatus.active);
+      final started = (await projects.getById(p.id))!.startedAt;
+      expect(started, DateTime.utc(2026, 8, 28, 11));
+
+      now = DateTime.utc(2026, 9, 1);
+      await projects.changeStatus(p.id, ProjectStatus.done);
+      final done = await projects.getById(p.id);
+      expect(done!.completedAt, DateTime.utc(2026, 9, 1));
+      expect(done.startedAt, started, reason: 'startedAt không được đổi');
+
+      now = DateTime.utc(2026, 9, 10);
+      await projects.changeStatus(p.id, ProjectStatus.active);
+      final again = await projects.getById(p.id);
+      expect(again!.completedAt, isNull, reason: 'rời Xong thì xoá completedAt');
+      expect(again.startedAt, started, reason: 'startedAt giữ nguyên lần đầu');
+    });
+
+    test('mỗi lần đổi trạng thái sinh một StatusEvent', () async {
+      final p = await projects.create(name: 'Dự án A');
+      await projects.changeStatus(p.id, ProjectStatus.active);
+      await projects.changeStatus(p.id, ProjectStatus.paused);
+      final history = await projects.watchStatusHistory(p.id).first;
+      expect(history.length, 2);
+      expect(history.first.toStatus, 'paused');
+      expect(history.last.fromStatus, 'not_started');
+    });
+
+    test('đổi sang chính trạng thái đang có thì không ghi gì', () async {
+      final p = await projects.create(name: 'Dự án B');
+      await projects.changeStatus(p.id, ProjectStatus.notStarted);
+      expect(await projects.watchStatusHistory(p.id).first, isEmpty);
+    });
+  });
+
+  group('Story 2.5 — trạng thái Hành động (FR-16)', () {
+    test('Chưa → Đang làm → Xong → Chưa giữ đúng dấu thời gian', () async {
+      final p = await projects.create(name: 'Dự án');
+      final a = await actions.create(projectId: p.id, title: 'Mua máy rửa bát');
+
+      now = DateTime.utc(2026, 8, 29);
+      await actions.changeStatus(a.id, ActionStatus.doing);
+      var row = (await actions.watchByProject(p.id).first).single;
+      expect(row.startedAt, DateTime.utc(2026, 8, 29));
+
+      now = DateTime.utc(2026, 8, 30);
+      await actions.changeStatus(a.id, ActionStatus.done);
+      row = (await actions.watchByProject(p.id).first).single;
+      expect(row.completedAt, DateTime.utc(2026, 8, 30));
+
+      await actions.changeStatus(a.id, ActionStatus.todo);
+      row = (await actions.watchByProject(p.id).first).single;
+      expect(row.completedAt, isNull);
+      expect(row.startedAt, DateTime.utc(2026, 8, 29));
+    });
+
+    test('thứ tự kéo thả được lưu', () async {
+      final p = await projects.create(name: 'Dự án');
+      final a1 = await actions.create(projectId: p.id, title: 'Một');
+      final a2 = await actions.create(projectId: p.id, title: 'Hai');
+      final a3 = await actions.create(projectId: p.id, title: 'Ba');
+
+      await actions.reorder(p.id, [a3.id, a1.id, a2.id]);
+      final ordered = await actions.watchByProject(p.id).first;
+      expect(ordered.map((a) => a.title).toList(), ['Ba', 'Một', 'Hai']);
+    });
+
+    test('chuyển Hành động sang Dự án khác — FR-15', () async {
+      final p1 = await projects.create(name: 'Nguồn');
+      final p2 = await projects.create(name: 'Đích');
+      final a = await actions.create(projectId: p1.id, title: 'Việc');
+
+      await actions.moveToProject(a.id, p2.id);
+
+      expect(await actions.watchByProject(p1.id).first, isEmpty);
+      expect((await actions.watchByProject(p2.id).first).single.title, 'Việc');
+    });
+  });
+
+  group('Story 2.1 — xoá Dự án (FR-7)', () {
+    test('xoá theo tầng Hành động, Ghi chú, Liên kết nhưng giữ Mục tiêu', () async {
+      final notes = DriftNoteRepository(db, clock: clock);
+      final links = DriftLinkRepository(db);
+      final p = await projects.create(name: 'Kế hoạch tài chính');
+      await actions.create(projectId: p.id, title: 'Việc 1');
+      await notes.create(projectId: p.id, title: 'Nợ tốt', bodyMarkdown: '...');
+      await links.create(projectId: p.id, label: 'Sheet', url: 'https://x.test');
+      final g = await goals.create(name: 'Mục tiêu 1 tỷ', isNumeric: true, targetRaw: 1000000000);
+      await goals.linkProject(p.id, g.id);
+
+      await projects.delete(p.id);
+
+      expect(await projects.getById(p.id), isNull);
+      expect(await db.select(db.actions).get(), isEmpty);
+      expect(await db.select(db.notes).get(), isEmpty);
+      expect(await db.select(db.links).get(), isEmpty);
+      expect(await db.select(db.projectGoals).get(), isEmpty);
+      expect((await goals.watchAll().first).length, 1,
+          reason: 'Mục tiêu không bị xoá theo Dự án');
+    });
+  });
+
+  group('Story 2.3 — danh sách và bộ lọc (FR-10)', () {
+    test('mặc định ẩn Xong và Bỏ', () async {
+      final a = await projects.create(name: 'Đang chạy');
+      final b = await projects.create(name: 'Đã xong');
+      await projects.changeStatus(a.id, ProjectStatus.active);
+      await projects.changeStatus(b.id, ProjectStatus.done);
+
+      final visible = await projects.watchSummaries(const ProjectFilter()).first;
+      expect(visible.map((s) => s.project.name).toList(), ['Đang chạy']);
+
+      final all = await projects
+          .watchSummaries(const ProjectFilter(includeClosed: true))
+          .first;
+      expect(all.length, 2);
+    });
+
+    test('tỷ lệ hoàn thành suy ra đúng, Bỏ không vào mẫu số', () async {
+      final p = await projects.create(name: 'Dự án');
+      final a1 = await actions.create(projectId: p.id, title: '1');
+      final a2 = await actions.create(projectId: p.id, title: '2');
+      final a3 = await actions.create(projectId: p.id, title: '3');
+      await actions.changeStatus(a1.id, ActionStatus.done);
+      await actions.changeStatus(a3.id, ActionStatus.dropped);
+
+      final s = (await projects
+              .watchSummaries(const ProjectFilter(includeClosed: true))
+              .first)
+          .firstWhere((s) => s.project.id == p.id);
+      expect(s.doneCount, 1);
+      expect(s.countedTotal, 2);
+      expect(a2.status, ActionStatus.todo);
+    });
+
+    test('mốc hoạt động gần nhất lấy từ StatusEvent của Hành động', () async {
+      final p = await projects.create(name: 'Dự án');
+      final a = await actions.create(projectId: p.id, title: 'Việc');
+      now = DateTime.utc(2026, 9, 5);
+      await actions.changeStatus(a.id, ActionStatus.doing);
+
+      final s = (await projects
+              .watchSummaries(const ProjectFilter(includeClosed: true))
+              .first)
+          .single;
+      expect(s.lastActivityAt, DateTime.utc(2026, 9, 5));
+    });
+
+    test('lọc theo Chủ đề kết hợp AND với trạng thái', () async {
+      final all = await topics.getAll();
+      final family = all.firstWhere((t) => t.name == 'Gia đình');
+      final income = all.firstWhere((t) => t.name == 'Thu nhập');
+      final p1 = await projects.create(name: 'Con học toán', topicId: family.id);
+      await projects.create(name: 'TikTok', topicId: income.id);
+      await projects.changeStatus(p1.id, ProjectStatus.active);
+
+      final filtered = await projects
+          .watchSummaries(ProjectFilter(
+            topicIds: {family.id},
+            statuses: {ProjectStatus.active},
+          ))
+          .first;
+      expect(filtered.map((s) => s.project.name).toList(), ['Con học toán']);
+    });
+  });
+
+  group('Story 5.3 và 5.4 — dữ liệu hạt giống (FR-2, FR-3, FR-4)', () {
+    test('nạp đúng số lượng từng loại', () async {
+      await seeder.applyProjectSeed();
+
+      expect((await db.select(db.projects).get()).length, 7);
+      expect((await db.select(db.actions).get()).length, 6);
+      expect((await db.select(db.notes).get()).length, 3);
+      expect((await db.select(db.links).get()).length, 4);
+      expect((await db.select(db.goals).get()).length, 2);
+      expect((await db.select(db.projectGoals).get()).length, 3);
+    });
+
+    test('sáu Hành động thuộc Kế hoạch tài chính, ánh xạ đúng trạng thái', () async {
+      await seeder.applyProjectSeed();
+      final finance = (await db.select(db.projects).get())
+          .firstWhere((p) => p.name == 'Kế hoạch tài chính');
+      final list = await actions.watchByProject(finance.id).first;
+
+      expect(list.length, 6);
+      expect(list.where((a) => a.status == ActionStatus.done).length, 3);
+      expect(list.where((a) => a.status == ActionStatus.doing).length, 1);
+      expect(list.where((a) => a.status == ActionStatus.todo).length, 2);
+    });
+
+    test('Mục tiêu 1 tỷ có số, không hạn chót; mục tiêu còn lại định tính', () async {
+      await seeder.applyProjectSeed();
+      final list = await goals.watchAll().first;
+      final billion = list.firstWhere((g) => g.name == 'Mục tiêu 1 tỷ');
+      expect(billion.isNumeric, isTrue);
+      expect(billion.targetRaw, 1000000000);
+      expect(billion.dueDate, isNull);
+
+      final other = list.firstWhere((g) => g.name != 'Mục tiêu 1 tỷ');
+      expect(other.isNumeric, isFalse);
+      expect(other.targetRaw, isNull);
+    });
+
+    test('FR-4 — chạy lại không nhân đôi bản ghi', () async {
+      await seeder.applyProjectSeed();
+      await seeder.applyProjectSeed();
+
+      expect((await db.select(db.projects).get()).length, 7);
+      expect((await db.select(db.actions).get()).length, 6);
+      expect((await db.select(db.goals).get()).length, 2);
+      expect((await db.select(db.projectGoals).get()).length, 3);
+    });
+  });
+
+  group('Story 3.2 — sổ Mốc tiến độ (FR-21)', () {
+    test('ngày được chuẩn hoá về đầu ngày', () async {
+      final g = await goals.create(name: 'Mục tiêu 1 tỷ', isNumeric: true, targetRaw: 1000000000);
+      final m = await goals.addUpdate(
+        goalId: g.id,
+        date: DateTime(2026, 8, 28, 17, 42),
+        valueRaw: 340000000,
+      );
+      expect(m.date, DateTime(2026, 8, 28).toUtc());
+    });
+
+    test('sửa và xoá Mốc giữa chuỗi', () async {
+      final g = await goals.create(name: 'G', isNumeric: true, targetRaw: 1000000000);
+      final m1 = await goals.addUpdate(goalId: g.id, date: DateTime(2026, 3, 1), valueRaw: 200000000);
+      final m2 = await goals.addUpdate(goalId: g.id, date: DateTime(2026, 5, 1), valueRaw: 280000000);
+      await goals.addUpdate(goalId: g.id, date: DateTime(2026, 8, 1), valueRaw: 340000000);
+
+      await goals.updateMark(m2.copyWith(valueRaw: 500000000));
+      var list = await goals.getUpdates(g.id);
+      expect(list.firstWhere((u) => u.id == m2.id).valueRaw, 500000000);
+
+      await goals.deleteMark(m1.id);
+      list = await goals.getUpdates(g.id);
+      expect(list.length, 2);
+    });
+
+    test('xoá Mục tiêu xoá theo Mốc của nó', () async {
+      final g = await goals.create(name: 'G', isNumeric: true, targetRaw: 100);
+      await goals.addUpdate(goalId: g.id, date: DateTime(2026, 1, 1), valueRaw: 10);
+      await goals.delete(g.id);
+      expect(await db.select(db.goalUpdates).get(), isEmpty);
+    });
+  });
+}
