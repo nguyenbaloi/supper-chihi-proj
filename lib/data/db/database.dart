@@ -39,11 +39,16 @@ part 'database.g.dart';
     ActionNotesTable,
   ],
 )
+/// Tên cơ sở dữ liệu. Tệp thật là `$kDatabaseName.sqlite` trong thư mục tài
+/// liệu riêng của ứng dụng — xem `backup_file.dart`, nơi sao lưu và khôi phục
+/// thao tác thẳng trên tệp đó.
+const kDatabaseName = 'personal_finance';
+
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   /// Mở cơ sở dữ liệu thật, đặt trong thư mục riêng của ứng dụng.
-  AppDatabase.open() : super(driftDatabase(name: 'personal_finance'));
+  AppDatabase.open() : super(driftDatabase(name: kDatabaseName));
 
   @override
   int get schemaVersion => 3;

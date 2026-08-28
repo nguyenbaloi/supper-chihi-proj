@@ -578,6 +578,51 @@ class AppL10nVi extends AppL10n {
   }
 
   @override
+  String get settingsBackup => 'Sao lưu toàn bộ dữ liệu';
+
+  @override
+  String get settingsBackupSubtitle =>
+      'Một tệp .sqlite chứa đủ mọi thứ — dùng khi chuyển sang máy mới.';
+
+  @override
+  String get settingsRestore => 'Khôi phục từ tệp sao lưu';
+
+  @override
+  String get settingsRestoreSubtitle =>
+      'Thay toàn bộ dữ liệu trên máy này bằng nội dung tệp sao lưu.';
+
+  @override
+  String get backupFailed => 'Không tạo được tệp sao lưu.';
+
+  @override
+  String get restoreWarningTitle => 'Toàn bộ dữ liệu hiện tại sẽ bị thay';
+
+  @override
+  String get restoreWarningBody =>
+      'Khoản nắm giữ, dòng vốn, bản chốt và ghi chú trên máy này sẽ được thay bằng nội dung tệp sao lưu. Thao tác không hoàn tác được — hãy sao lưu dữ liệu hiện tại trước nếu bạn còn cần.';
+
+  @override
+  String get restoreDone => 'Đã khôi phục xong.';
+
+  @override
+  String get restoreFailed => 'Khôi phục thất bại. Dữ liệu cũ được giữ nguyên.';
+
+  @override
+  String get restoreRejectedUnreadable => 'Không đọc được tệp này.';
+
+  @override
+  String get restoreRejectedNotSqlite =>
+      'Đây không phải tệp sao lưu. Hãy chọn tệp .sqlite, không phải tệp .csv.';
+
+  @override
+  String get restoreRejectedMissingTables =>
+      'Tệp SQLite này không phải bản sao lưu của ứng dụng.';
+
+  @override
+  String get restoreRejectedFutureSchema =>
+      'Tệp sao lưu đến từ một phiên bản ứng dụng mới hơn. Hãy cập nhật ứng dụng rồi thử lại.';
+
+  @override
   String get recalcWarningTitle => 'Toàn bộ lịch sử lãi lỗ sẽ được tính lại';
 
   @override

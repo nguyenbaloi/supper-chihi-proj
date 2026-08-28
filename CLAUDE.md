@@ -83,7 +83,7 @@ File trong `domain/` không được `import` bất cứ thứ gì từ `package
 
 ## Ngăn xếp
 
-Riverpod 3.3.2 · drift 2.31.0 · drift_flutter 0.2.8 · decimal 3.2.6 · fl_chart 1.2.0 · intl 0.20.2
+Riverpod 3.3.2 · drift 2.31.0 · drift_flutter 0.2.8 · sqlite3 2.9.4 · decimal 3.2.6 · fl_chart 1.2.0 · intl 0.20.2 · file_picker 12.1.1
 
 **Không dùng code generation của Riverpod.** `riverpod_generator` cần `analyzer ^9/^12` còn `drift_dev` cần `^10/^13` — loại trừ nhau dưới Dart 3.10.9. Provider khai báo thủ công dưới dạng biến `final` cấp cao nhất trong `presentation/providers/`. Không thêm `riverpod_annotation`, `riverpod_lint`, `custom_lint`.
 
@@ -95,8 +95,9 @@ Riverpod 3.3.2 · drift 2.31.0 · drift_flutter 0.2.8 · decimal 3.2.6 · fl_cha
 'dart compile' does not support build hooks, use 'dart build' instead.
 ```
 
-Hai ràng buộc đang giữ điều đó:
+Ba ràng buộc đang giữ điều đó:
 - `drift_flutter` phải ở nhánh **0.2.x** — nhánh 0.3.x kéo theo `sqlite3` 3.x vốn dùng hooks
+- `sqlite3` khai báo trực tiếp với ràng buộc `>=2.9.4 <3.0.0` — cùng lý do trên
 - `path_provider_foundation` ghim đè **2.5.1** — bản 2.6.0 kéo theo `objective_c` vốn dùng hooks
 
 **Trước khi thêm bất kỳ gói mới nào**, kiểm tra gói đó và các phụ thuộc của nó có thư mục `hook/` không:

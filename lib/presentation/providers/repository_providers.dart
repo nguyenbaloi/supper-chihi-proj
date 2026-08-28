@@ -34,12 +34,55 @@ import '../../data/repositories/target_repository_impl.dart';
 /// `analyzer ^9/^12` còn `drift_dev` cần `^10/^13` — loại trừ nhau dưới
 /// Dart 3.10.9. Xem AD-2.
 
+/// Chủ sở hữu cơ sở dữ liệu thật.
+///
+/// Tách khỏi [databaseProvider] để khôi phục dữ liệu thay được tệp nằm dưới:
+/// đóng cơ sở dữ liệu, ghi đè tệp `.sqlite`, mở lại. Mọi provider đọc
+/// [databaseProvider] tự dựng lại theo, nên không cần khởi động lại ứng dụng
+/// — trên iOS thì cũng không có cách nào tự khởi động lại.
+final databaseHostProvider = NotifierProvider<DatabaseHost, AppDatabase>(
+  DatabaseHost.new,
+);
+
+class DatabaseHost extends Notifier<AppDatabase> {
+  /// Bản đang mở, giữ riêng để đóng được đúng bản cuối cùng: [state] đổi mỗi
+  /// lần khôi phục, còn `onDispose` chỉ đăng ký được một lần.
+  AppDatabase? _open;
+
+  @override
+  AppDatabase build() {
+    final db = AppDatabase.open();
+    _open = db;
+    ref.onDispose(() {
+      _open?.close();
+      _open = null;
+    });
+    return db;
+  }
+
+  /// Đóng cơ sở dữ liệu, chạy [whileClosed] trên tệp, rồi mở lại.
+  ///
+  /// Thao tác tệp bắt buộc phải nằm giữa hai bước này: chép đè lên một tệp
+  /// SQLite đang mở là cách chắc chắn nhất để hỏng dữ liệu.
+  Future<void> reopen(Future<void> Function() whileClosed) async {
+    await _open?.close();
+    _open = null;
+    try {
+      await whileClosed();
+    } finally {
+      // Mở lại kể cả khi thao tác tệp thất bại: bỏ ứng dụng ở trạng thái
+      // không có cơ sở dữ liệu còn hỏng hơn thao tác vừa lỗi.
+      final db = AppDatabase.open();
+      _open = db;
+      state = db;
+    }
+  }
+}
+
 /// Cơ sở dữ liệu. Ghi đè trong test bằng một bản trong bộ nhớ.
-final databaseProvider = Provider<AppDatabase>((ref) {
-  throw UnimplementedError(
-    'databaseProvider phải được ghi đè ở gốc cây provider',
-  );
-});
+final databaseProvider = Provider<AppDatabase>(
+  (ref) => ref.watch(databaseHostProvider),
+);
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => SettingsRepositoryImpl(ref.watch(databaseProvider)),

@@ -11,6 +11,7 @@ import '../../presentation/providers/repository_providers.dart';
 import '../../presentation/widgets/confirm_dialog.dart';
 import '../../presentation/widgets/money_field.dart';
 import '../../presentation/widgets/price_freshness_label.dart';
+import 'backup_service.dart';
 import 'export_service.dart';
 
 /// Màn hình Cài đặt. Xem FR-39 và FR-41.
@@ -138,6 +139,18 @@ class SettingsScreen extends ConsumerWidget {
               ),
               trailing: const Icon(Icons.ios_share),
               onTap: () => exportAndShare(context, ref),
+            ),
+            ListTile(
+              title: Text(l10n.settingsBackup),
+              subtitle: Text(l10n.settingsBackupSubtitle),
+              trailing: const Icon(Icons.save_alt),
+              onTap: () => backupAndShare(context, ref),
+            ),
+            ListTile(
+              title: Text(l10n.settingsRestore),
+              subtitle: Text(l10n.settingsRestoreSubtitle),
+              trailing: const Icon(Icons.settings_backup_restore),
+              onTap: () => restoreFromBackup(context, ref),
             ),
           ],
         ],

@@ -25,6 +25,12 @@ dependencies:
   drift: ^2.31.0
   drift_flutter: ^0.2.8
 
+  # Truy cập SQLite thô — chỉ dùng để soi tệp sao lưu trước khi khôi phục
+  # (đọc `user_version` và danh sách bảng ở chế độ chỉ đọc). Không mở tệp lạ
+  # bằng AppDatabase: drift sẽ chạy migration lên tệp chưa được kiểm chứng.
+  # Ghim dưới 3.0.0 — nhánh 3.x dùng build hooks, xem AD-13.
+  sqlite3: ">=2.9.4 <3.0.0"
+
   # Số học chính xác — bắt buộc, xem AD-3.
   decimal: ^3.2.6
 
@@ -38,6 +44,7 @@ dependencies:
   shared_preferences: ^2.5.5
   path_provider: ^2.1.6
   share_plus: ^13.3.0
+  file_picker: ^12.1.1
 
 dev_dependencies:
   flutter_test:

@@ -1077,6 +1077,84 @@ abstract class AppL10n {
   /// **'Đã {days} ngày chưa sao lưu. Xuất dữ liệu để giữ một bản ở nơi bạn chọn.'**
   String backupReminder(int days);
 
+  /// No description provided for @settingsBackup.
+  ///
+  /// In vi, this message translates to:
+  /// **'Sao lưu toàn bộ dữ liệu'**
+  String get settingsBackup;
+
+  /// No description provided for @settingsBackupSubtitle.
+  ///
+  /// In vi, this message translates to:
+  /// **'Một tệp .sqlite chứa đủ mọi thứ — dùng khi chuyển sang máy mới.'**
+  String get settingsBackupSubtitle;
+
+  /// No description provided for @settingsRestore.
+  ///
+  /// In vi, this message translates to:
+  /// **'Khôi phục từ tệp sao lưu'**
+  String get settingsRestore;
+
+  /// No description provided for @settingsRestoreSubtitle.
+  ///
+  /// In vi, this message translates to:
+  /// **'Thay toàn bộ dữ liệu trên máy này bằng nội dung tệp sao lưu.'**
+  String get settingsRestoreSubtitle;
+
+  /// No description provided for @backupFailed.
+  ///
+  /// In vi, this message translates to:
+  /// **'Không tạo được tệp sao lưu.'**
+  String get backupFailed;
+
+  /// No description provided for @restoreWarningTitle.
+  ///
+  /// In vi, this message translates to:
+  /// **'Toàn bộ dữ liệu hiện tại sẽ bị thay'**
+  String get restoreWarningTitle;
+
+  /// No description provided for @restoreWarningBody.
+  ///
+  /// In vi, this message translates to:
+  /// **'Khoản nắm giữ, dòng vốn, bản chốt và ghi chú trên máy này sẽ được thay bằng nội dung tệp sao lưu. Thao tác không hoàn tác được — hãy sao lưu dữ liệu hiện tại trước nếu bạn còn cần.'**
+  String get restoreWarningBody;
+
+  /// No description provided for @restoreDone.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đã khôi phục xong.'**
+  String get restoreDone;
+
+  /// No description provided for @restoreFailed.
+  ///
+  /// In vi, this message translates to:
+  /// **'Khôi phục thất bại. Dữ liệu cũ được giữ nguyên.'**
+  String get restoreFailed;
+
+  /// No description provided for @restoreRejectedUnreadable.
+  ///
+  /// In vi, this message translates to:
+  /// **'Không đọc được tệp này.'**
+  String get restoreRejectedUnreadable;
+
+  /// No description provided for @restoreRejectedNotSqlite.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đây không phải tệp sao lưu. Hãy chọn tệp .sqlite, không phải tệp .csv.'**
+  String get restoreRejectedNotSqlite;
+
+  /// No description provided for @restoreRejectedMissingTables.
+  ///
+  /// In vi, this message translates to:
+  /// **'Tệp SQLite này không phải bản sao lưu của ứng dụng.'**
+  String get restoreRejectedMissingTables;
+
+  /// No description provided for @restoreRejectedFutureSchema.
+  ///
+  /// In vi, this message translates to:
+  /// **'Tệp sao lưu đến từ một phiên bản ứng dụng mới hơn. Hãy cập nhật ứng dụng rồi thử lại.'**
+  String get restoreRejectedFutureSchema;
+
   /// No description provided for @recalcWarningTitle.
   ///
   /// In vi, this message translates to:
