@@ -10,7 +10,7 @@ import '../../domain/repositories/repositories.dart';
 import '../result/result.dart';
 
 abstract final class S {
-  static const appTitle = 'Dự án & Mục tiêu';
+  static const appTitle = 'Chichi Projects';
 
   // Điều hướng
   static const tabToday = 'Hôm nay';
