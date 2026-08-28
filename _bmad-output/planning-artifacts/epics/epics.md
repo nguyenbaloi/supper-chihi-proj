@@ -23,6 +23,7 @@ Thứ tự Epic là thứ tự triển khai. Mỗi Epic kết thúc ở một tr
 | 4. Hôm nay và tìm kiếm | Một phần — Story 4.1 và 4.3 xong; 4.2 (tìm kiếm toàn cục) và 4.4 (đo hiệu năng) chưa làm |
 | 5. Ghi chú, Liên kết, hạt giống | **Xong** — 4/4 story |
 | 6. Sao lưu và hoàn thiện | Chưa làm — 0/4 story |
+| 7. Đợt đánh giá định kỳ | Đang làm — thêm ngày 2026-08-28 sau khi có `Dạy huy.pdf` |
 
 Kiểm chứng: `fvm flutter analyze` sạch, 76 test xanh, gồm ba trong bốn kịch bản
 bắt buộc (kịch bản thứ tư — xuất/nhập sao lưu — thuộc Story 6.2 chưa làm).
@@ -37,6 +38,7 @@ bắt buộc (kịch bản thứ tư — xuất/nhập sao lưu — thuộc Stor
 | 4. Hôm nay và tìm kiếm | FR-29, FR-30, NFR-1, NFR-2 |
 | 5. Ghi chú, Liên kết, hạt giống | FR-2, FR-3, FR-4, FR-27, FR-28 |
 | 6. Sao lưu và hoàn thiện | FR-31, FR-32, FR-33, NFR-7 |
+| 7. Đợt đánh giá định kỳ | FR-35…FR-40 |
 
 ## Yêu cầu phi chức năng xuyên suốt
 
@@ -374,3 +376,62 @@ Bảng Drift theo sơ đồ thực thể: `Topics`, `Projects`, `Actions`, `Goal
 - Mọi trạng thái và độ ưu tiên đều có nhãn chữ hoặc biểu tượng kèm màu.
 - Vùng chạm nhỏ nhất 44×44 điểm; app đọc được bằng trình đọc màn hình ở các luồng chính.
 - `fvm flutter analyze` sạch, toàn bộ test xanh.
+
+---
+
+## Epic 7: Đợt đánh giá định kỳ
+
+**Nguồn:** `Dạy huy.pdf`, thêm vào ngày 2026-08-28 sau khi người dùng làm rõ dự
+án `Dạy Huy` là *"lập kế hoạch và theo dõi tiến bộ của con trai theo mốc thời gian"*.
+
+**Kết thúc Epic:** hai đợt đánh giá 15/5 và 7/8 trong file gốc sống trong app,
+và tạo đợt thứ ba chỉ mất vài chạm nhờ kế thừa các mục chưa đạt.
+
+### Story 7.1: Schema Đợt đánh giá và migration lên phiên bản 2
+
+**Nghiệm thu:**
+- Hai bảng `reviews` và `review_items` theo sơ đồ thực thể; `schemaVersion` tăng lên 2.
+- `review_items.review_id` cascade; xoá Đợt xoá theo Mục. Xoá Dự án xoá theo cả hai.
+- Không cột `metCount`, `metRatio`, `itemCount` — kiểm bằng test schema guard.
+- **Test `migrateAndValidate` từ phiên bản 1 lên 2**, dựng DB bản 1 có dữ liệu rồi nâng cấp, dữ liệu cũ còn nguyên — AD-10.
+
+### Story 7.2: Tạo, sửa, xoá Đợt đánh giá — FR-35
+
+**Nghiệm thu:**
+- Ngày đánh giá mặc định hôm nay; tiêu đề và tóm tắt markdown tuỳ chọn; ngày xem lại tiếp theo tuỳ chọn.
+- Tiêu đề để trống thì hiển thị bằng ngày đánh giá.
+- Danh sách Đợt của một Dự án sắp xếp theo ngày giảm dần.
+
+### Story 7.3: Mục đánh giá ba kết quả — FR-36, FR-39
+
+**Nghiệm thu:**
+- Ba kết quả `met` · `not_met` · `partial`, lưu bằng chuỗi ổn định, đọc chuỗi lạ về `not_met` không ném lỗi.
+- Mỗi kết quả có nhãn chữ kèm màu, không chỉ màu.
+- Tỷ lệ đạt = `Đạt` ÷ tổng Mục, tính tại chỗ; `Một phần` vào mẫu số không vào tử số; không Mục nào thì `—`.
+- Kéo thả đổi thứ tự Mục được lưu.
+
+### Story 7.4: Kế thừa mục chưa đạt — FR-37
+
+**Nghiệm thu:**
+- Tạo Đợt mới trên Dự án đã có Đợt trước sẽ đề nghị chép các Mục `Chưa đạt` và `Một phần`.
+- Mục `Đạt` không được chép — có test.
+- Mục chép sang mang kết quả khởi điểm `Chưa đạt` và giữ thứ tự tương đối.
+- Bỏ chọn hết thì Đợt mới trống.
+- Sửa nội dung một Hành động **không** làm đổi Mục đánh giá quá khứ — AD-15, có test.
+
+### Story 7.5: Dòng thời gian và nhắc đến hạn — FR-38, FR-40
+
+**Nghiệm thu:**
+- Thẻ riêng trên màn hình Dự án liệt kê các Đợt theo thời gian kèm tỷ lệ đạt.
+- Dự án có Đợt gần nhất mang ngày xem lại ≤ hôm nay xuất hiện ở nhóm *Cần chú ý* của Hôm nay.
+- Chỉ Đợt gần nhất được xét — có test với Dự án có ba Đợt.
+- Dự án `Xong` và `Bỏ` không sinh nhắc nhở — có test.
+
+### Story 7.6: Nạp hai đợt đánh giá thật của dự án Dạy Huy
+
+**Nghiệm thu:**
+- Dự án `Dạy Huy` có Chủ đề Gia đình, mô tả hai điểm trọng tâm, và bốn nhóm mục tiêu 2-3 tháng tới thành Hành động.
+- Đợt `15/05` có 5 Mục đúng kết quả trong file: 2 `Đạt`, 3 `Chưa đạt`.
+- Đợt `07/08` có 5 Mục đúng kết quả: 3 `Đạt`, 2 `Chưa đạt`.
+- Ghi chú `Những việc cha mẹ đang làm sai` được nạp đầy đủ 5 điểm.
+- Chạy lại bộ hạt giống không nhân đôi Đợt đánh giá.

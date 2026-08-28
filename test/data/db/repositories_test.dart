@@ -243,11 +243,13 @@ void main() {
       await seeder.applyProjectSeed();
 
       expect((await db.select(db.projects).get()).length, 7);
-      expect((await db.select(db.actions).get()).length, 6);
-      expect((await db.select(db.notes).get()).length, 3);
+      // 6 hành động của Kế hoạch tài chính + 11 của Dạy Huy.
+      expect((await db.select(db.actions).get()).length, 17);
+      expect((await db.select(db.notes).get()).length, 5);
       expect((await db.select(db.links).get()).length, 4);
       expect((await db.select(db.goals).get()).length, 2);
       expect((await db.select(db.projectGoals).get()).length, 3);
+      expect((await db.select(db.reviews).get()).length, 2);
     });
 
     test('sáu Hành động thuộc Kế hoạch tài chính, ánh xạ đúng trạng thái', () async {
@@ -262,13 +264,14 @@ void main() {
       expect(list.where((a) => a.status == ActionStatus.todo).length, 2);
     });
 
-    test('Mục tiêu 1 tỷ có số, không hạn chót; mục tiêu còn lại định tính', () async {
+    test('Mục tiêu 1 tỷ có số và có hạn chót; mục tiêu còn lại định tính', () async {
       await seeder.applyProjectSeed();
       final list = await goals.watchAll().first;
       final billion = list.firstWhere((g) => g.name == 'Mục tiêu 1 tỷ');
       expect(billion.isNumeric, isTrue);
       expect(billion.targetRaw, 1000000000);
-      expect(billion.dueDate, isNull);
+      // Người dùng chốt ngày 2026-08-28: đo bằng tổng tài sản ròng, hạn 31/12/2027.
+      expect(billion.dueDate, isNotNull);
 
       final other = list.firstWhere((g) => g.name != 'Mục tiêu 1 tỷ');
       expect(other.isNumeric, isFalse);
@@ -280,9 +283,10 @@ void main() {
       await seeder.applyProjectSeed();
 
       expect((await db.select(db.projects).get()).length, 7);
-      expect((await db.select(db.actions).get()).length, 6);
+      expect((await db.select(db.actions).get()).length, 17);
       expect((await db.select(db.goals).get()).length, 2);
       expect((await db.select(db.projectGoals).get()).length, 3);
+      expect((await db.select(db.reviews).get()).length, 2);
     });
   });
 

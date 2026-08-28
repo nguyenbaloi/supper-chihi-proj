@@ -38,6 +38,28 @@ class StatusChip extends StatelessWidget {
       };
 }
 
+/// NFR-7: ba kết quả phân biệt bằng cả màu lẫn nhãn chữ.
+class VerdictChip extends StatelessWidget {
+  const VerdictChip(this.verdict, {super.key});
+
+  final ReviewVerdict verdict;
+
+  @override
+  Widget build(BuildContext context) => _Pill(
+        label: S.reviewVerdict(verdict),
+        color: switch (verdict) {
+          ReviewVerdict.met => const Color(0xFF2E7D32),
+          ReviewVerdict.partial => const Color(0xFFEF6C00),
+          ReviewVerdict.notMet => const Color(0xFFC62828),
+        },
+        icon: switch (verdict) {
+          ReviewVerdict.met => Icons.check_circle_outline,
+          ReviewVerdict.partial => Icons.adjust,
+          ReviewVerdict.notMet => Icons.radio_button_unchecked,
+        },
+      );
+}
+
 class PriorityChip extends StatelessWidget {
   const PriorityChip(this.priority, {super.key});
 

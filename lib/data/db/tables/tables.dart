@@ -141,6 +141,45 @@ class StatusEvents extends Table {
   DateTimeColumn get at => dateTime()();
 }
 
+/// Một lần nhìn lại Dự án tại một mốc thời gian — FR-35, AD-15.
+///
+/// Khác `Actions`: `Actions` có vòng đời một chiều kết thúc ở `Xong`, còn
+/// bảng này ghi lại **chu kỳ lặp** — cùng một nội dung được chấm lại nhiều lần.
+@DataClassName('ReviewRow')
+class Reviews extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get projectId =>
+      integer().references(Projects, #id, onDelete: KeyAction.cascade)();
+  DateTimeColumn get date => dateTime()();
+  TextColumn get title => text().withDefault(const Constant(''))();
+  TextColumn get summaryMarkdown => text().withDefault(const Constant(''))();
+
+  /// "Mốc time" của chu kỳ — nguồn của nhắc nhở ở FR-40.
+  DateTimeColumn get nextReviewDate => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  TextColumn get searchText => text().withDefault(const Constant(''))();
+}
+
+/// Một dòng trong Đợt đánh giá — FR-36.
+@DataClassName('ReviewItemRow')
+class ReviewItems extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get reviewId =>
+      integer().references(Reviews, #id, onDelete: KeyAction.cascade)();
+
+  /// **Bản chụp văn bản** tại thời điểm đánh giá — AD-15. Sửa Hành động về sau
+  /// không được làm đổi nhật ký quá khứ.
+  TextColumn get label => text().withLength(min: 1, max: 500)();
+  TextColumn get verdict => text().withLength(max: 20)();
+  TextColumn get note => text().withDefault(const Constant(''))();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  /// Chỉ để mở nhanh Hành động liên quan. Không tham gia phép tính nào và
+  /// không có ràng buộc khoá ngoại — Hành động có thể đã bị xoá.
+  IntColumn get sourceActionId => integer().nullable()();
+  TextColumn get searchText => text().withDefault(const Constant(''))();
+}
+
 @DataClassName('SettingsRow')
 class AppSettings extends Table {
   IntColumn get id => integer().withDefault(const Constant(1))();

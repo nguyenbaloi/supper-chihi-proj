@@ -10,6 +10,7 @@ import '../../presentation/providers/providers.dart';
 import '../../presentation/widgets/chips.dart';
 import '../actions/action_tile.dart';
 import '../notes/project_notes_tab.dart';
+import '../reviews/project_reviews_tab.dart';
 import 'project_edit_sheet.dart';
 
 class ProjectDetailScreen extends ConsumerWidget {
@@ -25,7 +26,7 @@ class ProjectDetailScreen extends ConsumerWidget {
     }
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: Text(project.name, overflow: TextOverflow.ellipsis),
@@ -42,12 +43,17 @@ class ProjectDetailScreen extends ConsumerWidget {
             ),
           ],
           bottom: const TabBar(
-            tabs: [Tab(text: S.tabToday), Tab(text: S.projectNotes)],
+            tabs: [
+              Tab(text: S.tabToday),
+              Tab(text: S.reviews),
+              Tab(text: S.projectNotes),
+            ],
           ),
         ),
         body: TabBarView(
           children: [
             _ActionsTab(projectId: projectId),
+            ProjectReviewsTab(projectId: projectId),
             ProjectNotesTab(projectId: projectId),
           ],
         ),

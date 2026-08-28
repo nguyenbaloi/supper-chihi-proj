@@ -9,12 +9,14 @@ import '../../data/repositories/drift_action_repository.dart';
 import '../../data/repositories/drift_content_repositories.dart';
 import '../../data/repositories/drift_goal_repository.dart';
 import '../../data/repositories/drift_project_repository.dart';
+import '../../data/repositories/drift_review_repository.dart';
 import '../../data/repositories/drift_topic_repository.dart';
 import '../../data/seed/seeder.dart';
 import '../../domain/models/goal.dart';
 import '../../domain/models/note.dart';
 import '../../domain/models/project.dart';
 import '../../domain/models/project_action.dart';
+import '../../domain/models/review.dart';
 import '../../domain/models/topic.dart';
 import '../../domain/repositories/repositories.dart';
 
@@ -47,6 +49,10 @@ final noteRepositoryProvider = Provider<NoteRepository>(
 
 final linkRepositoryProvider = Provider<LinkRepository>(
   (ref) => DriftLinkRepository(ref.watch(databaseProvider)),
+);
+
+final reviewRepositoryProvider = Provider<ReviewRepository>(
+  (ref) => DriftReviewRepository(ref.watch(databaseProvider)),
 );
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
@@ -125,6 +131,19 @@ final projectStatusHistoryProvider = StreamProvider.family<List<StatusEvent>, in
 final projectLinkedGoalIdsProvider = StreamProvider.family<List<int>, int>(
   (ref, projectId) =>
       ref.watch(goalRepositoryProvider).watchLinkedGoalIds(projectId),
+);
+
+final projectReviewsProvider = StreamProvider.family<List<ReviewSummary>, int>(
+  (ref, projectId) => ref.watch(reviewRepositoryProvider).watchByProject(projectId),
+);
+
+final reviewItemsProvider = StreamProvider.family<List<ReviewItem>, int>(
+  (ref, reviewId) => ref.watch(reviewRepositoryProvider).watchItems(reviewId),
+);
+
+/// Mọi Đợt đánh giá — màn hình Hôm nay cần để tính nhắc đến hạn (FR-40).
+final allReviewsProvider = StreamProvider<List<Review>>(
+  (ref) => ref.watch(reviewRepositoryProvider).watchAllReviews(),
 );
 
 final goalsProvider = StreamProvider<List<Goal>>(

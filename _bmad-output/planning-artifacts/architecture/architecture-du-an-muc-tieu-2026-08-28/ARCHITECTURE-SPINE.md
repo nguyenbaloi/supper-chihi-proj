@@ -119,6 +119,14 @@ Priority      : high · medium · low
 
 Đọc lên gặp chuỗi lạ thì ánh xạ về giá trị mặc định (`todo` / `not_started` / `medium`) và **không được ném lỗi làm chết màn hình**. Nhãn tiếng Việt nằm ở lớp l10n, không nằm trong cơ sở dữ liệu.
 
+### AD-15 — Đợt đánh giá là thực thể riêng, không tái dùng `Action`
+
+- **Ràng buộc:** FR-35…FR-40
+- **Ngăn chặn:** làm hỏng ngữ nghĩa trạng thái của `Action` bằng cách nhét một vòng đánh giá lặp lại vào một bản ghi vốn chỉ có một vòng đời `Chưa → Đang làm → Xong`
+- **Quy tắc:** `Action` trả lời *"việc này làm xong chưa"* — vòng đời một chiều, kết thúc ở `Xong`. `Review` trả lời *"chu kỳ vừa rồi có tiến bộ không"* — cùng một nội dung được chấm lại ở nhiều mốc, kết quả là `met` / `not_met` / `partial`, và không có khái niệm "xong vĩnh viễn".
+
+`ReviewItem.label` là **bản chụp văn bản tại thời điểm đánh giá**, không phải khoá ngoại tới `Action`. Sửa một Hành động về sau không được làm đổi nội dung một Đợt đánh giá quá khứ — nhật ký phải giữ đúng chữ đã viết lúc đó. `ReviewItem.sourceActionId` tồn tại nhưng chỉ để mở nhanh Hành động liên quan; nó `nullable` và không tham gia vào bất kỳ phép tính nào.
+
 ### AD-10 — Mọi thay đổi cấu trúc dữ liệu phải có đường chuyển đổi
 
 - **Ràng buộc:** NFR-4
@@ -224,6 +232,8 @@ erDiagram
     PROJECT ||--o{ PROJECT_GOAL : "nối qua"
     GOAL ||--o{ PROJECT_GOAL : "nối qua"
     GOAL ||--o{ GOAL_UPDATE : "được đo bởi"
+    PROJECT ||--o{ REVIEW : "được nhìn lại qua"
+    REVIEW ||--o{ REVIEW_ITEM : "gồm"
     PROJECT ||--o{ STATUS_EVENT : "ghi lại"
     ACTION ||--o{ STATUS_EVENT : "ghi lại"
 
@@ -311,6 +321,26 @@ erDiagram
         string toStatus
         datetime at
     }
+    REVIEW {
+        int id PK
+        int projectId FK "cascade"
+        datetime date
+        string title
+        string summaryMarkdown
+        datetime nextReviewDate "nullable, mốc chu kỳ"
+        datetime createdAt
+        string searchText
+    }
+    REVIEW_ITEM {
+        int id PK
+        int reviewId FK "cascade"
+        string label "bản chụp văn bản, AD-15"
+        string verdict "met|not_met|partial"
+        string note
+        int sortOrder
+        int sourceActionId "nullable, chỉ để mở nhanh"
+        string searchText
+    }
     SETTINGS {
         int id PK "luôn bằng 1"
         int staleDays "mặc định 21, FR-13"
@@ -324,6 +354,8 @@ erDiagram
 `GOAL` không có cột `currentValue` — giá trị hiện tại là `GOAL_UPDATE` có `date` lớn nhất. `PROJECT` không có cột đếm hay tỷ lệ — chúng tính từ `ACTION`. Cả hai theo AD-3.
 
 `PROJECT_GOAL` là bảng nối nhiều-nhiều, khoá chính ghép `(projectId, goalId)` — theo FR-25.
+
+`REVIEW` không có cột `metCount` hay `metRatio` — tỷ lệ đạt tính từ `REVIEW_ITEM` theo AD-3.
 
 `STATUS_EVENT` là bảng chỉ ghi thêm, không sửa. Nó phục vụ FR-8 (*xem lại lịch sử đổi trạng thái*) và là nguồn duy nhất để tính "ngày hoạt động gần nhất" của Dự án ở FR-13.
 
@@ -373,6 +405,7 @@ lib/
     actions/         thêm, sửa, kéo thả Hành động
     goals/           danh sách, chi tiết, biểu đồ, sổ Mốc
     notes/           Ghi chú markdown
+    reviews/         Đợt đánh giá định kỳ
     search/          tìm kiếm toàn cục
     settings/        cài đặt, sao lưu, khôi phục
     onboarding/      lần chạy đầu và nạp hạt giống
@@ -394,6 +427,7 @@ lib/
 | FR-27…FR-28 Ghi chú, Liên kết | `features/notes/`, `presentation/widgets/link_tile.dart` | AD-6 |
 | FR-29 Hôm nay | `features/today/`, tổng hợp từ nhiều rule | AD-3, AD-7 |
 | FR-30 Tìm kiếm | `domain/rules/slugify.dart`, `data/db/daos/search_dao.dart` | AD-12 |
+| FR-35…FR-40 Đợt đánh giá | `domain/models/review.dart`, `domain/rules/review.dart`, `features/reviews/` | AD-3, AD-15 |
 | FR-31…FR-32 Sao lưu | `data/backup/` | AD-11 |
 | FR-33…FR-34 Offline, cài đặt | toàn bộ `pubspec.yaml`, `core/l10n/` | AD-6, AD-10 |
 

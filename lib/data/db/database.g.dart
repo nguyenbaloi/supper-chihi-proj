@@ -4007,6 +4007,1034 @@ class LinksCompanion extends UpdateCompanion<LinkRow> {
   }
 }
 
+class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, ReviewRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReviewsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _projectIdMeta = const VerificationMeta(
+    'projectId',
+  );
+  @override
+  late final GeneratedColumn<int> projectId = GeneratedColumn<int>(
+    'project_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES projects (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _summaryMarkdownMeta = const VerificationMeta(
+    'summaryMarkdown',
+  );
+  @override
+  late final GeneratedColumn<String> summaryMarkdown = GeneratedColumn<String>(
+    'summary_markdown',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _nextReviewDateMeta = const VerificationMeta(
+    'nextReviewDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> nextReviewDate =
+      GeneratedColumn<DateTime>(
+        'next_review_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _searchTextMeta = const VerificationMeta(
+    'searchText',
+  );
+  @override
+  late final GeneratedColumn<String> searchText = GeneratedColumn<String>(
+    'search_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    projectId,
+    date,
+    title,
+    summaryMarkdown,
+    nextReviewDate,
+    createdAt,
+    searchText,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reviews';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReviewRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('project_id')) {
+      context.handle(
+        _projectIdMeta,
+        projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    }
+    if (data.containsKey('summary_markdown')) {
+      context.handle(
+        _summaryMarkdownMeta,
+        summaryMarkdown.isAcceptableOrUnknown(
+          data['summary_markdown']!,
+          _summaryMarkdownMeta,
+        ),
+      );
+    }
+    if (data.containsKey('next_review_date')) {
+      context.handle(
+        _nextReviewDateMeta,
+        nextReviewDate.isAcceptableOrUnknown(
+          data['next_review_date']!,
+          _nextReviewDateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('search_text')) {
+      context.handle(
+        _searchTextMeta,
+        searchText.isAcceptableOrUnknown(data['search_text']!, _searchTextMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReviewRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReviewRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      projectId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}project_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      summaryMarkdown: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}summary_markdown'],
+      )!,
+      nextReviewDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}next_review_date'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      searchText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}search_text'],
+      )!,
+    );
+  }
+
+  @override
+  $ReviewsTable createAlias(String alias) {
+    return $ReviewsTable(attachedDatabase, alias);
+  }
+}
+
+class ReviewRow extends DataClass implements Insertable<ReviewRow> {
+  final int id;
+  final int projectId;
+  final DateTime date;
+  final String title;
+  final String summaryMarkdown;
+
+  /// "Mốc time" của chu kỳ — nguồn của nhắc nhở ở FR-40.
+  final DateTime? nextReviewDate;
+  final DateTime createdAt;
+  final String searchText;
+  const ReviewRow({
+    required this.id,
+    required this.projectId,
+    required this.date,
+    required this.title,
+    required this.summaryMarkdown,
+    this.nextReviewDate,
+    required this.createdAt,
+    required this.searchText,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['project_id'] = Variable<int>(projectId);
+    map['date'] = Variable<DateTime>(date);
+    map['title'] = Variable<String>(title);
+    map['summary_markdown'] = Variable<String>(summaryMarkdown);
+    if (!nullToAbsent || nextReviewDate != null) {
+      map['next_review_date'] = Variable<DateTime>(nextReviewDate);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['search_text'] = Variable<String>(searchText);
+    return map;
+  }
+
+  ReviewsCompanion toCompanion(bool nullToAbsent) {
+    return ReviewsCompanion(
+      id: Value(id),
+      projectId: Value(projectId),
+      date: Value(date),
+      title: Value(title),
+      summaryMarkdown: Value(summaryMarkdown),
+      nextReviewDate: nextReviewDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextReviewDate),
+      createdAt: Value(createdAt),
+      searchText: Value(searchText),
+    );
+  }
+
+  factory ReviewRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReviewRow(
+      id: serializer.fromJson<int>(json['id']),
+      projectId: serializer.fromJson<int>(json['projectId']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      title: serializer.fromJson<String>(json['title']),
+      summaryMarkdown: serializer.fromJson<String>(json['summaryMarkdown']),
+      nextReviewDate: serializer.fromJson<DateTime?>(json['nextReviewDate']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      searchText: serializer.fromJson<String>(json['searchText']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'projectId': serializer.toJson<int>(projectId),
+      'date': serializer.toJson<DateTime>(date),
+      'title': serializer.toJson<String>(title),
+      'summaryMarkdown': serializer.toJson<String>(summaryMarkdown),
+      'nextReviewDate': serializer.toJson<DateTime?>(nextReviewDate),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'searchText': serializer.toJson<String>(searchText),
+    };
+  }
+
+  ReviewRow copyWith({
+    int? id,
+    int? projectId,
+    DateTime? date,
+    String? title,
+    String? summaryMarkdown,
+    Value<DateTime?> nextReviewDate = const Value.absent(),
+    DateTime? createdAt,
+    String? searchText,
+  }) => ReviewRow(
+    id: id ?? this.id,
+    projectId: projectId ?? this.projectId,
+    date: date ?? this.date,
+    title: title ?? this.title,
+    summaryMarkdown: summaryMarkdown ?? this.summaryMarkdown,
+    nextReviewDate: nextReviewDate.present
+        ? nextReviewDate.value
+        : this.nextReviewDate,
+    createdAt: createdAt ?? this.createdAt,
+    searchText: searchText ?? this.searchText,
+  );
+  ReviewRow copyWithCompanion(ReviewsCompanion data) {
+    return ReviewRow(
+      id: data.id.present ? data.id.value : this.id,
+      projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      date: data.date.present ? data.date.value : this.date,
+      title: data.title.present ? data.title.value : this.title,
+      summaryMarkdown: data.summaryMarkdown.present
+          ? data.summaryMarkdown.value
+          : this.summaryMarkdown,
+      nextReviewDate: data.nextReviewDate.present
+          ? data.nextReviewDate.value
+          : this.nextReviewDate,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      searchText: data.searchText.present
+          ? data.searchText.value
+          : this.searchText,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewRow(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('date: $date, ')
+          ..write('title: $title, ')
+          ..write('summaryMarkdown: $summaryMarkdown, ')
+          ..write('nextReviewDate: $nextReviewDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('searchText: $searchText')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    projectId,
+    date,
+    title,
+    summaryMarkdown,
+    nextReviewDate,
+    createdAt,
+    searchText,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReviewRow &&
+          other.id == this.id &&
+          other.projectId == this.projectId &&
+          other.date == this.date &&
+          other.title == this.title &&
+          other.summaryMarkdown == this.summaryMarkdown &&
+          other.nextReviewDate == this.nextReviewDate &&
+          other.createdAt == this.createdAt &&
+          other.searchText == this.searchText);
+}
+
+class ReviewsCompanion extends UpdateCompanion<ReviewRow> {
+  final Value<int> id;
+  final Value<int> projectId;
+  final Value<DateTime> date;
+  final Value<String> title;
+  final Value<String> summaryMarkdown;
+  final Value<DateTime?> nextReviewDate;
+  final Value<DateTime> createdAt;
+  final Value<String> searchText;
+  const ReviewsCompanion({
+    this.id = const Value.absent(),
+    this.projectId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.title = const Value.absent(),
+    this.summaryMarkdown = const Value.absent(),
+    this.nextReviewDate = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.searchText = const Value.absent(),
+  });
+  ReviewsCompanion.insert({
+    this.id = const Value.absent(),
+    required int projectId,
+    required DateTime date,
+    this.title = const Value.absent(),
+    this.summaryMarkdown = const Value.absent(),
+    this.nextReviewDate = const Value.absent(),
+    required DateTime createdAt,
+    this.searchText = const Value.absent(),
+  }) : projectId = Value(projectId),
+       date = Value(date),
+       createdAt = Value(createdAt);
+  static Insertable<ReviewRow> custom({
+    Expression<int>? id,
+    Expression<int>? projectId,
+    Expression<DateTime>? date,
+    Expression<String>? title,
+    Expression<String>? summaryMarkdown,
+    Expression<DateTime>? nextReviewDate,
+    Expression<DateTime>? createdAt,
+    Expression<String>? searchText,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (projectId != null) 'project_id': projectId,
+      if (date != null) 'date': date,
+      if (title != null) 'title': title,
+      if (summaryMarkdown != null) 'summary_markdown': summaryMarkdown,
+      if (nextReviewDate != null) 'next_review_date': nextReviewDate,
+      if (createdAt != null) 'created_at': createdAt,
+      if (searchText != null) 'search_text': searchText,
+    });
+  }
+
+  ReviewsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? projectId,
+    Value<DateTime>? date,
+    Value<String>? title,
+    Value<String>? summaryMarkdown,
+    Value<DateTime?>? nextReviewDate,
+    Value<DateTime>? createdAt,
+    Value<String>? searchText,
+  }) {
+    return ReviewsCompanion(
+      id: id ?? this.id,
+      projectId: projectId ?? this.projectId,
+      date: date ?? this.date,
+      title: title ?? this.title,
+      summaryMarkdown: summaryMarkdown ?? this.summaryMarkdown,
+      nextReviewDate: nextReviewDate ?? this.nextReviewDate,
+      createdAt: createdAt ?? this.createdAt,
+      searchText: searchText ?? this.searchText,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (projectId.present) {
+      map['project_id'] = Variable<int>(projectId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (summaryMarkdown.present) {
+      map['summary_markdown'] = Variable<String>(summaryMarkdown.value);
+    }
+    if (nextReviewDate.present) {
+      map['next_review_date'] = Variable<DateTime>(nextReviewDate.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (searchText.present) {
+      map['search_text'] = Variable<String>(searchText.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewsCompanion(')
+          ..write('id: $id, ')
+          ..write('projectId: $projectId, ')
+          ..write('date: $date, ')
+          ..write('title: $title, ')
+          ..write('summaryMarkdown: $summaryMarkdown, ')
+          ..write('nextReviewDate: $nextReviewDate, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('searchText: $searchText')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReviewItemsTable extends ReviewItems
+    with TableInfo<$ReviewItemsTable, ReviewItemRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReviewItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _reviewIdMeta = const VerificationMeta(
+    'reviewId',
+  );
+  @override
+  late final GeneratedColumn<int> reviewId = GeneratedColumn<int>(
+    'review_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES reviews (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 500,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _verdictMeta = const VerificationMeta(
+    'verdict',
+  );
+  @override
+  late final GeneratedColumn<String> verdict = GeneratedColumn<String>(
+    'verdict',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(maxTextLength: 20),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _sourceActionIdMeta = const VerificationMeta(
+    'sourceActionId',
+  );
+  @override
+  late final GeneratedColumn<int> sourceActionId = GeneratedColumn<int>(
+    'source_action_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _searchTextMeta = const VerificationMeta(
+    'searchText',
+  );
+  @override
+  late final GeneratedColumn<String> searchText = GeneratedColumn<String>(
+    'search_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    reviewId,
+    label,
+    verdict,
+    note,
+    sortOrder,
+    sourceActionId,
+    searchText,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'review_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReviewItemRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('review_id')) {
+      context.handle(
+        _reviewIdMeta,
+        reviewId.isAcceptableOrUnknown(data['review_id']!, _reviewIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reviewIdMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('verdict')) {
+      context.handle(
+        _verdictMeta,
+        verdict.isAcceptableOrUnknown(data['verdict']!, _verdictMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_verdictMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('source_action_id')) {
+      context.handle(
+        _sourceActionIdMeta,
+        sourceActionId.isAcceptableOrUnknown(
+          data['source_action_id']!,
+          _sourceActionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('search_text')) {
+      context.handle(
+        _searchTextMeta,
+        searchText.isAcceptableOrUnknown(data['search_text']!, _searchTextMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReviewItemRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReviewItemRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      reviewId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}review_id'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      )!,
+      verdict: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}verdict'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      sourceActionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_action_id'],
+      ),
+      searchText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}search_text'],
+      )!,
+    );
+  }
+
+  @override
+  $ReviewItemsTable createAlias(String alias) {
+    return $ReviewItemsTable(attachedDatabase, alias);
+  }
+}
+
+class ReviewItemRow extends DataClass implements Insertable<ReviewItemRow> {
+  final int id;
+  final int reviewId;
+
+  /// **Bản chụp văn bản** tại thời điểm đánh giá — AD-15. Sửa Hành động về sau
+  /// không được làm đổi nhật ký quá khứ.
+  final String label;
+  final String verdict;
+  final String note;
+  final int sortOrder;
+
+  /// Chỉ để mở nhanh Hành động liên quan. Không tham gia phép tính nào và
+  /// không có ràng buộc khoá ngoại — Hành động có thể đã bị xoá.
+  final int? sourceActionId;
+  final String searchText;
+  const ReviewItemRow({
+    required this.id,
+    required this.reviewId,
+    required this.label,
+    required this.verdict,
+    required this.note,
+    required this.sortOrder,
+    this.sourceActionId,
+    required this.searchText,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['review_id'] = Variable<int>(reviewId);
+    map['label'] = Variable<String>(label);
+    map['verdict'] = Variable<String>(verdict);
+    map['note'] = Variable<String>(note);
+    map['sort_order'] = Variable<int>(sortOrder);
+    if (!nullToAbsent || sourceActionId != null) {
+      map['source_action_id'] = Variable<int>(sourceActionId);
+    }
+    map['search_text'] = Variable<String>(searchText);
+    return map;
+  }
+
+  ReviewItemsCompanion toCompanion(bool nullToAbsent) {
+    return ReviewItemsCompanion(
+      id: Value(id),
+      reviewId: Value(reviewId),
+      label: Value(label),
+      verdict: Value(verdict),
+      note: Value(note),
+      sortOrder: Value(sortOrder),
+      sourceActionId: sourceActionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sourceActionId),
+      searchText: Value(searchText),
+    );
+  }
+
+  factory ReviewItemRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReviewItemRow(
+      id: serializer.fromJson<int>(json['id']),
+      reviewId: serializer.fromJson<int>(json['reviewId']),
+      label: serializer.fromJson<String>(json['label']),
+      verdict: serializer.fromJson<String>(json['verdict']),
+      note: serializer.fromJson<String>(json['note']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      sourceActionId: serializer.fromJson<int?>(json['sourceActionId']),
+      searchText: serializer.fromJson<String>(json['searchText']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'reviewId': serializer.toJson<int>(reviewId),
+      'label': serializer.toJson<String>(label),
+      'verdict': serializer.toJson<String>(verdict),
+      'note': serializer.toJson<String>(note),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'sourceActionId': serializer.toJson<int?>(sourceActionId),
+      'searchText': serializer.toJson<String>(searchText),
+    };
+  }
+
+  ReviewItemRow copyWith({
+    int? id,
+    int? reviewId,
+    String? label,
+    String? verdict,
+    String? note,
+    int? sortOrder,
+    Value<int?> sourceActionId = const Value.absent(),
+    String? searchText,
+  }) => ReviewItemRow(
+    id: id ?? this.id,
+    reviewId: reviewId ?? this.reviewId,
+    label: label ?? this.label,
+    verdict: verdict ?? this.verdict,
+    note: note ?? this.note,
+    sortOrder: sortOrder ?? this.sortOrder,
+    sourceActionId: sourceActionId.present
+        ? sourceActionId.value
+        : this.sourceActionId,
+    searchText: searchText ?? this.searchText,
+  );
+  ReviewItemRow copyWithCompanion(ReviewItemsCompanion data) {
+    return ReviewItemRow(
+      id: data.id.present ? data.id.value : this.id,
+      reviewId: data.reviewId.present ? data.reviewId.value : this.reviewId,
+      label: data.label.present ? data.label.value : this.label,
+      verdict: data.verdict.present ? data.verdict.value : this.verdict,
+      note: data.note.present ? data.note.value : this.note,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      sourceActionId: data.sourceActionId.present
+          ? data.sourceActionId.value
+          : this.sourceActionId,
+      searchText: data.searchText.present
+          ? data.searchText.value
+          : this.searchText,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewItemRow(')
+          ..write('id: $id, ')
+          ..write('reviewId: $reviewId, ')
+          ..write('label: $label, ')
+          ..write('verdict: $verdict, ')
+          ..write('note: $note, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('sourceActionId: $sourceActionId, ')
+          ..write('searchText: $searchText')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    reviewId,
+    label,
+    verdict,
+    note,
+    sortOrder,
+    sourceActionId,
+    searchText,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReviewItemRow &&
+          other.id == this.id &&
+          other.reviewId == this.reviewId &&
+          other.label == this.label &&
+          other.verdict == this.verdict &&
+          other.note == this.note &&
+          other.sortOrder == this.sortOrder &&
+          other.sourceActionId == this.sourceActionId &&
+          other.searchText == this.searchText);
+}
+
+class ReviewItemsCompanion extends UpdateCompanion<ReviewItemRow> {
+  final Value<int> id;
+  final Value<int> reviewId;
+  final Value<String> label;
+  final Value<String> verdict;
+  final Value<String> note;
+  final Value<int> sortOrder;
+  final Value<int?> sourceActionId;
+  final Value<String> searchText;
+  const ReviewItemsCompanion({
+    this.id = const Value.absent(),
+    this.reviewId = const Value.absent(),
+    this.label = const Value.absent(),
+    this.verdict = const Value.absent(),
+    this.note = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.sourceActionId = const Value.absent(),
+    this.searchText = const Value.absent(),
+  });
+  ReviewItemsCompanion.insert({
+    this.id = const Value.absent(),
+    required int reviewId,
+    required String label,
+    required String verdict,
+    this.note = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.sourceActionId = const Value.absent(),
+    this.searchText = const Value.absent(),
+  }) : reviewId = Value(reviewId),
+       label = Value(label),
+       verdict = Value(verdict);
+  static Insertable<ReviewItemRow> custom({
+    Expression<int>? id,
+    Expression<int>? reviewId,
+    Expression<String>? label,
+    Expression<String>? verdict,
+    Expression<String>? note,
+    Expression<int>? sortOrder,
+    Expression<int>? sourceActionId,
+    Expression<String>? searchText,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (reviewId != null) 'review_id': reviewId,
+      if (label != null) 'label': label,
+      if (verdict != null) 'verdict': verdict,
+      if (note != null) 'note': note,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (sourceActionId != null) 'source_action_id': sourceActionId,
+      if (searchText != null) 'search_text': searchText,
+    });
+  }
+
+  ReviewItemsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? reviewId,
+    Value<String>? label,
+    Value<String>? verdict,
+    Value<String>? note,
+    Value<int>? sortOrder,
+    Value<int?>? sourceActionId,
+    Value<String>? searchText,
+  }) {
+    return ReviewItemsCompanion(
+      id: id ?? this.id,
+      reviewId: reviewId ?? this.reviewId,
+      label: label ?? this.label,
+      verdict: verdict ?? this.verdict,
+      note: note ?? this.note,
+      sortOrder: sortOrder ?? this.sortOrder,
+      sourceActionId: sourceActionId ?? this.sourceActionId,
+      searchText: searchText ?? this.searchText,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (reviewId.present) {
+      map['review_id'] = Variable<int>(reviewId.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (verdict.present) {
+      map['verdict'] = Variable<String>(verdict.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (sourceActionId.present) {
+      map['source_action_id'] = Variable<int>(sourceActionId.value);
+    }
+    if (searchText.present) {
+      map['search_text'] = Variable<String>(searchText.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('reviewId: $reviewId, ')
+          ..write('label: $label, ')
+          ..write('verdict: $verdict, ')
+          ..write('note: $note, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('sourceActionId: $sourceActionId, ')
+          ..write('searchText: $searchText')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $StatusEventsTable extends StatusEvents
     with TableInfo<$StatusEventsTable, StatusEventRow> {
   @override
@@ -4720,6 +5748,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ProjectGoalsTable projectGoals = $ProjectGoalsTable(this);
   late final $NotesTable notes = $NotesTable(this);
   late final $LinksTable links = $LinksTable(this);
+  late final $ReviewsTable reviews = $ReviewsTable(this);
+  late final $ReviewItemsTable reviewItems = $ReviewItemsTable(this);
   late final $StatusEventsTable statusEvents = $StatusEventsTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   @override
@@ -4735,6 +5765,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     projectGoals,
     notes,
     links,
+    reviews,
+    reviewItems,
     statusEvents,
     appSettings,
   ];
@@ -4781,6 +5813,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('links', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'projects',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('reviews', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'reviews',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('review_items', kind: UpdateKind.delete)],
     ),
   ]);
   @override
@@ -5227,6 +6273,25 @@ final class $$ProjectsTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$ReviewsTable, List<ReviewRow>> _reviewsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.reviews,
+    aliasName: $_aliasNameGenerator(db.projects.id, db.reviews.projectId),
+  );
+
+  $$ReviewsTableProcessedTableManager get reviewsRefs {
+    final manager = $$ReviewsTableTableManager(
+      $_db,
+      $_db.reviews,
+    ).filter((f) => f.projectId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_reviewsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$ProjectsTableFilterComposer
@@ -5407,6 +6472,31 @@ class $$ProjectsTableFilterComposer
           }) => $$LinksTableFilterComposer(
             $db: $db,
             $table: $db.links,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> reviewsRefs(
+    Expression<bool> Function($$ReviewsTableFilterComposer f) f,
+  ) {
+    final $$ReviewsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reviews,
+      getReferencedColumn: (t) => t.projectId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReviewsTableFilterComposer(
+            $db: $db,
+            $table: $db.reviews,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -5675,6 +6765,31 @@ class $$ProjectsTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> reviewsRefs<T extends Object>(
+    Expression<T> Function($$ReviewsTableAnnotationComposer a) f,
+  ) {
+    final $$ReviewsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reviews,
+      getReferencedColumn: (t) => t.projectId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReviewsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.reviews,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ProjectsTableTableManager
@@ -5696,6 +6811,7 @@ class $$ProjectsTableTableManager
             bool projectGoalsRefs,
             bool notesRefs,
             bool linksRefs,
+            bool reviewsRefs,
           })
         > {
   $$ProjectsTableTableManager(_$AppDatabase db, $ProjectsTable table)
@@ -5780,6 +6896,7 @@ class $$ProjectsTableTableManager
                 projectGoalsRefs = false,
                 notesRefs = false,
                 linksRefs = false,
+                reviewsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -5788,6 +6905,7 @@ class $$ProjectsTableTableManager
                     if (projectGoalsRefs) db.projectGoals,
                     if (notesRefs) db.notes,
                     if (linksRefs) db.links,
+                    if (reviewsRefs) db.reviews,
                   ],
                   addJoins:
                       <
@@ -5907,6 +7025,27 @@ class $$ProjectsTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (reviewsRefs)
+                        await $_getPrefetchedData<
+                          ProjectRow,
+                          $ProjectsTable,
+                          ReviewRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ProjectsTableReferences
+                              ._reviewsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ProjectsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).reviewsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.projectId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -5933,6 +7072,7 @@ typedef $$ProjectsTableProcessedTableManager =
         bool projectGoalsRefs,
         bool notesRefs,
         bool linksRefs,
+        bool reviewsRefs,
       })
     >;
 typedef $$ActionsTableCreateCompanionBuilder =
@@ -8266,6 +9406,847 @@ typedef $$LinksTableProcessedTableManager =
       LinkRow,
       PrefetchHooks Function({bool projectId})
     >;
+typedef $$ReviewsTableCreateCompanionBuilder =
+    ReviewsCompanion Function({
+      Value<int> id,
+      required int projectId,
+      required DateTime date,
+      Value<String> title,
+      Value<String> summaryMarkdown,
+      Value<DateTime?> nextReviewDate,
+      required DateTime createdAt,
+      Value<String> searchText,
+    });
+typedef $$ReviewsTableUpdateCompanionBuilder =
+    ReviewsCompanion Function({
+      Value<int> id,
+      Value<int> projectId,
+      Value<DateTime> date,
+      Value<String> title,
+      Value<String> summaryMarkdown,
+      Value<DateTime?> nextReviewDate,
+      Value<DateTime> createdAt,
+      Value<String> searchText,
+    });
+
+final class $$ReviewsTableReferences
+    extends BaseReferences<_$AppDatabase, $ReviewsTable, ReviewRow> {
+  $$ReviewsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ProjectsTable _projectIdTable(_$AppDatabase db) => db.projects
+      .createAlias($_aliasNameGenerator(db.reviews.projectId, db.projects.id));
+
+  $$ProjectsTableProcessedTableManager get projectId {
+    final $_column = $_itemColumn<int>('project_id')!;
+
+    final manager = $$ProjectsTableTableManager(
+      $_db,
+      $_db.projects,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$ReviewItemsTable, List<ReviewItemRow>>
+  _reviewItemsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.reviewItems,
+    aliasName: $_aliasNameGenerator(db.reviews.id, db.reviewItems.reviewId),
+  );
+
+  $$ReviewItemsTableProcessedTableManager get reviewItemsRefs {
+    final manager = $$ReviewItemsTableTableManager(
+      $_db,
+      $_db.reviewItems,
+    ).filter((f) => f.reviewId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_reviewItemsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$ReviewsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReviewsTable> {
+  $$ReviewsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get summaryMarkdown => $composableBuilder(
+    column: $table.summaryMarkdown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get nextReviewDate => $composableBuilder(
+    column: $table.nextReviewDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get searchText => $composableBuilder(
+    column: $table.searchText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ProjectsTableFilterComposer get projectId {
+    final $$ProjectsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projects,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectsTableFilterComposer(
+            $db: $db,
+            $table: $db.projects,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> reviewItemsRefs(
+    Expression<bool> Function($$ReviewItemsTableFilterComposer f) f,
+  ) {
+    final $$ReviewItemsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reviewItems,
+      getReferencedColumn: (t) => t.reviewId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReviewItemsTableFilterComposer(
+            $db: $db,
+            $table: $db.reviewItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ReviewsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReviewsTable> {
+  $$ReviewsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get summaryMarkdown => $composableBuilder(
+    column: $table.summaryMarkdown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get nextReviewDate => $composableBuilder(
+    column: $table.nextReviewDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get searchText => $composableBuilder(
+    column: $table.searchText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ProjectsTableOrderingComposer get projectId {
+    final $$ProjectsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projects,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectsTableOrderingComposer(
+            $db: $db,
+            $table: $db.projects,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReviewsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReviewsTable> {
+  $$ReviewsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get summaryMarkdown => $composableBuilder(
+    column: $table.summaryMarkdown,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get nextReviewDate => $composableBuilder(
+    column: $table.nextReviewDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get searchText => $composableBuilder(
+    column: $table.searchText,
+    builder: (column) => column,
+  );
+
+  $$ProjectsTableAnnotationComposer get projectId {
+    final $$ProjectsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.projectId,
+      referencedTable: $db.projects,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ProjectsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.projects,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> reviewItemsRefs<T extends Object>(
+    Expression<T> Function($$ReviewItemsTableAnnotationComposer a) f,
+  ) {
+    final $$ReviewItemsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reviewItems,
+      getReferencedColumn: (t) => t.reviewId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReviewItemsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.reviewItems,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ReviewsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReviewsTable,
+          ReviewRow,
+          $$ReviewsTableFilterComposer,
+          $$ReviewsTableOrderingComposer,
+          $$ReviewsTableAnnotationComposer,
+          $$ReviewsTableCreateCompanionBuilder,
+          $$ReviewsTableUpdateCompanionBuilder,
+          (ReviewRow, $$ReviewsTableReferences),
+          ReviewRow,
+          PrefetchHooks Function({bool projectId, bool reviewItemsRefs})
+        > {
+  $$ReviewsTableTableManager(_$AppDatabase db, $ReviewsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReviewsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReviewsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReviewsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> projectId = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> summaryMarkdown = const Value.absent(),
+                Value<DateTime?> nextReviewDate = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<String> searchText = const Value.absent(),
+              }) => ReviewsCompanion(
+                id: id,
+                projectId: projectId,
+                date: date,
+                title: title,
+                summaryMarkdown: summaryMarkdown,
+                nextReviewDate: nextReviewDate,
+                createdAt: createdAt,
+                searchText: searchText,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int projectId,
+                required DateTime date,
+                Value<String> title = const Value.absent(),
+                Value<String> summaryMarkdown = const Value.absent(),
+                Value<DateTime?> nextReviewDate = const Value.absent(),
+                required DateTime createdAt,
+                Value<String> searchText = const Value.absent(),
+              }) => ReviewsCompanion.insert(
+                id: id,
+                projectId: projectId,
+                date: date,
+                title: title,
+                summaryMarkdown: summaryMarkdown,
+                nextReviewDate: nextReviewDate,
+                createdAt: createdAt,
+                searchText: searchText,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ReviewsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({projectId = false, reviewItemsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (reviewItemsRefs) db.reviewItems,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (projectId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.projectId,
+                                    referencedTable: $$ReviewsTableReferences
+                                        ._projectIdTable(db),
+                                    referencedColumn: $$ReviewsTableReferences
+                                        ._projectIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (reviewItemsRefs)
+                        await $_getPrefetchedData<
+                          ReviewRow,
+                          $ReviewsTable,
+                          ReviewItemRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ReviewsTableReferences
+                              ._reviewItemsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ReviewsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).reviewItemsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.reviewId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$ReviewsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReviewsTable,
+      ReviewRow,
+      $$ReviewsTableFilterComposer,
+      $$ReviewsTableOrderingComposer,
+      $$ReviewsTableAnnotationComposer,
+      $$ReviewsTableCreateCompanionBuilder,
+      $$ReviewsTableUpdateCompanionBuilder,
+      (ReviewRow, $$ReviewsTableReferences),
+      ReviewRow,
+      PrefetchHooks Function({bool projectId, bool reviewItemsRefs})
+    >;
+typedef $$ReviewItemsTableCreateCompanionBuilder =
+    ReviewItemsCompanion Function({
+      Value<int> id,
+      required int reviewId,
+      required String label,
+      required String verdict,
+      Value<String> note,
+      Value<int> sortOrder,
+      Value<int?> sourceActionId,
+      Value<String> searchText,
+    });
+typedef $$ReviewItemsTableUpdateCompanionBuilder =
+    ReviewItemsCompanion Function({
+      Value<int> id,
+      Value<int> reviewId,
+      Value<String> label,
+      Value<String> verdict,
+      Value<String> note,
+      Value<int> sortOrder,
+      Value<int?> sourceActionId,
+      Value<String> searchText,
+    });
+
+final class $$ReviewItemsTableReferences
+    extends BaseReferences<_$AppDatabase, $ReviewItemsTable, ReviewItemRow> {
+  $$ReviewItemsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ReviewsTable _reviewIdTable(_$AppDatabase db) =>
+      db.reviews.createAlias(
+        $_aliasNameGenerator(db.reviewItems.reviewId, db.reviews.id),
+      );
+
+  $$ReviewsTableProcessedTableManager get reviewId {
+    final $_column = $_itemColumn<int>('review_id')!;
+
+    final manager = $$ReviewsTableTableManager(
+      $_db,
+      $_db.reviews,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_reviewIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ReviewItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReviewItemsTable> {
+  $$ReviewItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get verdict => $composableBuilder(
+    column: $table.verdict,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sourceActionId => $composableBuilder(
+    column: $table.sourceActionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get searchText => $composableBuilder(
+    column: $table.searchText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ReviewsTableFilterComposer get reviewId {
+    final $$ReviewsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.reviewId,
+      referencedTable: $db.reviews,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReviewsTableFilterComposer(
+            $db: $db,
+            $table: $db.reviews,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReviewItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReviewItemsTable> {
+  $$ReviewItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get verdict => $composableBuilder(
+    column: $table.verdict,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceActionId => $composableBuilder(
+    column: $table.sourceActionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get searchText => $composableBuilder(
+    column: $table.searchText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ReviewsTableOrderingComposer get reviewId {
+    final $$ReviewsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.reviewId,
+      referencedTable: $db.reviews,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReviewsTableOrderingComposer(
+            $db: $db,
+            $table: $db.reviews,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReviewItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReviewItemsTable> {
+  $$ReviewItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<String> get verdict =>
+      $composableBuilder(column: $table.verdict, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<int> get sourceActionId => $composableBuilder(
+    column: $table.sourceActionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get searchText => $composableBuilder(
+    column: $table.searchText,
+    builder: (column) => column,
+  );
+
+  $$ReviewsTableAnnotationComposer get reviewId {
+    final $$ReviewsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.reviewId,
+      referencedTable: $db.reviews,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReviewsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.reviews,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ReviewItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReviewItemsTable,
+          ReviewItemRow,
+          $$ReviewItemsTableFilterComposer,
+          $$ReviewItemsTableOrderingComposer,
+          $$ReviewItemsTableAnnotationComposer,
+          $$ReviewItemsTableCreateCompanionBuilder,
+          $$ReviewItemsTableUpdateCompanionBuilder,
+          (ReviewItemRow, $$ReviewItemsTableReferences),
+          ReviewItemRow,
+          PrefetchHooks Function({bool reviewId})
+        > {
+  $$ReviewItemsTableTableManager(_$AppDatabase db, $ReviewItemsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReviewItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReviewItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReviewItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> reviewId = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<String> verdict = const Value.absent(),
+                Value<String> note = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int?> sourceActionId = const Value.absent(),
+                Value<String> searchText = const Value.absent(),
+              }) => ReviewItemsCompanion(
+                id: id,
+                reviewId: reviewId,
+                label: label,
+                verdict: verdict,
+                note: note,
+                sortOrder: sortOrder,
+                sourceActionId: sourceActionId,
+                searchText: searchText,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int reviewId,
+                required String label,
+                required String verdict,
+                Value<String> note = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int?> sourceActionId = const Value.absent(),
+                Value<String> searchText = const Value.absent(),
+              }) => ReviewItemsCompanion.insert(
+                id: id,
+                reviewId: reviewId,
+                label: label,
+                verdict: verdict,
+                note: note,
+                sortOrder: sortOrder,
+                sourceActionId: sourceActionId,
+                searchText: searchText,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ReviewItemsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({reviewId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (reviewId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.reviewId,
+                                referencedTable: $$ReviewItemsTableReferences
+                                    ._reviewIdTable(db),
+                                referencedColumn: $$ReviewItemsTableReferences
+                                    ._reviewIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ReviewItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReviewItemsTable,
+      ReviewItemRow,
+      $$ReviewItemsTableFilterComposer,
+      $$ReviewItemsTableOrderingComposer,
+      $$ReviewItemsTableAnnotationComposer,
+      $$ReviewItemsTableCreateCompanionBuilder,
+      $$ReviewItemsTableUpdateCompanionBuilder,
+      (ReviewItemRow, $$ReviewItemsTableReferences),
+      ReviewItemRow,
+      PrefetchHooks Function({bool reviewId})
+    >;
 typedef $$StatusEventsTableCreateCompanionBuilder =
     StatusEventsCompanion Function({
       Value<int> id,
@@ -8680,6 +10661,10 @@ class $AppDatabaseManager {
       $$NotesTableTableManager(_db, _db.notes);
   $$LinksTableTableManager get links =>
       $$LinksTableTableManager(_db, _db.links);
+  $$ReviewsTableTableManager get reviews =>
+      $$ReviewsTableTableManager(_db, _db.reviews);
+  $$ReviewItemsTableTableManager get reviewItems =>
+      $$ReviewItemsTableTableManager(_db, _db.reviewItems);
   $$StatusEventsTableTableManager get statusEvents =>
       $$StatusEventsTableTableManager(_db, _db.statusEvents);
   $$AppSettingsTableTableManager get appSettings =>

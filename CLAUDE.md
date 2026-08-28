@@ -62,7 +62,18 @@ Từ khoá `double` không được xuất hiện trong `lib/domain/` và trong 
 
 Chính việc thiếu dấu thời gian là khuyết tật lớn nhất của hai file PDF gốc — app tồn tại một phần để chữa đúng chỗ đó.
 
-### 4. Không có mạng, điểm
+### 4. Đợt đánh giá không phải Hành động
+
+`Action` trả lời *"việc này làm xong chưa"* — vòng đời một chiều, kết thúc ở
+`Xong`. `Review` trả lời *"chu kỳ vừa rồi có tiến bộ không"* — cùng một nội
+dung được chấm lại ở nhiều mốc thời gian, kết quả `Đạt` / `Một phần` /
+`Chưa đạt`, không có khái niệm "xong vĩnh viễn".
+
+`ReviewItem.label` là **bản chụp văn bản** tại thời điểm đánh giá, không phải
+khoá ngoại tới `Action`. Sửa một Hành động về sau **không được** làm đổi nội
+dung một Đợt đánh giá quá khứ — nhật ký phải giữ đúng chữ đã viết lúc đó.
+
+### 5. Không có mạng, điểm
 
 Không có `lib/data/remote/`. Không có `package:http` trong `pubspec.yaml`. Không `HttpClient`, không phân tích hành vi, không thu thập số liệu sử dụng, không quảng cáo, không backend, không tài khoản, không đồng bộ.
 
@@ -75,7 +86,7 @@ lib/
   core/        format · l10n · result · money
   domain/      models · rules · repositories (chỉ hợp đồng trừu tượng)
   data/        db (drift) · backup · seed · repositories (cài đặt)
-  features/    today · projects · actions · goals · notes
+  features/    today · projects · actions · goals · notes · reviews
                search · settings · onboarding
   presentation/ providers · widgets
 ```
@@ -114,7 +125,11 @@ AGP **8.11.1** · Kotlin **2.2.20** · Gradle **8.14** — khớp phiên bản F
 
 ## Thuật ngữ — dùng đúng, không đặt từ đồng nghĩa
 
-`Project` · `Action` · `Goal` · `GoalUpdate` · `Topic` · `Note` · `Link` · `StatusEvent` · `ProjectGoal`
+`Project` · `Action` · `Goal` · `GoalUpdate` · `Topic` · `Note` · `Link` · `StatusEvent` · `ProjectGoal` · `Review` · `ReviewItem`
+
+Tên lớp Dart của `Action` là **`ProjectAction`** — `Action` đã là một lớp của
+`package:flutter/widgets.dart`. Thuật ngữ, nhãn giao diện và tên bảng vẫn là
+`Action` / `actions`.
 
 Trạng thái lưu bằng chuỗi ổn định, không lưu chỉ số enum:
 
@@ -122,6 +137,7 @@ Trạng thái lưu bằng chuỗi ổn định, không lưu chỉ số enum:
 ProjectStatus : not_started · active · paused · done · dropped
 ActionStatus  :               todo · doing · done · dropped
 Priority      : high · medium · low
+ReviewVerdict : met · partial · not_met
 ```
 
 Từ điển đầy đủ ở mục 3 của PRD. Giới thiệu một từ đồng nghĩa ở bất kỳ đâu là vi phạm.
@@ -164,6 +180,7 @@ Mọi quy tắc trong `domain/rules/` phải có test. Đặc biệt bốn kịc
 2. **Đổi ngày một Mốc** khiến nó không còn là Mốc mới nhất — giá trị hiện tại phải đổi theo.
 3. **`Đang làm → Xong → Đang làm`** — `startedAt` giữ nguyên lần đầu, `completedAt` bị xoá.
 4. **Xuất → xoá sạch → nhập** — so khớp toàn bộ, kể cả `createdAt` và `sortOrder`.
+5. **Chép Mục chưa đạt sang Đợt mới rồi sửa Mục cũ** — Mục mới không được đổi theo.
 
 Ngoài ra: Mục tiêu **không có hạn chót thì tuyệt đối không hiện nhịp và dự báo**, và màn hình Hôm nay **không bao giờ liệt kê toàn bộ Hành động chưa xong**.
 

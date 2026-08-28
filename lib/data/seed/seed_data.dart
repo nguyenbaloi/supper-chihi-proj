@@ -48,6 +48,29 @@ final class SeedLink {
   final String url;
 }
 
+final class SeedReviewItem {
+  const SeedReviewItem(this.label, this.verdict, {this.note = ''});
+  final String label;
+  final ReviewVerdict verdict;
+  final String note;
+}
+
+final class SeedReview {
+  const SeedReview({
+    required this.date,
+    required this.title,
+    this.summary = '',
+    this.nextReviewDate,
+    this.items = const [],
+  });
+
+  final DateTime date;
+  final String title;
+  final String summary;
+  final DateTime? nextReviewDate;
+  final List<SeedReviewItem> items;
+}
+
 final class SeedProject {
   const SeedProject({
     required this.name,
@@ -57,6 +80,7 @@ final class SeedProject {
     this.actions = const [],
     this.notes = const [],
     this.links = const [],
+    this.reviews = const [],
   });
 
   final String name;
@@ -66,6 +90,7 @@ final class SeedProject {
   final List<SeedAction> actions;
   final List<SeedNote> notes;
   final List<SeedLink> links;
+  final List<SeedReview> reviews;
 }
 
 const String _debtNote = '''
@@ -116,6 +141,29 @@ const String _marketNote = '''
 - Đầu tư như là không đầu tư: tận dụng thời gian, tận dụng lãi kép, tắt hết bảng điện, chỉ giữ tài sản tự tin trong vòng nhiều năm.
 ''';
 
+const String _huyParentNote = '''
+Phân tích những việc cha mẹ đang làm sai — và cách làm đúng:
+
+- **Hỏi nhiều quá.** Đúng: chỉ mô tả, hướng dẫn, làm mẫu, hỗ trợ và để Huy dẫn dắt cuộc chơi; không chen ngang hay hối thúc con nói hay làm.
+- **Đóng bỉm chưa cai.** Đúng: ban ngày bỏ bỉm, dạy trẻ kỹ năng đòi đi tè.
+- **Chiều quá.** Đúng: không làm giúp, giả vờ không biết để Huy tự làm mọi việc — xúc ăn, mặc quần, mặc áo, đòi lấy nước, uống sữa. Mẹ chỉ hướng dẫn và nói: *Sữa, Nước, uống, tè…* để trẻ chủ động giao tiếp.
+- **Vẫn xem điện thoại.** Đúng: cai điện thoại khi ăn.
+- **Dạy con bắt chước trước khi mình bắt chước con.** Đúng: bắt chước làm theo Huy trước để trẻ thấy mình là bạn, rồi mới hướng dẫn Huy bắt chước lại.
+''';
+
+const String _huyMethodNote = '''
+Hướng thực hành hằng ngày:
+
+- Tiếp tục tăng cường giao tiếp mắt.
+- Tiếp tục chơi vận động.
+- Cho đi chơi nhiều nơi để trẻ khám phá, kết nối với thiên nhiên, động vật, con người.
+- Chơi hát, đọc thơ kết nối: hát hoặc đọc một đoạn rồi để con đọc đoạn tiếp theo.
+- Hướng dẫn giao tiếp không lời: chỉ đồ vật, chỉ hiện tượng — chia sẻ chú ý chung.
+- **Dừng hỗ trợ, dừng chiều con.** Không giúp đỡ, mà tạo môi trường buộc con cần tương tác: gây khó khăn cản trở, kích thích thèm muốn để con phải tương tác mới đạt được. Ban đầu là kéo tay, rồi nhìn mắt, rồi dạy nói từ đơn: *mẹ, giúp, mở…*
+
+Địa điểm vận động: buổi sáng 8h–9h và buổi tối 21h–21h30 tìm khu có bóng mát, an toàn. Trong nhà thiết kế thêm trò chơi vận động.
+''';
+
 const String _channelNote = '''
 **Đối tượng:** phụ nữ, trẻ em, gia đình có điều kiện sẵn sàng chi tiền.
 
@@ -127,7 +175,7 @@ const String _channelNote = '''
 ''';
 
 /// FR-2, FR-3: bảy Dự án cùng Hành động, Ghi chú và Liên kết của chúng.
-const List<SeedProject> seedProjects = [
+final List<SeedProject> seedProjects = [
   SeedProject(
     name: 'Học tiếng Anh của con',
     topicKey: 'family',
@@ -141,6 +189,84 @@ const List<SeedProject> seedProjects = [
   SeedProject(
     name: 'Dạy Huy',
     topicKey: 'family',
+    priority: Priority.high,
+    description:
+        'Lập kế hoạch và theo dõi tiến bộ của con theo mốc thời gian. '
+        'Hai điểm trọng tâm: nâng cao thể chất và sức mạnh cơ bắp; '
+        'tăng cường tương tác xã hội và chú ý chung.',
+    actions: [
+      // Nhóm 1 — Vận động thể chất, dinh dưỡng và nếp sinh hoạt
+      SeedAction('Ngủ sớm trước 11 giờ đêm', ActionStatus.doing),
+      SeedAction('Ăn uống tốt, ít ốm, giảm mồ hôi trộm', ActionStatus.doing),
+      SeedAction(
+          'Ưu tiên thời gian ra ngoài đi chơi, khám phá thế giới xung quanh',
+          ActionStatus.doing),
+      // Nhóm 2 — Tương tác xã hội và can thiệp chuyên sâu
+      SeedAction(
+          'Tăng trò chơi tương tác với anh chị em trong nhà, bố mẹ và bạn nhỏ khác',
+          ActionStatus.doing),
+      SeedAction(
+          'Phối hợp cô giáo can thiệp 1-1: chơi tương tác, chơi chờ lượt, chú ý chung',
+          ActionStatus.doing),
+      // Nhóm 3 — Kỹ năng tự phục vụ và vệ sinh
+      SeedAction('Tập đòi đi vệ sinh (tè, ị), tiến tới cai bỉm', ActionStatus.todo),
+      SeedAction('Rèn thói quen ngồi bô đúng giờ cố định trong ngày', ActionStatus.todo),
+      SeedAction('Luyện tự xúc ăn và tuyệt đối cai tivi, điện thoại khi ăn',
+          ActionStatus.doing),
+      // Nhóm 4 — Phát triển ngôn ngữ
+      SeedAction('Dạy con cách trả lời câu hỏi', ActionStatus.doing),
+      SeedAction('Mở rộng vốn từ vựng hằng ngày', ActionStatus.doing),
+      SeedAction('Hướng dẫn con bắt chước cách đặt câu hỏi', ActionStatus.todo),
+    ],
+    notes: [
+      SeedNote('Những việc cha mẹ đang làm sai', _huyParentNote),
+      SeedNote('Hướng thực hành hằng ngày', _huyMethodNote),
+    ],
+    reviews: [
+      SeedReview(
+        date: _d(2026, 5, 15),
+        title: 'Đánh giá 28 tháng',
+        summary: 'Tổng kết: 2 đạt, 3 chưa đạt. Tiếp tục cải thiện những cái chưa đạt.',
+        nextReviewDate: _d(2026, 8, 7),
+        items: [
+          SeedReviewItem('Giấc ngủ', ReviewVerdict.met),
+          SeedReviewItem('Ăn uống đa dạng', ReviewVerdict.met),
+          SeedReviewItem('Thời lượng vận động trong nhà và ngoài trời',
+              ReviewVerdict.notMet,
+              note: 'Chưa đủ, cần tăng thời gian chơi.'),
+          SeedReviewItem('Tạo tình huống giao tiếp', ReviewVerdict.notMet,
+              note: 'Quá ít. Phải tạo nhiều hơn: cố tình không hiểu, không biết, không giúp đỡ.'),
+          SeedReviewItem(
+              'Chơi giao tiếp mắt, ú oà, cốc cốc, chia sẻ cảm xúc và chơi chờ lượt',
+              ReviewVerdict.notMet,
+              note: 'Chưa tập trung đều.'),
+        ],
+      ),
+      SeedReview(
+        date: _d(2026, 8, 7),
+        title: 'Đánh giá 2 tuổi rưỡi + 1 tuần',
+        summary:
+            'Hai điểm trọng tâm cần xử lý: nâng cao thể chất và sức mạnh cơ bắp; '
+            'tăng cường tương tác xã hội và chú ý chung.',
+        nextReviewDate: _d(2026, 11, 7),
+        items: [
+          SeedReviewItem('Tăng cường thể chất vận động', ReviewVerdict.met,
+              note: 'Vẫn duy trì. Sắp đến mùa mưa và lạnh, cần phương án chơi ngoài trời thay thế.'),
+          SeedReviewItem(
+              'Chơi tương tác, chờ lượt, chơi với trẻ khác kèm chú ý chung',
+              ReviewVerdict.notMet,
+              note: 'Chưa chơi nhiều. Cần tiếp tục dạy và thuê giáo viên hỗ trợ.'),
+          SeedReviewItem('Cai bỉm và biết nói mong muốn cơ bản: ăn uống, ị, tè',
+              ReviewVerdict.met,
+              note: 'Chưa cai được bỉm, chưa biết đòi đi vệ sinh, nhưng tiến bộ ở chỗ biết nói cảm xúc và nhu cầu. Tổng quan là đạt.'),
+          SeedReviewItem(
+              'Tạo trò chơi và tình huống hằng ngày để trẻ chủ động nói',
+              ReviewVerdict.met),
+          SeedReviewItem('Ra ngoài đi chơi khám phá điều mới', ReviewVerdict.notMet,
+              note: 'Có nhưng chưa nhiều. Cần dành nhiều thời gian hơn khi Huy biết nhiều hơn.'),
+        ],
+      ),
+    ],
   ),
   SeedProject(
     name: 'Kênh TikTok, YouTube tiếp thị liên kết',
@@ -193,6 +319,9 @@ const List<SeedProject> seedProjects = [
   ),
 ];
 
+/// Ngày thuần, không giờ. Lưu ở mốc đầu ngày giờ địa phương.
+DateTime _d(int y, int m, int d) => DateTime(y, m, d);
+
 final class SeedGoal {
   const SeedGoal({
     required this.name,
@@ -200,6 +329,7 @@ final class SeedGoal {
     this.description = '',
     this.targetRaw,
     this.unit = 'VND',
+    this.dueDate,
     this.linkedProjectNames = const [],
   });
 
@@ -208,21 +338,27 @@ final class SeedGoal {
   final String description;
   final int? targetRaw;
   final String unit;
+  final DateTime? dueDate;
   final List<String> linkedProjectNames;
 }
 
-/// FR-3: hai Mục tiêu — một có số, một định tính. Cả hai đều **không có hạn
-/// chót** trong tài liệu gốc, nên app sẽ không hiện nhịp cho tới khi người
-/// dùng tự đặt hạn (FR-24).
-const List<SeedGoal> seedGoals = [
+/// FR-3: hai Mục tiêu — một có số, một định tính.
+///
+/// `Mục tiêu 1 tỷ` được người dùng làm rõ ngày 2026-08-28: đo bằng **tổng tài
+/// sản ròng**, ghi lại và nhập tay từng Mốc, hạn chót **31/12/2027**. Có hạn
+/// chót nên nhịp và dự báo về đích có hiệu lực (FR-24).
+final List<SeedGoal> seedGoals = [
   SeedGoal(
     name: 'Mục tiêu 1 tỷ',
     isNumeric: true,
+    description: 'Đo bằng tổng tài sản ròng. '
+        'Số liệu đối chiếu từ app theo dõi danh mục đầu tư, nhập tay từng mốc.',
     targetRaw: 1000000000,
     unit: 'VND',
+    dueDate: _d(2027, 12, 31),
     linkedProjectNames: ['Kế hoạch tài chính'],
   ),
-  SeedGoal(
+  const SeedGoal(
     name: 'Tìm thêm một nguồn thu nhập khác',
     isNumeric: false,
     description: 'Ưu tiên số 1: tạo ra dòng tiền, thu nhập thụ động ngoài làm thuê.',

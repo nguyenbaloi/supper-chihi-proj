@@ -8,6 +8,7 @@ import '../models/goal.dart';
 import '../models/note.dart';
 import '../models/project.dart';
 import '../models/project_action.dart';
+import '../models/review.dart';
 import '../models/topic.dart';
 
 /// Dự án kèm đúng những con số suy ra được để dựng một dòng danh sách —
@@ -203,4 +204,53 @@ abstract interface class SettingsRepository {
   Stream<AppSettingsData> watch();
   Future<AppSettingsData> get();
   Future<void> save(AppSettingsData settings);
+}
+
+/// Đợt đánh giá kèm số Mục đã đếm sẵn để dựng một dòng danh sách.
+/// Tính tại chỗ mỗi lần đọc, không lưu (AD-3).
+final class ReviewSummary {
+  const ReviewSummary({
+    required this.review,
+    required this.metCount,
+    required this.itemCount,
+  });
+
+  final Review review;
+  final int metCount;
+  final int itemCount;
+}
+
+abstract interface class ReviewRepository {
+  Stream<List<ReviewSummary>> watchByProject(int projectId);
+  Stream<List<Review>> watchAllReviews();
+  Stream<List<ReviewItem>> watchItems(int reviewId);
+  Future<List<ReviewItem>> getItems(int reviewId);
+
+  Future<Review> create({
+    required int projectId,
+    required DateTime date,
+    String title = '',
+    String summaryMarkdown = '',
+    DateTime? nextReviewDate,
+  });
+  Future<void> update(Review review);
+  Future<void> delete(int id);
+
+  Future<ReviewItem> addItem({
+    required int reviewId,
+    required String label,
+    ReviewVerdict verdict = ReviewVerdict.notMet,
+    String note = '',
+    int? sourceActionId,
+  });
+  Future<void> updateItem(ReviewItem item);
+  Future<void> deleteItem(int id);
+  Future<void> reorderItems(int reviewId, List<int> orderedIds);
+
+  /// FR-37: chép các Mục chưa đạt của Đợt trước sang Đợt mới, đặt lại kết quả
+  /// khởi điểm là `Chưa đạt`.
+  Future<void> carryForward({
+    required int targetReviewId,
+    required List<ReviewItem> items,
+  });
 }

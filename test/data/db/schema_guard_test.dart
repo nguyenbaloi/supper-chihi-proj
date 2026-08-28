@@ -19,6 +19,9 @@ void main() {
     'current_value',
     'progress',
     'progress_percent',
+    'met_count',
+    'met_ratio',
+    'item_count',
   };
 
   test('AD-3 — không bảng nào lưu giá trị suy ra', () {
@@ -52,7 +55,7 @@ void main() {
     expect(names.contains('parent_id'), isFalse);
   });
 
-  test('mười bảng đúng như sơ đồ thực thể', () {
+  test('mười hai bảng đúng như sơ đồ thực thể', () {
     final names = db.allTables.map((t) => t.actualTableName).toSet();
     expect(names, {
       'topics',
@@ -64,12 +67,14 @@ void main() {
       'notes',
       'links',
       'status_events',
+      'reviews',
+      'review_items',
       'app_settings',
     });
   });
 
   test('mở cơ sở dữ liệu rỗng rồi đọc lại thành công', () async {
     expect(await db.select(db.projects).get(), isEmpty);
-    expect(db.schemaVersion, 1);
+    expect(db.schemaVersion, 2);
   });
 }

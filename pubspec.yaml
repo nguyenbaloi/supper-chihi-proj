@@ -46,6 +46,9 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   build_runner: ^2.15.1
   drift_dev: ^2.31.0
+  # Chỉ dùng trong test migration: dựng cơ sở dữ liệu bản cũ bằng SQL thô
+  # rồi để drift nâng cấp. Đã kiểm tra không có thư mục hook/ — AD-13.
+  sqlite3: ^2.9.4
 
 # path_provider_foundation 2.6.0 kéo theo objective_c vốn dùng build hooks,
 # mà build_runner không compile được builder khi có build hooks trong cây phụ

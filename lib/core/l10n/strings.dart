@@ -129,6 +129,34 @@ abstract final class S {
   static const linkCopied = 'Đã sao chép địa chỉ';
   static const linkCopy = 'Sao chép địa chỉ';
 
+  // Đợt đánh giá
+  static const reviews = 'Đánh giá';
+  static const reviewNew = 'Đợt đánh giá mới';
+  static const reviewDate = 'Ngày đánh giá';
+  static const reviewTitle = 'Tiêu đề';
+  static const reviewSummary = 'Tổng kết';
+  static const reviewNextDate = 'Ngày xem lại tiếp theo';
+  static const reviewNoNextDate = 'Chưa đặt mốc xem lại';
+  static const reviewEmpty = 'Chưa có đợt đánh giá nào.';
+  static const reviewFirst = 'Tạo đợt đánh giá đầu tiên';
+  static const reviewItems = 'Các mục đánh giá';
+  static const reviewItemNew = 'Thêm mục';
+  static const reviewItemLabel = 'Nội dung';
+  static const reviewItemNote = 'Ghi chú';
+  static const reviewItemEmpty = 'Chưa có mục nào.';
+  static const reviewCarryForward = 'Chép các mục chưa đạt từ đợt trước';
+  static const reviewCarryForwardHint =
+      'Bỏ chọn mục không muốn theo dõi tiếp. Mục đã đạt không được chép.';
+  static const reviewDue = 'đến hạn xem lại';
+
+  static String reviewMetRatio(int met, int total) => '$met/$total đạt';
+
+  static String reviewVerdict(ReviewVerdict v) => switch (v) {
+        ReviewVerdict.met => 'Đạt',
+        ReviewVerdict.partial => 'Một phần',
+        ReviewVerdict.notMet => 'Chưa đạt',
+      };
+
   // Onboarding
   static const onboardingTitle = 'Bắt đầu từ dữ liệu có sẵn';
   static const onboardingBody =

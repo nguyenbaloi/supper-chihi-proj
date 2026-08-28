@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../../domain/models/enums.dart';
+import '../../domain/rules/day.dart';
 import '../../domain/rules/slugify.dart';
 import '../db/database.dart';
 import 'seed_data.dart';
@@ -105,6 +106,34 @@ class Seeder {
               );
         }
 
+        for (final r in seed.reviews) {
+          final reviewId = await _db.into(_db.reviews).insert(
+                ReviewsCompanion.insert(
+                  projectId: projectId,
+                  date: startOfDay(r.date),
+                  title: Value(r.title),
+                  summaryMarkdown: Value(r.summary),
+                  nextReviewDate: Value(
+                      r.nextReviewDate == null ? null : startOfDay(r.nextReviewDate!)),
+                  createdAt: now,
+                  searchText: Value(buildSearchText([r.title, r.summary])),
+                ),
+              );
+          for (var i = 0; i < r.items.length; i++) {
+            final item = r.items[i];
+            await _db.into(_db.reviewItems).insert(
+                  ReviewItemsCompanion.insert(
+                    reviewId: reviewId,
+                    label: item.label,
+                    verdict: item.verdict.wire,
+                    note: Value(item.note),
+                    sortOrder: Value(i),
+                    searchText: Value(buildSearchText([item.label, item.note])),
+                  ),
+                );
+          }
+        }
+
         for (var i = 0; i < seed.links.length; i++) {
           final l = seed.links[i];
           await _db.into(_db.links).insert(
@@ -132,6 +161,8 @@ class Seeder {
                   isNumeric: Value(seed.isNumeric),
                   targetRaw: Value(seed.targetRaw),
                   unit: Value(seed.unit),
+                  dueDate: Value(
+                      seed.dueDate == null ? null : startOfDay(seed.dueDate!)),
                   createdAt: now,
                   updatedAt: now,
                   searchText: Value(buildSearchText([seed.name, seed.description])),

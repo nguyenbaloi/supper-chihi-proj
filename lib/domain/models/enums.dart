@@ -109,3 +109,28 @@ enum AppThemeMode {
     return AppThemeMode.system;
   }
 }
+
+/// Kết quả của một Mục đánh giá — FR-36, AD-9.
+enum ReviewVerdict {
+  met('met'),
+  partial('partial'),
+  notMet('not_met');
+
+  const ReviewVerdict(this.wire);
+  final String wire;
+
+  static const ReviewVerdict fallback = ReviewVerdict.notMet;
+
+  static ReviewVerdict fromWire(String? value) {
+    for (final v in ReviewVerdict.values) {
+      if (v.wire == value) return v;
+    }
+    return fallback;
+  }
+
+  /// Chỉ `Đạt` mới vào tử số của tỷ lệ đạt. `Một phần` vào mẫu số — FR-39.
+  bool get countsAsMet => this == ReviewVerdict.met;
+
+  /// Mục được đề nghị chép sang Đợt kế tiếp — FR-37.
+  bool get carriesForward => this != ReviewVerdict.met;
+}

@@ -9,6 +9,7 @@ import '../../domain/models/project_action.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../domain/rules/day.dart';
 import '../../domain/rules/pace.dart';
+import '../../domain/rules/review.dart';
 import '../../domain/rules/stale.dart';
 import '../../presentation/providers/providers.dart';
 import '../actions/action_tile.dart';
@@ -65,6 +66,18 @@ class TodayScreen extends ConsumerWidget {
             ))
         .toList();
 
+    // FR-40: chỉ Đợt gần nhất của mỗi Dự án được xét, và Dự án đã đóng thì
+    // không bao giờ nhắc.
+    final allReviews = ref.watch(allReviewsProvider).value ?? const [];
+    final dueReview = <ProjectSummary>[];
+    for (final s in summaries) {
+      final ofProject =
+          allReviews.where((r) => r.projectId == s.project.id).toList();
+      if (isReviewDue(status: s.project.status, reviews: ofProject, now: now)) {
+        dueReview.add(s);
+      }
+    }
+
     final behindGoals = <Goal>[];
     for (final g in goals) {
       if (g.dueDate == null) continue;
@@ -81,6 +94,7 @@ class TodayScreen extends ConsumerWidget {
         doing.isNotEmpty ||
         dueSoon.isNotEmpty ||
         staleProjects.isNotEmpty ||
+        dueReview.isNotEmpty ||
         behindGoals.isNotEmpty;
 
     if (!hasAnything) return const _AllClear();
@@ -113,10 +127,23 @@ class TodayScreen extends ConsumerWidget {
                 _ActionRow(action: a, project: projectById[a.projectId]),
             ],
           ),
-        if (staleProjects.isNotEmpty || behindGoals.isNotEmpty)
+        if (staleProjects.isNotEmpty ||
+            dueReview.isNotEmpty ||
+            behindGoals.isNotEmpty)
           _Group(
             title: S.todayAttention,
             children: [
+              for (final s in dueReview)
+                ListTile(
+                  leading: const Icon(Icons.rate_review_outlined),
+                  title: Text(s.project.name),
+                  subtitle: Text(S.reviewDue),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => ProjectDetailScreen(projectId: s.project.id),
+                    ),
+                  ),
+                ),
               for (final s in staleProjects)
                 ListTile(
                   leading: const Icon(Icons.hourglass_bottom_outlined),

@@ -74,6 +74,8 @@ Từ trong cột **Thuật ngữ** là từ duy nhất được dùng trong code
 | **Tiến độ** | `progressRatio` | Giá trị Mốc gần nhất chia giá trị đích của Mục tiêu. **Luôn tính, không bao giờ lưu** |
 | **Dự án nguội** | — | Dự án `Đang làm` nhưng không có Hành động nào đổi trạng thái trong N ngày (mặc định 21) |
 | **Hôm nay** | — | Màn hình mở đầu, gom việc cần chú ý nhất |
+| **Đợt đánh giá** | `Review` | Một lần nhìn lại Dự án tại một ngày cụ thể, chấm kết quả cho từng mục và đặt ngày xem lại tiếp theo |
+| **Mục đánh giá** | `ReviewItem` | Một dòng trong Đợt đánh giá: nội dung cần đạt kèm kết quả `Đạt` · `Chưa đạt` · `Một phần` |
 | **Bản sao lưu** | `Backup` | Một file JSON chứa toàn bộ dữ liệu, do người dùng tự xuất và tự giữ |
 
 ## 4. Yêu cầu chức năng
@@ -371,6 +373,68 @@ Người dùng chọn bỏ qua và bắt đầu từ trống.
 - Giao diện theo chế độ sáng/tối của hệ thống, đè tay được trong Cài đặt.
 - Cài đặt chứa: ngưỡng ngày nguội (FR-13), nạp lại dữ liệu hạt giống (FR-4), xuất/nhập sao lưu (FR-31, FR-32), và xoá sạch dữ liệu có xác nhận hai bước.
 
+### 4.8 Đợt đánh giá định kỳ
+
+Nhóm này sinh ra từ file `Dạy huy.pdf` — nhật ký theo dõi tiến bộ của con trai
+với hai đợt nhìn lại cách nhau gần ba tháng (15/5 lúc 28 tháng, 7/8 lúc 2 tuổi
+rưỡi). Cấu trúc của nó khác hẳn Hành động: **cùng một nội dung được chấm đi
+chấm lại ở nhiều mốc thời gian**, và kết quả không phải `Xong`/`Chưa` mà là
+`Đạt`/`Chưa đạt`/`Một phần`.
+
+Hành động trả lời *"việc này làm xong chưa"*. Đợt đánh giá trả lời *"ba tháng
+qua có tiến bộ không"*. Nhét cái sau vào cái trước sẽ làm hỏng ngữ nghĩa của cả
+hai — đó là lý do đây là một nhóm thực thể riêng.
+
+#### FR-35: Tạo Đợt đánh giá cho một Dự án
+
+**Hệ quả kiểm thử được:**
+- Đợt đánh giá thuộc đúng một Dự án, có **ngày đánh giá** (mặc định hôm nay), tiêu đề tuỳ chọn, và phần tóm tắt dạng markdown.
+- Có trường **ngày xem lại tiếp theo** — tuỳ chọn. Đây là "mốc time" của chu kỳ.
+- Một Dự án chứa nhiều Đợt đánh giá; sắp xếp theo ngày giảm dần.
+- Tiêu đề để trống thì hiển thị bằng ngày đánh giá.
+
+#### FR-36: Mục đánh giá với ba kết quả
+
+**Hệ quả kiểm thử được:**
+- Mỗi Mục đánh giá có nội dung (bắt buộc), kết quả, và ghi chú tuỳ chọn.
+- Đúng ba kết quả: `Đạt` · `Chưa đạt` · `Một phần`. Lưu bằng chuỗi ổn định `met` · `not_met` · `partial`.
+- Kết quả phân biệt bằng cả màu lẫn nhãn chữ — NFR-7.
+- Kéo thả đổi thứ tự Mục trong một Đợt.
+- Xoá Đợt đánh giá xoá theo toàn bộ Mục của nó.
+
+#### FR-37: Kế thừa mục chưa đạt từ đợt trước
+
+Đây là hành vi lặp lại rõ nhất trong tài liệu gốc: *"Tổng kết: 2 đạt 3 chưa
+đạt, tiếp tục cải thiện những cái chưa đạt"*.
+
+**Hệ quả kiểm thử được:**
+- Khi tạo Đợt mới trên một Dự án đã có Đợt trước, ứng dụng đề nghị chép sang các Mục có kết quả `Chưa đạt` và `Một phần`.
+- Mục được chép sang mang kết quả khởi điểm `Chưa đạt`, giữ nguyên nội dung và thứ tự tương đối.
+- Mục `Đạt` **không** được chép.
+- Người dùng bỏ chọn từng Mục trước khi chép; bỏ chọn hết thì Đợt mới trống.
+
+#### FR-38: Dòng thời gian đánh giá
+
+**Hệ quả kiểm thử được:**
+- Màn hình Dự án có một thẻ riêng liệt kê các Đợt theo thứ tự thời gian, mỗi Đợt hiện ngày và tỷ lệ đạt.
+- Mở một Đợt thấy đầy đủ Mục, kết quả, ghi chú và phần tóm tắt.
+- Dự án chưa có Đợt nào hiện trạng thái trống kèm nút tạo Đợt đầu tiên.
+
+#### FR-39: Tỷ lệ đạt là giá trị suy ra
+
+**Hệ quả kiểm thử được:**
+- Tỷ lệ đạt của một Đợt = số Mục `Đạt` ÷ tổng số Mục, tính lại mỗi lần hiển thị.
+- `Một phần` tính vào mẫu số nhưng không tính vào tử số.
+- Đợt không có Mục nào hiện `—`, không hiện `0%`.
+- **Không tồn tại cột `metCount`, `metRatio` hay `itemCount` trong bất kỳ bảng nào.**
+
+#### FR-40: Đến hạn đánh giá xuất hiện ở màn hình Hôm nay
+
+**Hệ quả kiểm thử được:**
+- Dự án có Đợt đánh giá gần nhất mang **ngày xem lại tiếp theo** ≤ hôm nay được đưa vào nhóm *Cần chú ý* của màn hình Hôm nay.
+- Chỉ Đợt **gần nhất** của mỗi Dự án được xét; các Đợt cũ hơn không sinh nhắc nhở.
+- Dự án `Xong`, `Bỏ` không bao giờ sinh nhắc nhở đánh giá.
+
 ## 5. Yêu cầu phi chức năng
 
 | # | Yêu cầu | Cách kiểm chứng |
@@ -401,9 +465,9 @@ Ghi rõ để không bị hiểu là bỏ sót:
 
 Sáu điểm dưới đây được quyết theo hướng an toàn nhất để không chặn việc triển khai. Xác nhận hoặc sửa lại trước khi làm tới Story tương ứng.
 
-1. **§4.4 FR-20** — Mục tiêu `1 tỷ` được đối xử như một con số trung tính có đơn vị VND; ứng dụng không định nghĩa nó là tổng tài sản ròng hay thu nhập tích luỹ. Người dùng tự hiểu ý nghĩa.
-2. **§4.4 FR-24** — Mục tiêu `1 tỷ` chưa có hạn chót, nên chưa có dự báo nhịp. Đặt hạn chót là việc của người dùng.
-3. **§4.1 FR-3** — Dự án `dạy Huy` được tạo như dự án thường thuộc Chủ đề Gia đình, chưa có Hành động nào.
+1. ~~**§4.4 FR-20**~~ — **ĐÃ CHỐT 2026-08-28.** Mục tiêu `1 tỷ` là **tổng tài sản ròng**. Giá trị được người dùng ghi lại và nhập tay từng Mốc, đối chiếu từ app `personal_finance`. Ứng dụng không tự lấy số từ đâu cả.
+2. ~~**§4.4 FR-24**~~ — **ĐÃ CHỐT 2026-08-28.** Hạn chót là **31/12/2027**. Từ đây nhịp và dự báo về đích có hiệu lực cho mục tiêu này.
+3. ~~**§4.1 FR-3**~~ — **ĐÃ CHỐT 2026-08-28.** Dự án `Dạy Huy` là dự án **lập kế hoạch và theo dõi tiến bộ của con trai theo mốc thời gian**, nguồn `Dạy huy.pdf`. Chính nó sinh ra nhóm yêu cầu §4.8.
 4. **§4.2 FR-13** — Ngưỡng Dự án nguội mặc định 21 ngày. Con số này là suy đoán, sửa được trong Cài đặt.
 5. **§4.3 FR-14** — Hành động không có Hành động con. Nếu một việc quá lớn thì nó nên là Dự án, không phải cây con nhiều tầng.
 6. **§4.7 FR-32** — Nhập khôi phục là **thay thế toàn bộ**, không phải trộn. Trộn hai nguồn dữ liệu sinh ra bài toán xung đột không đáng giải cho một người dùng.
