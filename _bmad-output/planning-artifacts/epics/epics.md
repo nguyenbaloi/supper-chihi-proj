@@ -473,7 +473,14 @@ thứ đã nguội đi mà không phải nói dối rằng chúng đã `Bỏ`.
 **Nghiệm thu:**
 - Bảng `topics` → `areas`; `projects.topic_id` → `projects.area_id`; `schemaVersion` lên 4.
 - Lớp `Topic` → `Area`, `TopicRow` → `AreaRow`, `DriftTopicRepository` → `DriftAreaRepository`, `topicsProvider` → `areasProvider`, nhãn l10n *Chủ đề* → *Lĩnh vực*.
-- `grep -ri "topic\|chủ đề" lib/ test/ docs/` không còn kết quả nào.
+- Không còn `Topic` như một **định danh sống**: không lớp, bảng, cột, provider
+  hay nhãn l10n nào mang tên đó. Nhãn tiếng Việt là *Lĩnh vực*.
+- Ba nhóm được phép giữ tên cũ, vì chúng nói về **quá khứ** chứ không phải
+  về mô hình hiện tại — mỗi chỗ phải có ghi chú giải thích tại chỗ:
+  1. Bước migration, vì phải gọi đúng tên bảng cũ để đổi tên nó;
+  2. Khoá JSON `topics`/`topicId` của định dạng sao lưu v1…v3 — file cũ
+     mang tên đó và phải đọc được sau nhiều năm (đổi ở Story 8.6);
+  3. Fixture test dựng lại schema cũ và file sao lưu cũ.
 - **Test `migrateAndValidate` từ v3 lên v4**, dựng DB v3 có dữ liệu rồi nâng cấp, so từng dòng — AD-10.
 - Chụp lại `drift_schemas/` và sinh lại helper kiểm thử.
 

@@ -4,7 +4,7 @@ import 'package:personal_projects/data/db/database.dart';
 import 'package:personal_projects/data/repositories/drift_action_repository.dart';
 import 'package:personal_projects/data/repositories/drift_content_repositories.dart';
 import 'package:personal_projects/data/repositories/drift_project_repository.dart';
-import 'package:personal_projects/data/repositories/drift_topic_repository.dart';
+import 'package:personal_projects/data/repositories/drift_area_repository.dart';
 import 'package:personal_projects/data/seed/seeder.dart';
 import 'package:personal_projects/domain/models/enums.dart';
 import 'package:personal_projects/domain/repositories/repositories.dart';
@@ -13,7 +13,7 @@ void main() {
   late AppDatabase db;
   late DriftProjectRepository projects;
   late DriftActionRepository actions;
-  late DriftTopicRepository topics;
+  late DriftAreaRepository areas;
   late Seeder seeder;
 
   DateTime now = DateTime.utc(2026, 8, 28, 10);
@@ -24,43 +24,43 @@ void main() {
     db = AppDatabase(NativeDatabase.memory());
     projects = DriftProjectRepository(db, clock: clock);
     actions = DriftActionRepository(db, clock: clock);
-    topics = DriftTopicRepository(db);
+    areas = DriftAreaRepository(db);
     seeder = Seeder(db, clock: clock);
-    await seeder.ensureTopics();
+    await seeder.ensureAreas();
   });
 
   tearDown(() => db.close());
 
-  group('Story 1.6 — sáu Chủ đề dựng sẵn (FR-1)', () {
-    test('đúng sáu Chủ đề với tên chuẩn', () async {
-      final all = await topics.getAll();
+  group('Story 1.6 — sáu Lĩnh vực dựng sẵn (FR-1)', () {
+    test('đúng sáu Lĩnh vực với tên chuẩn', () async {
+      final all = await areas.getAll();
       expect(all.map((t) => t.name).toList(),
           ['Gia đình', 'Thu nhập', 'Tài chính', 'Sức khoẻ', 'Học tập', 'Khác']);
     });
 
-    test('Khác là Chủ đề hệ thống và không xoá được', () async {
-      final other = (await topics.getAll()).firstWhere((t) => t.name == 'Khác');
+    test('Khác là Lĩnh vực hệ thống và không xoá được', () async {
+      final other = (await areas.getAll()).firstWhere((t) => t.name == 'Khác');
       expect(other.isSystemFallback, isTrue);
-      await topics.delete(other.id);
-      expect((await topics.getAll()).length, 6);
+      await areas.delete(other.id);
+      expect((await areas.getAll()).length, 6);
     });
 
-    test('xoá Chủ đề thì Dự án chuyển về Khác, không bị xoá theo', () async {
-      final health = (await topics.getAll()).firstWhere((t) => t.name == 'Sức khoẻ');
-      final other = (await topics.getAll()).firstWhere((t) => t.name == 'Khác');
-      final p = await projects.create(name: 'Chạy bộ', topicId: health.id);
+    test('xoá Lĩnh vực thì Dự án chuyển về Khác, không bị xoá theo', () async {
+      final health = (await areas.getAll()).firstWhere((t) => t.name == 'Sức khoẻ');
+      final other = (await areas.getAll()).firstWhere((t) => t.name == 'Khác');
+      final p = await projects.create(name: 'Chạy bộ', areaId: health.id);
 
-      await topics.delete(health.id);
+      await areas.delete(health.id);
 
       final reloaded = await projects.getById(p.id);
       expect(reloaded, isNotNull);
-      expect(reloaded!.topicId, other.id);
-      expect((await topics.getAll()).length, 5);
+      expect(reloaded!.areaId, other.id);
+      expect((await areas.getAll()).length, 5);
     });
 
-    test('chạy ensureTopics hai lần không nhân đôi', () async {
-      await seeder.ensureTopics();
-      expect((await topics.getAll()).length, 6);
+    test('chạy ensureAreas hai lần không nhân đôi', () async {
+      await seeder.ensureAreas();
+      expect((await areas.getAll()).length, 6);
     });
   });
 
@@ -211,17 +211,17 @@ void main() {
       expect(s.lastActivityAt, DateTime.utc(2026, 9, 5));
     });
 
-    test('lọc theo Chủ đề kết hợp AND với trạng thái', () async {
-      final all = await topics.getAll();
+    test('lọc theo Lĩnh vực kết hợp AND với trạng thái', () async {
+      final all = await areas.getAll();
       final family = all.firstWhere((t) => t.name == 'Gia đình');
       final income = all.firstWhere((t) => t.name == 'Thu nhập');
-      final p1 = await projects.create(name: 'Con học toán', topicId: family.id);
-      await projects.create(name: 'TikTok', topicId: income.id);
+      final p1 = await projects.create(name: 'Con học toán', areaId: family.id);
+      await projects.create(name: 'TikTok', areaId: income.id);
       await projects.changeStatus(p1.id, ProjectStatus.active);
 
       final filtered = await projects
           .watchSummaries(ProjectFilter(
-            topicIds: {family.id},
+            areaIds: {family.id},
             statuses: {ProjectStatus.active},
           ))
           .first;

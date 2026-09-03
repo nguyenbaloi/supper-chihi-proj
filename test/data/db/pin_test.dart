@@ -19,7 +19,7 @@ void main() {
     db = AppDatabase(NativeDatabase.memory());
     projects = DriftProjectRepository(db, clock: clock);
     actions = DriftActionRepository(db, clock: clock);
-    await Seeder(db, clock: clock).ensureTopics();
+    await Seeder(db, clock: clock).ensureAreas();
   });
 
   tearDown(() => db.close());

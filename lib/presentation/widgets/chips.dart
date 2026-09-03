@@ -81,8 +81,8 @@ class PriorityChip extends StatelessWidget {
       );
 }
 
-class TopicChip extends StatelessWidget {
-  const TopicChip({super.key, required this.name, required this.colorValue});
+class AreaChip extends StatelessWidget {
+  const AreaChip({super.key, required this.name, required this.colorValue});
 
   final String name;
   final int colorValue;

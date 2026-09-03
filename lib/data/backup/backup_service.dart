@@ -30,7 +30,7 @@ class BackupService {
       },
       sections: {
         'topics': [
-          for (final r in await _db.select(_db.topics).get())
+          for (final r in await _db.select(_db.areas).get())
             {
               'id': r.id,
               'name': r.name,
@@ -44,7 +44,7 @@ class BackupService {
           for (final r in await _db.select(_db.projects).get())
             {
               'id': r.id,
-              'topicId': r.topicId,
+              'topicId': r.areaId,
               'name': r.name,
               'description': r.description,
               'status': r.status,
@@ -180,15 +180,15 @@ class BackupService {
       return Err(AppFailure(FailureCode.storage, detail: e.toString()));
     }
 
-    // Bộ Chủ đề chuẩn phải luôn tồn tại, kể cả khi file sao lưu trống — FR-1.
-    await Seeder(_db, clock: _now).ensureTopics();
+    // Bộ Lĩnh vực chuẩn phải luôn tồn tại, kể cả khi file sao lưu trống — FR-1.
+    await Seeder(_db, clock: _now).ensureAreas();
 
     final total =
         doc.sections.values.fold<int>(0, (sum, rows) => sum + rows.length);
     return Ok(total);
   }
 
-  /// Xoá sạch dữ liệu rồi dựng lại sáu Chủ đề mặc định — FR-34.
+  /// Xoá sạch dữ liệu rồi dựng lại sáu Lĩnh vực mặc định — FR-34.
   Future<void> wipeAll() async {
     await _db.transaction(() async {
       for (final name in backupSections.reversed) {
@@ -196,13 +196,13 @@ class BackupService {
       }
       await _db.delete(_db.appSettings).go();
     });
-    await Seeder(_db, clock: _now).ensureTopics();
+    await Seeder(_db, clock: _now).ensureAreas();
   }
 
   Future<void> _deleteAll(String section) async {
     switch (section) {
       case 'topics':
-        await _db.delete(_db.topics).go();
+        await _db.delete(_db.areas).go();
       case 'projects':
         await _db.delete(_db.projects).go();
       case 'actions':
@@ -224,7 +224,7 @@ class BackupService {
     for (final r in rows) {
       switch (section) {
         case 'topics':
-          await _db.into(_db.topics).insert(TopicsCompanion.insert(
+          await _db.into(_db.areas).insert(AreasCompanion.insert(
                 id: Value(readInt(r, 'id')),
                 name: readString(r, 'name'),
                 colorValue: readInt(r, 'colorValue'),
@@ -235,7 +235,7 @@ class BackupService {
         case 'projects':
           await _db.into(_db.projects).insert(ProjectsCompanion.insert(
                 id: Value(readInt(r, 'id')),
-                topicId: readInt(r, 'topicId'),
+                areaId: readInt(r, 'topicId'),
                 name: readString(r, 'name'),
                 description: Value(readString(r, 'description')),
                 status: readString(r, 'status'),

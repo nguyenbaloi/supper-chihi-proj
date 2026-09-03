@@ -1,47 +1,47 @@
 import 'package:drift/drift.dart';
 
-import '../../domain/models/topic.dart';
+import '../../domain/models/area.dart';
 import '../../domain/repositories/repositories.dart';
 import '../db/database.dart';
 import 'mappers.dart';
 
-class DriftTopicRepository implements TopicRepository {
-  DriftTopicRepository(this._db);
+class DriftAreaRepository implements AreaRepository {
+  DriftAreaRepository(this._db);
 
   final AppDatabase _db;
 
   @override
-  Stream<List<Topic>> watchAll() => (_db.select(_db.topics)
+  Stream<List<Area>> watchAll() => (_db.select(_db.areas)
         ..orderBy([(t) => OrderingTerm(expression: t.sortOrder)]))
       .watch()
       .map((rows) => rows.map((r) => r.toModel()).toList());
 
   @override
-  Future<List<Topic>> getAll() async {
-    final rows = await (_db.select(_db.topics)
+  Future<List<Area>> getAll() async {
+    final rows = await (_db.select(_db.areas)
           ..orderBy([(t) => OrderingTerm(expression: t.sortOrder)]))
         .get();
     return rows.map((r) => r.toModel()).toList();
   }
 
   @override
-  Future<Topic> create({
+  Future<Area> create({
     required String name,
     required int colorValue,
     required String iconKey,
   }) async {
     final maxOrder = await _db
-        .customSelect('SELECT COALESCE(MAX(sort_order), -1) AS m FROM topics')
+        .customSelect('SELECT COALESCE(MAX(sort_order), -1) AS m FROM areas')
         .getSingle();
-    final id = await _db.into(_db.topics).insert(
-          TopicsCompanion.insert(
+    final id = await _db.into(_db.areas).insert(
+          AreasCompanion.insert(
             name: name,
             colorValue: colorValue,
             iconKey: iconKey,
             sortOrder: Value(maxOrder.read<int>('m') + 1),
           ),
         );
-    return Topic(
+    return Area(
       id: id,
       name: name,
       colorValue: colorValue,
@@ -51,35 +51,35 @@ class DriftTopicRepository implements TopicRepository {
   }
 
   @override
-  Future<void> update(Topic topic) async {
-    await (_db.update(_db.topics)..where((t) => t.id.equals(topic.id))).write(
-      TopicsCompanion(
-        name: Value(topic.name),
-        colorValue: Value(topic.colorValue),
-        iconKey: Value(topic.iconKey),
-        sortOrder: Value(topic.sortOrder),
+  Future<void> update(Area area) async {
+    await (_db.update(_db.areas)..where((t) => t.id.equals(area.id))).write(
+      AreasCompanion(
+        name: Value(area.name),
+        colorValue: Value(area.colorValue),
+        iconKey: Value(area.iconKey),
+        sortOrder: Value(area.sortOrder),
       ),
     );
   }
 
-  /// FR-1: Dự án thuộc Chủ đề bị xoá chuyển về Chủ đề `Khác`, không bị xoá theo.
-  /// Chủ đề `Khác` không xoá được.
+  /// FR-1: Dự án thuộc Lĩnh vực bị xoá chuyển về Lĩnh vực `Khác`, không bị xoá theo.
+  /// Lĩnh vực `Khác` không xoá được.
   @override
   Future<void> delete(int id) async {
     await _db.transaction(() async {
-      final row = await (_db.select(_db.topics)..where((t) => t.id.equals(id)))
+      final row = await (_db.select(_db.areas)..where((t) => t.id.equals(id)))
           .getSingleOrNull();
       if (row == null || row.isSystemFallback) return;
 
-      final fallback = await (_db.select(_db.topics)
+      final fallback = await (_db.select(_db.areas)
             ..where((t) => t.isSystemFallback.equals(true))
             ..limit(1))
           .getSingleOrNull();
       if (fallback == null) return;
 
-      await (_db.update(_db.projects)..where((p) => p.topicId.equals(id)))
-          .write(ProjectsCompanion(topicId: Value(fallback.id)));
-      await (_db.delete(_db.topics)..where((t) => t.id.equals(id))).go();
+      await (_db.update(_db.projects)..where((p) => p.areaId.equals(id)))
+          .write(ProjectsCompanion(areaId: Value(fallback.id)));
+      await (_db.delete(_db.areas)..where((t) => t.id.equals(id))).go();
     });
   }
 }

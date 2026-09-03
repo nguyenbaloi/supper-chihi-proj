@@ -24,7 +24,7 @@ void main() {
     projects = DriftProjectRepository(db, clock: clock);
     reviews = DriftReviewRepository(db, clock: clock);
     seeder = Seeder(db, clock: clock);
-    await seeder.ensureTopics();
+    await seeder.ensureAreas();
   });
 
   tearDown(() => db.close());

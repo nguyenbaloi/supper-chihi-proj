@@ -17,6 +17,12 @@ import '../../core/result/result.dart';
 const int backupFormatVersion = 3;
 
 /// Thứ tự chèn tôn trọng khoá ngoại. Xoá thì đi ngược danh sách này.
+///
+/// **`topics` và `topicId` là cố ý, không phải sót khi đổi tên.** Bảng và lớp
+/// Dart đã đổi thành `Area`/`areaId` ở Story 8.1, nhưng khoá JSON là **hợp
+/// đồng** — file sao lưu phiên bản 3 nào cũng mang tên cũ và phải đọc lại
+/// được sau nhiều năm. Khoá đổi sang `areas`/`areaId` ở phiên bản 4, cùng
+/// lúc bổ sung nhánh đọc cho phiên bản cũ (Story 8.6).
 const List<String> backupSections = [
   'topics',
   'projects',

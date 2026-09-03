@@ -58,7 +58,7 @@ void main() {
   test('chín bảng đúng như sơ đồ thực thể', () {
     final names = db.allTables.map((t) => t.actualTableName).toSet();
     expect(names, {
-      'topics',
+      'areas',
       'projects',
       'actions',
       'notes',
@@ -72,6 +72,6 @@ void main() {
 
   test('mở cơ sở dữ liệu rỗng rồi đọc lại thành công', () async {
     expect(await db.select(db.projects).get(), isEmpty);
-    expect(db.schemaVersion, 3);
+    expect(db.schemaVersion, 4);
   });
 }

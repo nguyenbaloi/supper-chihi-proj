@@ -1,8 +1,8 @@
 # Kiến trúc và luồng use case
 
-Bản đồ để soi tổng thể tính năng. Mô tả **trạng thái hôm nay** (schema v3);
-những chỗ đề xuất PARA sẽ đổi được đánh dấu `[PARA]` — xem
-`_bmad-output/planning-artifacts/proposals/para-2026-09-03/PROPOSAL-PARA.md`.
+Bản đồ để soi tổng thể tính năng. Mô tả **trạng thái hôm nay** (schema v4).
+Chủ đề đã đổi tên thành **Lĩnh vực** ở Story 8.1; những phần Epic 8 còn nợ
+được đánh dấu `[PARA]`.
 
 ## 1. Bốn tầng
 
@@ -23,8 +23,8 @@ lập. Provider khai báo tay (không codegen Riverpod).
 ## 2. Thực thể
 
 ```
-Topic  1──n  Project  1──n  Action
-[PARA: Area]     │
+Area   1──n  Project  1──n  Action
+                 │
                  ├──n  Note          [PARA: gắn được vào Area, hoặc để trống]
                  ├──n  Link          [PARA: như trên]
                  └──n  Review  1──n  ReviewItem
@@ -44,7 +44,7 @@ Ba ràng buộc hình dạng:
 | Tab | Trả lời câu hỏi | Nguồn |
 |---|---|---|
 | **Hôm nay** | *Hôm nay tôi làm gì?* | `Action.pinned` + `buildAttention()` |
-| **Dự án** | *Mọi thứ đang chạy thế nào?* | `watchSummaries(filter)`, nhóm theo Chủ đề |
+| **Dự án** | *Mọi thứ đang chạy thế nào?* | `watchSummaries(filter)`, nhóm theo Lĩnh vực |
 | **Thống kê** | *Tôi có làm đúng hạn không?* | 6 nhóm `DueOutcome` |
 | **Cài đặt** | *Sao lưu, ngưỡng nguội, xoá sạch* | `AppSettings` + `backup` |
 
@@ -54,11 +54,11 @@ Tìm kiếm nằm ở thanh tiêu đề, không phải một tab.
 
 **UC-1 · Chạy lần đầu**
 `mở app → đọc seedApplied → chưa có: Onboarding → nhận 7 Dự án hạt giống (hoặc bỏ qua) → HomeShell`
-Bỏ qua thì chỉ còn 6 Chủ đề dựng sẵn, không Dự án nào.
+Bỏ qua thì chỉ còn 6 Lĩnh vực dựng sẵn, không Dự án nào.
 
 **UC-2 · Tạo Dự án**
-`tab Dự án → + → chọn Chủ đề, ưu tiên, hạn (tuỳ chọn) → repository ghi createdAt/updatedAt`
-Mặc định: Chủ đề `Khác`, `Chưa bắt đầu`, ưu tiên `Trung bình`, không hạn.
+`tab Dự án → + → chọn Lĩnh vực, ưu tiên, hạn (tuỳ chọn) → repository ghi createdAt/updatedAt`
+Mặc định: Lĩnh vực `Khác`, `Chưa bắt đầu`, ưu tiên `Trung bình`, không hạn.
 
 **UC-3 · Thêm Hành động rồi kéo lên Hôm nay**
 `chi tiết Dự án → tab Hành động → + → đặt ưu tiên và hạn riêng → bấm ghim`
@@ -104,6 +104,8 @@ chỉ mục, không phải giá trị nghiệp vụ.
 
 **UC-10 · Sao lưu và khôi phục**
 `Xuất → một file JSON duy nhất (backupFormatVersion 3) → share_plus`
+Khoá JSON vẫn mang tên cũ `topics`/`topicId`: định dạng file là hợp đồng riêng
+với tên bảng, đổi ở Story 8.6.
 `Nhập → kiểm tra toàn bộ → THAY THẾ TẤT CẢ trong một giao dịch → sinh lại searchText`
 Lỗi giữa chừng cuộn ngược hoàn toàn. File có phiên bản cao hơn app bị **từ
 chối**, không cố đọc.
@@ -126,7 +128,7 @@ cột `completionRatio`, `actionCount`, `metRatio`.
 1. **Xoá Dự án là mất Ghi chú** (UC-7). Mất im lặng. Nghiêm trọng nhất.
 2. **Không có lưu trữ.** Dự án `Xong` hoặc `Bỏ` nằm mãi trong danh sách, chỉ ẩn được bằng bộ lọc.
 3. **Đợt đánh giá chỉ ở cấp Dự án.** Không nhìn lại được cả một mảng đời sống.
-4. **`Topic` chỉ là nhãn màu** — không ghi được "mức tôi muốn giữ" hay nhịp xem lại.
+4. **`Area` mới chỉ là nhãn màu** — chưa ghi được "mức tôi muốn giữ" hay nhịp xem lại (Story 8.2).
 5. **Hành động không có Ghi chú riêng**, chỉ một trường `note` một dòng.
 
 Bốn điểm đầu là nội dung đề xuất PARA. Điểm 5 chưa có ai đề xuất.

@@ -56,7 +56,7 @@ abstract final class S {
   static const statsTitle = 'Thống kê';
   static const statsScopeAll = 'Tất cả';
   static const statsByOutcome = 'Đầu việc theo hạn';
-  static const statsByTopic = 'Theo chủ đề';
+  static const statsByArea = 'Theo lĩnh vực';
   static const statsOnTimeRatio = 'Tỷ lệ đúng hạn';
   static const statsCompletionRatio = 'Tỷ lệ hoàn thành';
   static const statsEmpty = 'Chưa có đầu việc nào để thống kê.';
@@ -80,7 +80,7 @@ abstract final class S {
   static const projectNew = 'Dự án mới';
   static const projectName = 'Tên dự án';
   static const projectDescription = 'Mô tả';
-  static const projectTopic = 'Chủ đề';
+  static const projectArea = 'Lĩnh vực';
   static const projectPriority = 'Độ ưu tiên';
   static const projectStatusLabel = 'Trạng thái';
   static const projectDueDate = 'Hạn chót';

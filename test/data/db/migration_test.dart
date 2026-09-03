@@ -1,7 +1,10 @@
 import 'package:drift/native.dart';
+import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_projects/data/db/database.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
+
+import 'generated/schema.dart';
 
 /// AD-10: mỗi lần tăng `schemaVersion` phải có test dựng cơ sở dữ liệu bản cũ
 /// rồi nâng lên, chứng minh dữ liệu người dùng không mất.
@@ -108,7 +111,7 @@ const List<String> _schemaV1 = [
 ];
 
 void main() {
-  test('v1 → v3: thêm Đợt đánh giá, bỏ Mục tiêu, dữ liệu còn lại nguyên vẹn',
+  test('v1 → v4: thêm Đợt đánh giá, bỏ Mục tiêu, đổi tên Chủ đề thành Lĩnh vực',
       () async {
     final raw = sqlite.sqlite3.openInMemory();
     for (final stmt in _schemaV1) {
@@ -144,8 +147,8 @@ void main() {
     // Chạm vào cơ sở dữ liệu để buộc drift chạy migration.
     final projects = await db.select(db.projects).get();
 
-    expect(db.schemaVersion, 3);
-    expect(raw.select('PRAGMA user_version').first.values.first, 3);
+    expect(db.schemaVersion, 4);
+    expect(raw.select('PRAGMA user_version').first.values.first, 4);
 
     // Dữ liệu cũ nguyên vẹn.
     expect(projects.length, 1);
@@ -158,6 +161,36 @@ void main() {
           "SELECT name FROM sqlite_master WHERE type='table' AND name=?", [t]);
       expect(rows, isEmpty, reason: 'bảng $t phải bị xoá ở v3');
     }
+
+    // v4 đổi tên Chủ đề thành Lĩnh vực — FR-46. Tên cũ phải biến mất hẳn,
+    // và giá trị người dùng ghi từ thời v1 phải đi qua nguyên vẹn.
+    expect(
+      raw.select(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='topics'"),
+      isEmpty,
+      reason: 'bảng topics phải được đổi tên thành areas ở v4',
+    );
+    final area = (await db.select(db.areas).get()).single;
+    expect(area.name, 'Gia đình');
+    expect(area.iconKey, 'family');
+    expect(projects.single.areaId, area.id);
+    expect(
+      raw.select("SELECT name FROM pragma_table_info('projects')")
+          .map((r) => r.values.first),
+      contains('area_id'),
+    );
+    expect(
+      raw.select("SELECT name FROM pragma_table_info('projects')")
+          .map((r) => r.values.first),
+      isNot(contains('topic_id')),
+    );
+    // Khoá ngoại phải trỏ sang tên bảng mới, nếu không thì chèn Dự án sẽ chết
+    // khi bật lại PRAGMA foreign_keys.
+    expect(
+      raw.select("SELECT \"table\" FROM pragma_foreign_key_list('projects')")
+          .map((r) => r.values.first),
+      contains('areas'),
+    );
 
     // Hành động cũ nhận giá trị mặc định cho ba cột mới của v3.
     final action = (await db.select(db.actions).get()).single;
@@ -184,7 +217,64 @@ void main() {
     expect((await db.select(db.reviewItems).get()).single.verdict, 'met');
   });
 
-  test('cài mới ở v3 tạo đủ chín bảng', () async {
+  // AD-10, bước 4: kiểm cấu trúc bằng helper sinh sẵn từ `drift_schemas/`.
+  // Test v1 → v4 ở trên chứng minh **dữ liệu** sống sót; test này chứng minh
+  // **cấu trúc** sau khi nâng cấp khớp từng cột với bản cài mới ở v4.
+  test('v3 → v4: cấu trúc sau nâng cấp khớp bản cài mới', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final connection = await verifier.startAt(3);
+    final db = AppDatabase(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 4);
+  });
+
+  test('v3 → v4: Lĩnh vực và Dự án giữ nguyên giá trị', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(3);
+
+    // Ghi dữ liệu thật bằng schema v3, đúng tên cột thời đó.
+    schema.rawDatabase.execute(
+      "INSERT INTO topics (id, name, color_value, icon_key, sort_order, "
+      "is_system_fallback) VALUES (2, 'Sức khoẻ', 7, 'health', 3, 0)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO projects (id, topic_id, name, description, status, priority, "
+      "created_at, updated_at, search_text) "
+      "VALUES (9, 2, 'Chạy bộ đều', '', 'active', 'medium', "
+      "'2026-06-01T00:00:00.000Z', '2026-06-01T00:00:00.000Z', 'chay bo deu')",
+    );
+
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    await db.select(db.projects).get();
+
+    final area = (await db.select(db.areas).get()).single;
+    expect(area.id, 2);
+    expect(area.name, 'Sức khoẻ');
+    expect(area.sortOrder, 3);
+
+    final project = (await db.select(db.projects).get()).single;
+    expect(project.areaId, 2);
+    expect(project.name, 'Chạy bộ đều');
+    expect(project.searchText, 'chay bo deu');
+
+    // Khoá ngoại phải dùng được thật, không chỉ đúng trên giấy: chèn một Dự án
+    // trỏ tới Lĩnh vực không tồn tại phải bị chặn.
+    await db.customStatement('PRAGMA foreign_keys = ON');
+    await expectLater(
+      db.into(db.projects).insert(ProjectsCompanion.insert(
+            areaId: 404,
+            name: 'Dự án mồ côi',
+            status: 'active',
+            priority: 'medium',
+            createdAt: DateTime.utc(2026, 6, 1),
+            updatedAt: DateTime.utc(2026, 6, 1),
+          )),
+      throwsA(isA<Exception>()),
+    );
+  });
+
+  test('cài mới ở v4 tạo đủ chín bảng', () async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     await db.select(db.projects).get();

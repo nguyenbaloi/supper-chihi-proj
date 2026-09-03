@@ -11,7 +11,7 @@ import 'package:personal_projects/data/seed/seeder.dart';
 /// bộ nhớ — FR-31, FR-32.
 ///
 /// Đây là chỗ dễ hỏng âm thầm nhất: nội dung có dấu tiếng Việt, tên người, và
-/// cả emoji trong tên chủ đề. Ghi sai mã hoá thì file vẫn tạo ra được, vẫn nhập
+/// cả emoji trong tên lĩnh vực. Ghi sai mã hoá thì file vẫn tạo ra được, vẫn nhập
 /// lại được, chỉ là chữ biến thành ký tự rác.
 void main() {
   late Directory tempDir;
@@ -44,8 +44,8 @@ void main() {
     // ----- MÁY MỚI: cơ sở dữ liệu trắng tinh -----
     final newPhone = await freshDb();
     final newService = BackupService(newPhone, clock: () => DateTime.utc(2026, 9, 1));
-    // Máy mới mở app lần đầu sẽ dựng sáu Chủ đề trước khi người dùng nhập.
-    await Seeder(newPhone, clock: () => DateTime.utc(2026, 9, 1)).ensureTopics();
+    // Máy mới mở app lần đầu sẽ dựng sáu Lĩnh vực trước khi người dùng nhập.
+    await Seeder(newPhone, clock: () => DateTime.utc(2026, 9, 1)).ensureAreas();
     expect(await newPhone.select(newPhone.projects).get(), isEmpty);
 
     // Đúng cách `runImport` đọc file: bytes rồi giải mã UTF-8.

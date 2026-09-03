@@ -184,6 +184,10 @@ void main() {
           reason: 'giao dịch phải cuộn ngược, dữ liệu cũ còn nguyên');
     });
 
+    // Khoá `topics`/`topicId` trong các fixture dưới đây là **cố ý**: file sao
+    // lưu phiên bản 1..3 mang đúng tên đó. Bảng và lớp Dart đã đổi thành
+    // `Area`/`areaId` ở Story 8.1 nhưng định dạng file là hợp đồng riêng —
+    // xem ghi chú ở `backup_codec.dart`.
     test('file của phiên bản cũ thiếu mục reviews vẫn nhập được', () async {
       final old = jsonEncode({
         'schemaVersion': 1,
@@ -220,12 +224,12 @@ void main() {
   });
 
   group('Story 6.3 — xoá sạch dữ liệu (FR-34)', () {
-    test('xoá sạch rồi dựng lại sáu Chủ đề mặc định', () async {
+    test('xoá sạch rồi dựng lại sáu Lĩnh vực mặc định', () async {
       await backup.wipeAll();
       expect(await db.select(db.projects).get(), isEmpty);
       expect(await db.select(db.reviews).get(), isEmpty);
       expect(await db.select(db.statusEvents).get(), isEmpty);
-      expect((await db.select(db.topics).get()).length, 6);
+      expect((await db.select(db.areas).get()).length, 6);
     });
   });
 }

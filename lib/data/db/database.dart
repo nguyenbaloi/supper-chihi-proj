@@ -7,7 +7,7 @@ part 'database.g.dart';
 
 @DriftDatabase(
   tables: [
-    Topics,
+    Areas,
     Projects,
     Actions,
     Notes,
@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'personal_projects'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -50,6 +50,31 @@ class AppDatabase extends _$AppDatabase {
             await customStatement('DROP TABLE IF EXISTS project_goals');
             await customStatement('DROP TABLE IF EXISTS goal_updates');
             await customStatement('DROP TABLE IF EXISTS goals');
+          }
+          if (from < 4) {
+            // v3 → v4: Chủ đề đổi tên thành Lĩnh vực — FR-46, Story 8.1.
+            //
+            // Đổi tên thuần tuý: không cột nào mất, không giá trị nào của
+            // người dùng đổi.
+            await m.renameTable(areas, 'topics');
+
+            // `projects` phải dựng lại chứ không chỉ đổi tên cột. Lý do:
+            // SQLite chỉ tự sửa mệnh đề `REFERENCES` của các bảng khác khi
+            // `PRAGMA foreign_keys` đang **bật** lúc `ALTER TABLE ... RENAME`.
+            // Migration chạy trong một giao dịch, mà pragma đó không đổi được
+            // bên trong giao dịch — nên sau `renameTable` ở trên, khoá ngoại
+            // của `projects` vẫn trỏ tới cái tên `topics` không còn tồn tại.
+            //
+            // Hỏng theo kiểu im lặng: đọc thì vẫn chạy, tới khi `beforeOpen`
+            // bật lại `foreign_keys` và người dùng thêm Dự án mới thì mới chết.
+            // `alterTable` dựng lại bảng từ định nghĩa Dart hiện tại nên khoá
+            // ngoại trỏ đúng `areas`, đồng thời chép `topic_id` sang `area_id`.
+            await m.alterTable(TableMigration(
+              projects,
+              columnTransformer: {
+                projects.areaId: const CustomExpression<int>('topic_id'),
+              },
+            ));
           }
         },
         beforeOpen: (details) async {

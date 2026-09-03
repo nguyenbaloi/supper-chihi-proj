@@ -2,8 +2,8 @@ import 'package:meta/meta.dart';
 
 /// Nhóm phân loại Dự án — FR-1.
 @immutable
-final class Topic {
-  const Topic({
+final class Area {
+  const Area({
     required this.id,
     required this.name,
     required this.colorValue,
@@ -24,17 +24,17 @@ final class Topic {
 
   final int sortOrder;
 
-  /// Chủ đề `Khác` — không xoá được, là nơi Dự án chuyển về khi Chủ đề cũ
+  /// Lĩnh vực `Khác` — không xoá được, là nơi Dự án chuyển về khi Lĩnh vực cũ
   /// bị xoá (FR-1).
   final bool isSystemFallback;
 
-  Topic copyWith({
+  Area copyWith({
     String? name,
     int? colorValue,
     String? iconKey,
     int? sortOrder,
   }) =>
-      Topic(
+      Area(
         id: id,
         name: name ?? this.name,
         colorValue: colorValue ?? this.colorValue,
@@ -44,7 +44,7 @@ final class Topic {
       );
 
   @override
-  bool operator ==(Object other) => other is Topic && other.id == id;
+  bool operator ==(Object other) => other is Area && other.id == id;
 
   @override
   int get hashCode => id.hashCode;

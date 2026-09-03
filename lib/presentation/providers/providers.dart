@@ -11,13 +11,13 @@ import '../../data/repositories/drift_content_repositories.dart';
 import '../../data/repositories/drift_project_repository.dart';
 import '../../data/repositories/drift_review_repository.dart';
 import '../../data/repositories/drift_search_repository.dart';
-import '../../data/repositories/drift_topic_repository.dart';
+import '../../data/repositories/drift_area_repository.dart';
 import '../../data/seed/seeder.dart';
 import '../../domain/models/note.dart';
 import '../../domain/models/project.dart';
 import '../../domain/models/project_action.dart';
 import '../../domain/models/review.dart';
-import '../../domain/models/topic.dart';
+import '../../domain/models/area.dart';
 import '../../domain/repositories/repositories.dart';
 
 /// Ghi đè trong test bằng `AppDatabase(NativeDatabase.memory())`.
@@ -27,8 +27,8 @@ final databaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
-final topicRepositoryProvider = Provider<TopicRepository>(
-  (ref) => DriftTopicRepository(ref.watch(databaseProvider)),
+final areaRepositoryProvider = Provider<AreaRepository>(
+  (ref) => DriftAreaRepository(ref.watch(databaseProvider)),
 );
 
 final projectRepositoryProvider = Provider<ProjectRepository>(
@@ -71,8 +71,8 @@ final settingsProvider = StreamProvider<AppSettingsData>(
   (ref) => ref.watch(settingsRepositoryProvider).watch(),
 );
 
-final topicsProvider = StreamProvider<List<Topic>>(
-  (ref) => ref.watch(topicRepositoryProvider).watchAll(),
+final areasProvider = StreamProvider<List<Area>>(
+  (ref) => ref.watch(areaRepositoryProvider).watchAll(),
 );
 
 /// Bộ lọc danh sách Dự án. Ghi nhớ giữa các lần mở app được xử lý ở
@@ -91,10 +91,10 @@ class ProjectFilterController extends Notifier<ProjectFilter> {
   void toggleIncludeClosed() =>
       state = state.copyWith(includeClosed: !state.includeClosed);
 
-  void toggleTopic(int topicId) {
-    final next = {...state.topicIds};
-    next.contains(topicId) ? next.remove(topicId) : next.add(topicId);
-    state = state.copyWith(topicIds: next);
+  void toggleArea(int areaId) {
+    final next = {...state.areaIds};
+    next.contains(areaId) ? next.remove(areaId) : next.add(areaId);
+    state = state.copyWith(areaIds: next);
   }
 
   void clear() => state = const ProjectFilter();

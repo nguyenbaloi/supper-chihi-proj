@@ -35,14 +35,14 @@ class StatsScreen extends ConsumerWidget {
     final overall = computeStats(actions, now);
     final byProject = {for (final s in summaries) s.project.id: s};
 
-    // Gom theo Chủ đề: đây là cách người dùng nghĩ về đời sống dự án của mình.
-    final byTopic = <String, List<ProjectAction>>{};
-    final topicColor = <String, int>{};
+    // Gom theo Lĩnh vực: đây là cách người dùng nghĩ về đời sống dự án của mình.
+    final byArea = <String, List<ProjectAction>>{};
+    final areaColor = <String, int>{};
     for (final a in actions) {
       final s = byProject[a.projectId];
       if (s == null) continue;
-      byTopic.putIfAbsent(s.topic.name, () => []).add(a);
-      topicColor[s.topic.name] = s.topic.colorValue;
+      byArea.putIfAbsent(s.area.name, () => []).add(a);
+      areaColor[s.area.name] = s.area.colorValue;
     }
 
     return ListView(
@@ -74,11 +74,11 @@ class StatsScreen extends ConsumerWidget {
         _Section(title: S.statsByOutcome),
         _OutcomeBars(stats: overall),
         const Divider(height: 24),
-        _Section(title: S.statsByTopic),
-        for (final entry in byTopic.entries)
-          _TopicRow(
+        _Section(title: S.statsByArea),
+        for (final entry in byArea.entries)
+          _AreaRow(
             name: entry.key,
-            colorValue: topicColor[entry.key] ?? 0xFF90A4AE,
+            colorValue: areaColor[entry.key] ?? 0xFF90A4AE,
             stats: computeStats(entry.value, now),
           ),
       ],
@@ -202,8 +202,8 @@ class _OutcomeBars extends StatelessWidget {
       };
 }
 
-class _TopicRow extends StatelessWidget {
-  const _TopicRow({
+class _AreaRow extends StatelessWidget {
+  const _AreaRow({
     required this.name,
     required this.colorValue,
     required this.stats,

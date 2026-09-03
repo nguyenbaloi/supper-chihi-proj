@@ -69,8 +69,8 @@ class _RootState extends ConsumerState<_Root> {
   @override
   void initState() {
     super.initState();
-    // FR-1: sáu Chủ đề luôn tồn tại, kể cả sau khi xoá sạch dữ liệu.
-    _bootstrap = ref.read(seederProvider).ensureTopics();
+    // FR-1: sáu Lĩnh vực luôn tồn tại, kể cả sau khi xoá sạch dữ liệu.
+    _bootstrap = ref.read(seederProvider).ensureAreas();
   }
 
   @override

@@ -2,15 +2,15 @@ import '../../domain/models/enums.dart';
 import '../../domain/models/note.dart';
 import '../../domain/models/project.dart';
 import '../../domain/models/project_action.dart';
-import '../../domain/models/topic.dart';
+import '../../domain/models/area.dart';
 import '../db/database.dart';
 
 /// Chuyển hàng Drift sang model của `domain`.
 ///
 /// Đọc trạng thái luôn đi qua `fromWire`, nên một chuỗi lạ trong cơ sở dữ
 /// liệu về giá trị mặc định thay vì làm chết màn hình — AD-9.
-extension TopicMapper on TopicRow {
-  Topic toModel() => Topic(
+extension AreaMapper on AreaRow {
+  Area toModel() => Area(
         id: id,
         name: name,
         colorValue: colorValue,
@@ -23,7 +23,7 @@ extension TopicMapper on TopicRow {
 extension ProjectMapper on ProjectRow {
   Project toModel() => Project(
         id: id,
-        topicId: topicId,
+        areaId: areaId,
         name: name,
         description: description,
         status: ProjectStatus.fromWire(status),

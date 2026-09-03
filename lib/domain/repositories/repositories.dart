@@ -8,21 +8,21 @@ import '../models/note.dart';
 import '../models/project.dart';
 import '../models/project_action.dart';
 import '../models/review.dart';
-import '../models/topic.dart';
+import '../models/area.dart';
 
 /// Dự án kèm đúng những con số suy ra được để dựng một dòng danh sách —
 /// tính tại chỗ mỗi lần đọc, không lưu (AD-3).
 final class ProjectSummary {
   const ProjectSummary({
     required this.project,
-    required this.topic,
+    required this.area,
     required this.doneCount,
     required this.countedTotal,
     required this.lastActivityAt,
   });
 
   final Project project;
-  final Topic topic;
+  final Area area;
   final int doneCount;
   final int countedTotal;
   final DateTime? lastActivityAt;
@@ -31,7 +31,7 @@ final class ProjectSummary {
 final class ProjectFilter {
   const ProjectFilter({
     this.statuses = const {},
-    this.topicIds = const {},
+    this.areaIds = const {},
     this.includeClosed = false,
     this.sort = ProjectSort.priority,
   });
@@ -39,8 +39,8 @@ final class ProjectFilter {
   /// Rỗng nghĩa là không lọc theo trạng thái.
   final Set<ProjectStatus> statuses;
 
-  /// Rỗng nghĩa là không lọc theo Chủ đề.
-  final Set<int> topicIds;
+  /// Rỗng nghĩa là không lọc theo Lĩnh vực.
+  final Set<int> areaIds;
 
   /// Mặc định ẩn `Xong` và `Bỏ` — FR-10.
   final bool includeClosed;
@@ -49,13 +49,13 @@ final class ProjectFilter {
 
   ProjectFilter copyWith({
     Set<ProjectStatus>? statuses,
-    Set<int>? topicIds,
+    Set<int>? areaIds,
     bool? includeClosed,
     ProjectSort? sort,
   }) =>
       ProjectFilter(
         statuses: statuses ?? this.statuses,
-        topicIds: topicIds ?? this.topicIds,
+        areaIds: areaIds ?? this.areaIds,
         includeClosed: includeClosed ?? this.includeClosed,
         sort: sort ?? this.sort,
       );
@@ -78,14 +78,14 @@ enum ProjectSort {
   }
 }
 
-abstract interface class TopicRepository {
-  Stream<List<Topic>> watchAll();
-  Future<List<Topic>> getAll();
-  Future<Topic> create({required String name, required int colorValue, required String iconKey});
-  Future<void> update(Topic topic);
+abstract interface class AreaRepository {
+  Stream<List<Area>> watchAll();
+  Future<List<Area>> getAll();
+  Future<Area> create({required String name, required int colorValue, required String iconKey});
+  Future<void> update(Area area);
 
-  /// Xoá Chủ đề; Dự án thuộc nó chuyển về Chủ đề `Khác`, không bị xoá (FR-1).
-  /// Chủ đề `Khác` không xoá được.
+  /// Xoá Lĩnh vực; Dự án thuộc nó chuyển về Lĩnh vực `Khác`, không bị xoá (FR-1).
+  /// Lĩnh vực `Khác` không xoá được.
   Future<void> delete(int id);
 }
 
@@ -97,7 +97,7 @@ abstract interface class ProjectRepository {
   Future<Project> create({
     required String name,
     String description = '',
-    int? topicId,
+    int? areaId,
     Priority priority = Priority.medium,
     DateTime? dueDate,
   });

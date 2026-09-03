@@ -3,7 +3,7 @@ import 'package:drift/drift.dart';
 import '../../domain/models/enums.dart';
 import '../../domain/models/note.dart' show StatusEvent;
 import '../../domain/models/project.dart';
-import '../../domain/models/topic.dart';
+import '../../domain/models/area.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../domain/rules/slugify.dart';
 import '../db/database.dart';
@@ -16,7 +16,7 @@ class DriftProjectRepository implements ProjectRepository {
   final AppDatabase _db;
   final DateTime Function() _now;
 
-  /// Một câu lệnh duy nhất trả về Dự án, Chủ đề và ba giá trị suy ra.
+  /// Một câu lệnh duy nhất trả về Dự án, Lĩnh vực và ba giá trị suy ra.
   ///
   /// Không N+1 (NFR-1): số Hành động và mốc hoạt động gần nhất được tính
   /// bằng truy vấn con tương quan, không bằng một vòng lặp truy vấn.
@@ -36,14 +36,14 @@ SELECT
      JOIN actions a ON a.id = se.entity_id
     WHERE se.entity_type = 'action' AND a.project_id = p.id)   AS last_activity
 FROM projects p
-JOIN topics t ON t.id = p.topic_id
+JOIN areas t ON t.id = p.area_id
 ''';
 
   @override
   Stream<List<ProjectSummary>> watchSummaries(ProjectFilter filter) => _db
       .customSelect(
         _summarySql,
-        readsFrom: {_db.projects, _db.topics, _db.actions, _db.statusEvents},
+        readsFrom: {_db.projects, _db.areas, _db.actions, _db.statusEvents},
       )
       .watch()
       .map((rows) => _applyFilter(rows.map(_toSummary).toList(), filter));
@@ -53,7 +53,7 @@ JOIN topics t ON t.id = p.topic_id
     return ProjectSummary(
       project: Project(
         id: row.read<int>('id'),
-        topicId: row.read<int>('topic_id'),
+        areaId: row.read<int>('area_id'),
         name: row.read<String>('name'),
         description: row.read<String>('description'),
         status: ProjectStatus.fromWire(row.read<String>('status')),
@@ -64,8 +64,8 @@ JOIN topics t ON t.id = p.topic_id
         startedAt: row.readNullable<DateTime>('started_at'),
         completedAt: row.readNullable<DateTime>('completed_at'),
       ),
-      topic: Topic(
-        id: row.read<int>('topic_id'),
+      area: Area(
+        id: row.read<int>('area_id'),
         name: row.read<String>('t_name'),
         colorValue: row.read<int>('t_color_value'),
         iconKey: row.read<String>('t_icon_key'),
@@ -84,7 +84,7 @@ JOIN topics t ON t.id = p.topic_id
       final status = s.project.status;
       if (!f.includeClosed && !status.isOpen) return false;
       if (f.statuses.isNotEmpty && !f.statuses.contains(status)) return false;
-      if (f.topicIds.isNotEmpty && !f.topicIds.contains(s.project.topicId)) {
+      if (f.areaIds.isNotEmpty && !f.areaIds.contains(s.project.areaId)) {
         return false;
       }
       return true;
@@ -138,15 +138,15 @@ JOIN topics t ON t.id = p.topic_id
   Future<Project> create({
     required String name,
     String description = '',
-    int? topicId,
+    int? areaId,
     Priority priority = Priority.medium,
     DateTime? dueDate,
   }) async {
     final now = _now().toUtc();
-    final resolvedTopicId = topicId ?? await _fallbackTopicId();
+    final resolvedAreaId = areaId ?? await _fallbackAreaId();
     final id = await _db.into(_db.projects).insert(
           ProjectsCompanion.insert(
-            topicId: resolvedTopicId,
+            areaId: resolvedAreaId,
             name: name,
             description: Value(description),
             status: ProjectStatus.notStarted.wire,
@@ -159,7 +159,7 @@ JOIN topics t ON t.id = p.topic_id
         );
     return Project(
       id: id,
-      topicId: resolvedTopicId,
+      areaId: resolvedAreaId,
       name: name,
       description: description,
       status: ProjectStatus.notStarted,
@@ -170,13 +170,13 @@ JOIN topics t ON t.id = p.topic_id
     );
   }
 
-  Future<int> _fallbackTopicId() async {
-    final row = await (_db.select(_db.topics)
+  Future<int> _fallbackAreaId() async {
+    final row = await (_db.select(_db.areas)
           ..where((t) => t.isSystemFallback.equals(true))
           ..limit(1))
         .getSingleOrNull();
     if (row != null) return row.id;
-    final any = await (_db.select(_db.topics)..limit(1)).getSingle();
+    final any = await (_db.select(_db.areas)..limit(1)).getSingle();
     return any.id;
   }
 
@@ -186,7 +186,7 @@ JOIN topics t ON t.id = p.topic_id
   Future<void> update(Project project) async {
     await (_db.update(_db.projects)..where((p) => p.id.equals(project.id))).write(
       ProjectsCompanion(
-        topicId: Value(project.topicId),
+        areaId: Value(project.areaId),
         name: Value(project.name),
         description: Value(project.description),
         priority: Value(project.priority.wire),

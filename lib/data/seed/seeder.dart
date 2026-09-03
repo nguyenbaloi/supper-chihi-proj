@@ -8,24 +8,24 @@ import 'seed_data.dart';
 
 /// Nạp dữ liệu hạt giống — FR-1, FR-2, FR-3, FR-4.
 ///
-/// Chạy lại **không nhân đôi** bản ghi: đối chiếu theo tên Chủ đề và tên Dự án.
+/// Chạy lại **không nhân đôi** bản ghi: đối chiếu theo tên Lĩnh vực và tên Dự án.
 class Seeder {
   Seeder(this._db, {DateTime Function()? clock}) : _now = clock ?? DateTime.now;
 
   final AppDatabase _db;
   final DateTime Function() _now;
 
-  /// FR-1: sáu Chủ đề chuẩn. Gọi ở mỗi lần mở app — người dùng không bao giờ
-  /// gặp danh sách Chủ đề rỗng, kể cả sau khi xoá sạch dữ liệu.
-  Future<void> ensureTopics() async {
+  /// FR-1: sáu Lĩnh vực chuẩn. Gọi ở mỗi lần mở app — người dùng không bao giờ
+  /// gặp danh sách Lĩnh vực rỗng, kể cả sau khi xoá sạch dữ liệu.
+  Future<void> ensureAreas() async {
     await _db.transaction(() async {
-      final existing = await _db.select(_db.topics).get();
+      final existing = await _db.select(_db.areas).get();
       final byName = {for (final t in existing) t.name: t};
-      for (var i = 0; i < seedTopics.length; i++) {
-        final seed = seedTopics[i];
+      for (var i = 0; i < seedAreas.length; i++) {
+        final seed = seedAreas[i];
         if (byName.containsKey(seed.name)) continue;
-        await _db.into(_db.topics).insert(
-              TopicsCompanion.insert(
+        await _db.into(_db.areas).insert(
+              AreasCompanion.insert(
                 name: seed.name,
                 colorValue: seed.colorValue,
                 iconKey: seed.iconKey,
@@ -42,15 +42,15 @@ class Seeder {
   ///
   /// Chạy hai lần liên tiếp cho ra kết quả giống hệt chạy một lần.
   Future<void> applyProjectSeed() async {
-    await ensureTopics();
+    await ensureAreas();
     await _db.transaction(() async {
-      final topics = await _db.select(_db.topics).get();
-      final topicIdByName = {for (final t in topics) t.name: t.id};
-      final topicIdByKey = <String, int>{
-        for (final s in seedTopics)
-          if (topicIdByName.containsKey(s.name)) s.key: topicIdByName[s.name]!,
+      final areas = await _db.select(_db.areas).get();
+      final areaIdByName = {for (final t in areas) t.name: t.id};
+      final areaIdByKey = <String, int>{
+        for (final s in seedAreas)
+          if (areaIdByName.containsKey(s.name)) s.key: areaIdByName[s.name]!,
       };
-      final fallbackId = topicIdByKey['other'] ?? topics.first.id;
+      final fallbackId = areaIdByKey['other'] ?? areas.first.id;
 
       final existingProjects = await _db.select(_db.projects).get();
       final projectIdByName = {for (final p in existingProjects) p.name: p.id};
@@ -61,7 +61,7 @@ class Seeder {
 
         final projectId = await _db.into(_db.projects).insert(
               ProjectsCompanion.insert(
-                topicId: topicIdByKey[seed.topicKey] ?? fallbackId,
+                areaId: areaIdByKey[seed.areaKey] ?? fallbackId,
                 name: seed.name,
                 description: Value(seed.description),
                 status: ProjectStatus.active.wire,

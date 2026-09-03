@@ -10,7 +10,7 @@ import 'enums.dart';
 final class Project {
   const Project({
     required this.id,
-    required this.topicId,
+    required this.areaId,
     required this.name,
     required this.description,
     required this.status,
@@ -23,7 +23,7 @@ final class Project {
   });
 
   final int id;
-  final int topicId;
+  final int areaId;
   final String name;
   final String description;
   final ProjectStatus status;
@@ -43,7 +43,7 @@ final class Project {
   final DateTime? completedAt;
 
   Project copyWith({
-    int? topicId,
+    int? areaId,
     String? name,
     String? description,
     ProjectStatus? status,
@@ -57,7 +57,7 @@ final class Project {
   }) =>
       Project(
         id: id,
-        topicId: topicId ?? this.topicId,
+        areaId: areaId ?? this.areaId,
         name: name ?? this.name,
         description: description ?? this.description,
         status: status ?? this.status,

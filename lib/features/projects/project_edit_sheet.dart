@@ -32,7 +32,7 @@ class _ProjectEditSheetState extends ConsumerState<_ProjectEditSheet> {
   late final TextEditingController _description =
       TextEditingController(text: widget.existing?.description ?? '');
   late Priority _priority = widget.existing?.priority ?? Priority.medium;
-  late int? _topicId = widget.existing?.topicId;
+  late int? _areaId = widget.existing?.areaId;
   late DateTime? _dueDate = widget.existing?.dueDate;
   String? _error;
   bool _busy = false;
@@ -60,7 +60,7 @@ class _ProjectEditSheetState extends ConsumerState<_ProjectEditSheet> {
       final created = await repo.create(
         name: name,
         description: _description.text.trim(),
-        topicId: _topicId,
+        areaId: _areaId,
         priority: _priority,
         dueDate: _dueDate,
       );
@@ -70,7 +70,7 @@ class _ProjectEditSheetState extends ConsumerState<_ProjectEditSheet> {
         widget.existing!.copyWith(
           name: name,
           description: _description.text.trim(),
-          topicId: _topicId,
+          areaId: _areaId,
           priority: _priority,
           dueDate: _dueDate,
           clearDueDate: _dueDate == null,
@@ -83,7 +83,7 @@ class _ProjectEditSheetState extends ConsumerState<_ProjectEditSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final topics = ref.watch(topicsProvider).value ?? const [];
+    final areas = ref.watch(areasProvider).value ?? const [];
     final inset = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -122,16 +122,16 @@ class _ProjectEditSheetState extends ConsumerState<_ProjectEditSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<int>(
-              initialValue: _topicId,
+              initialValue: _areaId,
               decoration: const InputDecoration(
-                labelText: S.projectTopic,
+                labelText: S.projectArea,
                 border: OutlineInputBorder(),
               ),
               items: [
-                for (final t in topics)
+                for (final t in areas)
                   DropdownMenuItem(value: t.id, child: Text(t.name)),
               ],
-              onChanged: (v) => setState(() => _topicId = v),
+              onChanged: (v) => setState(() => _areaId = v),
             ),
             const SizedBox(height: 12),
             SegmentedButton<Priority>(

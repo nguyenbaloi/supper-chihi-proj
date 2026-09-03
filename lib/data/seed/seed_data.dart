@@ -9,8 +9,8 @@ library;
 
 import '../../domain/models/enums.dart';
 
-final class SeedTopic {
-  const SeedTopic(this.key, this.name, this.colorValue, this.iconKey,
+final class SeedArea {
+  const SeedArea(this.key, this.name, this.colorValue, this.iconKey,
       {this.isFallback = false});
 
   final String key;
@@ -20,14 +20,14 @@ final class SeedTopic {
   final bool isFallback;
 }
 
-/// FR-1: sáu Chủ đề dựng sẵn. `Khác` là Chủ đề hệ thống, không xoá được.
-const List<SeedTopic> seedTopics = [
-  SeedTopic('family', 'Gia đình', 0xFFE57373, 'family'),
-  SeedTopic('income', 'Thu nhập', 0xFF4DB6AC, 'income'),
-  SeedTopic('finance', 'Tài chính', 0xFF7986CB, 'finance'),
-  SeedTopic('health', 'Sức khoẻ', 0xFF81C784, 'health'),
-  SeedTopic('learning', 'Học tập', 0xFFFFB74D, 'learning'),
-  SeedTopic('other', 'Khác', 0xFF90A4AE, 'other', isFallback: true),
+/// FR-1: sáu Lĩnh vực dựng sẵn. `Khác` là Lĩnh vực hệ thống, không xoá được.
+const List<SeedArea> seedAreas = [
+  SeedArea('family', 'Gia đình', 0xFFE57373, 'family'),
+  SeedArea('income', 'Thu nhập', 0xFF4DB6AC, 'income'),
+  SeedArea('finance', 'Tài chính', 0xFF7986CB, 'finance'),
+  SeedArea('health', 'Sức khoẻ', 0xFF81C784, 'health'),
+  SeedArea('learning', 'Học tập', 0xFFFFB74D, 'learning'),
+  SeedArea('other', 'Khác', 0xFF90A4AE, 'other', isFallback: true),
 ];
 
 final class SeedAction {
@@ -75,7 +75,7 @@ final class SeedReview {
 final class SeedProject {
   const SeedProject({
     required this.name,
-    required this.topicKey,
+    required this.areaKey,
     this.description = '',
     this.priority = Priority.medium,
     this.actions = const [],
@@ -85,7 +85,7 @@ final class SeedProject {
   });
 
   final String name;
-  final String topicKey;
+  final String areaKey;
   final String description;
   final Priority priority;
   final List<SeedAction> actions;
@@ -179,17 +179,17 @@ const String _channelNote = '''
 final List<SeedProject> seedProjects = [
   SeedProject(
     name: 'Học tiếng Anh của con',
-    topicKey: 'family',
+    areaKey: 'family',
     description: 'Đồng hành cùng con học tiếng Anh.',
   ),
   SeedProject(
     name: 'Học toán của con',
-    topicKey: 'family',
+    areaKey: 'family',
     description: 'Toán tư duy cho con.',
   ),
   SeedProject(
     name: 'Dạy Huy',
-    topicKey: 'family',
+    areaKey: 'family',
     priority: Priority.high,
     description:
         'Lập kế hoạch và theo dõi tiến bộ của con theo mốc thời gian. '
@@ -273,7 +273,7 @@ final List<SeedProject> seedProjects = [
   ),
   SeedProject(
     name: 'Kênh TikTok, YouTube tiếp thị liên kết',
-    topicKey: 'income',
+    areaKey: 'income',
     priority: Priority.high,
     description: 'Nguồn thu nhập thụ động ngoài làm thuê.',
     notes: [SeedNote('Định hướng kênh và đối tượng', _channelNote)],
@@ -285,7 +285,7 @@ final List<SeedProject> seedProjects = [
   ),
   SeedProject(
     name: 'Kế hoạch tài chính',
-    topicKey: 'finance',
+    areaKey: 'finance',
     priority: Priority.high,
     description:
         'Giai đoạn thắt lưng buộc bụng — tập trung mua tài sản. Hướng về gia đình, vợ con.',
@@ -312,13 +312,13 @@ final List<SeedProject> seedProjects = [
   ),
   SeedProject(
     name: 'Viết app đẩy store kiếm thu nhập',
-    topicKey: 'income',
+    areaKey: 'income',
     priority: Priority.high,
     description: 'Làm ứng dụng tài chính đẩy lên store.',
   ),
   SeedProject(
     name: 'Kiểm soát sức khoẻ bản thân',
-    topicKey: 'health',
+    areaKey: 'health',
   ),
 ];
 

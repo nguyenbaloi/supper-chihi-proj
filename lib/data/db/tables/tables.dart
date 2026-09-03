@@ -9,23 +9,23 @@ import 'package:drift/drift.dart';
 ///
 /// AD-9: trạng thái lưu bằng chuỗi định danh ổn định, không bằng chỉ số enum.
 
-@DataClassName('TopicRow')
-class Topics extends Table {
+@DataClassName('AreaRow')
+class Areas extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get name => text().withLength(min: 1, max: 60)();
   IntColumn get colorValue => integer()();
   TextColumn get iconKey => text().withLength(max: 40)();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 
-  /// Chủ đề `Khác` — không xoá được, là nơi Dự án chuyển về (FR-1).
+  /// Lĩnh vực `Khác` — không xoá được, là nơi Dự án chuyển về (FR-1).
   BoolColumn get isSystemFallback => boolean().withDefault(const Constant(false))();
 }
 
 @DataClassName('ProjectRow')
 class Projects extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get topicId =>
-      integer().references(Topics, #id, onDelete: KeyAction.restrict)();
+  IntColumn get areaId =>
+      integer().references(Areas, #id, onDelete: KeyAction.restrict)();
   TextColumn get name => text().withLength(min: 1, max: 200)();
   TextColumn get description => text().withDefault(const Constant(''))();
   TextColumn get status => text().withLength(max: 20)();

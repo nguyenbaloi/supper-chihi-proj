@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/format/vn_format.dart';
 import '../../core/l10n/strings.dart';
 import '../../domain/models/enums.dart';
-import '../../domain/models/topic.dart';
+import '../../domain/models/area.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../domain/rules/completion.dart';
 import '../../domain/rules/day.dart';
@@ -14,11 +14,11 @@ import '../../presentation/widgets/chips.dart';
 import 'project_detail_screen.dart';
 import 'project_edit_sheet.dart';
 
-/// Danh sách Dự án **nhóm theo Chủ đề** — FR-45.
+/// Danh sách Dự án **nhóm theo Lĩnh vực** — FR-45.
 ///
-/// Trước đây đây là một danh sách phẳng, và với bảy dự án trải trên bốn chủ đề
+/// Trước đây đây là một danh sách phẳng, và với bảy dự án trải trên bốn lĩnh vực
 /// thì không nhìn ra được mảng nào đang nặng, mảng nào đang bỏ trống. Nhóm theo
-/// Chủ đề trả lại đúng cách người dùng đã tự tổ chức trong hai file gốc.
+/// Lĩnh vực trả lại đúng cách người dùng đã tự tổ chức trong hai file gốc.
 class ProjectsScreen extends ConsumerWidget {
   const ProjectsScreen({super.key});
 
@@ -26,7 +26,7 @@ class ProjectsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summaries = ref.watch(projectSummariesProvider);
     final filter = ref.watch(projectFilterProvider);
-    final topics = ref.watch(topicsProvider).value ?? const <Topic>[];
+    final areas = ref.watch(areasProvider).value ?? const <Area>[];
 
     return Scaffold(
       body: Column(
@@ -39,7 +39,7 @@ class ProjectsScreen extends ConsumerWidget {
               error: (e, _) => Center(child: Text('$e')),
               data: (list) => list.isEmpty
                   ? const _EmptyProjects()
-                  : _GroupedList(summaries: list, topics: topics),
+                  : _GroupedList(summaries: list, areas: areas),
             ),
           ),
         ],
@@ -54,26 +54,26 @@ class ProjectsScreen extends ConsumerWidget {
 }
 
 class _GroupedList extends StatelessWidget {
-  const _GroupedList({required this.summaries, required this.topics});
+  const _GroupedList({required this.summaries, required this.areas});
 
   final List<ProjectSummary> summaries;
-  final List<Topic> topics;
+  final List<Area> areas;
 
   @override
   Widget build(BuildContext context) {
-    final byTopic = <int, List<ProjectSummary>>{};
+    final byArea = <int, List<ProjectSummary>>{};
     for (final s in summaries) {
-      byTopic.putIfAbsent(s.project.topicId, () => []).add(s);
+      byArea.putIfAbsent(s.project.areaId, () => []).add(s);
     }
-    // Giữ đúng thứ tự Chủ đề người dùng đã đặt; chủ đề rỗng thì không hiện.
-    final ordered = topics.where((t) => byTopic.containsKey(t.id)).toList();
+    // Giữ đúng thứ tự Lĩnh vực người dùng đã đặt; lĩnh vực rỗng thì không hiện.
+    final ordered = areas.where((t) => byArea.containsKey(t.id)).toList();
 
     return ListView(
       padding: const EdgeInsets.only(bottom: 88),
       children: [
-        for (final topic in ordered) ...[
-          _TopicHeader(topic: topic, projects: byTopic[topic.id]!),
-          for (final s in byTopic[topic.id]!) _ProjectCard(summary: s),
+        for (final area in ordered) ...[
+          _AreaHeader(area: area, projects: byArea[area.id]!),
+          for (final s in byArea[area.id]!) _ProjectCard(summary: s),
           const SizedBox(height: 8),
         ],
       ],
@@ -81,16 +81,16 @@ class _GroupedList extends StatelessWidget {
   }
 }
 
-class _TopicHeader extends StatelessWidget {
-  const _TopicHeader({required this.topic, required this.projects});
+class _AreaHeader extends StatelessWidget {
+  const _AreaHeader({required this.area, required this.projects});
 
-  final Topic topic;
+  final Area area;
   final List<ProjectSummary> projects;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = Color(topic.colorValue);
+    final color = Color(area.colorValue);
     final done = projects.fold<int>(0, (n, s) => n + s.doneCount);
     final total = projects.fold<int>(0, (n, s) => n + s.countedTotal);
 
@@ -114,7 +114,7 @@ class _TopicHeader extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              topic.name,
+              area.name,
               style: theme.textTheme.titleSmall
                   ?.copyWith(fontWeight: FontWeight.w700, color: color),
             ),
@@ -294,7 +294,7 @@ class _FilterBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(projectFilterProvider.notifier);
-    final topics = ref.watch(topicsProvider).value ?? const <Topic>[];
+    final areas = ref.watch(areasProvider).value ?? const <Area>[];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -322,12 +322,12 @@ class _FilterBar extends ConsumerWidget {
             selected: filter.includeClosed,
             onSelected: (_) => controller.toggleIncludeClosed(),
           ),
-          for (final t in topics) ...[
+          for (final t in areas) ...[
             const SizedBox(width: 8),
             FilterChip(
               label: Text(t.name),
-              selected: filter.topicIds.contains(t.id),
-              onSelected: (_) => controller.toggleTopic(t.id),
+              selected: filter.areaIds.contains(t.id),
+              onSelected: (_) => controller.toggleArea(t.id),
             ),
           ],
         ],
