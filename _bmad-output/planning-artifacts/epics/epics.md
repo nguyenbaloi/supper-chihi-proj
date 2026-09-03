@@ -458,3 +458,73 @@ và tạo đợt thứ ba chỉ mất vài chạm nhờ kế thừa các mục c
 - Đợt `07/08` có 5 Mục đúng kết quả: 3 `Đạt`, 2 `Chưa đạt`.
 - Ghi chú `Những việc cha mẹ đang làm sai` được nạp đầy đủ 5 điểm.
 - Chạy lại bộ hạt giống không nhân đôi Đợt đánh giá.
+
+## Epic 8: Cấu trúc PARA
+
+**Nguồn:** đề xuất `_bmad-output/planning-artifacts/proposals/para-2026-09-03/PROPOSAL-PARA.md`,
+chốt ngày 2026-09-03. Ràng buộc bởi AD-17…AD-20, thực hiện FR-46…FR-52.
+
+**Kết thúc Epic:** người dùng mở app, thấy sáu **Lĩnh vực** mỗi cái có tiêu
+chuẩn và nhịp xem lại riêng; xoá một Dự án cũ mà ghi chú vẫn còn; cất những
+thứ đã nguội đi mà không phải nói dối rằng chúng đã `Bỏ`.
+
+### Story 8.1: Đổi tên Topic → Area, migration lên phiên bản 4
+
+**Nghiệm thu:**
+- Bảng `topics` → `areas`; `projects.topic_id` → `projects.area_id`; `schemaVersion` lên 4.
+- Lớp `Topic` → `Area`, `TopicRow` → `AreaRow`, `DriftTopicRepository` → `DriftAreaRepository`, `topicsProvider` → `areasProvider`, nhãn l10n *Chủ đề* → *Lĩnh vực*.
+- `grep -ri "topic\|chủ đề" lib/ test/ docs/` không còn kết quả nào.
+- **Test `migrateAndValidate` từ v3 lên v4**, dựng DB v3 có dữ liệu rồi nâng cấp, so từng dòng — AD-10.
+- Chụp lại `drift_schemas/` và sinh lại helper kiểm thử.
+
+### Story 8.2: Tiêu chuẩn và nhịp xem lại — FR-47, FR-48
+
+**Nghiệm thu:**
+- Cột `standard` (text, mặc định rỗng) và `review_cadence_days` (int nullable) trên `areas`.
+- Không cột `nextReviewDate` hay `isDueForReview` trên `areas` — kiểm bằng test schema guard, AD-3.
+- Ngày đến hạn xem lại tính tại chỗ; **test: xoá Đợt gần nhất thì ngày đến hạn lùi về theo Đợt trước đó**.
+- Nhịp để trống thì không sinh nhắc nhở nào — test khẳng định.
+
+### Story 8.3: Đợt đánh giá cấp Lĩnh vực — FR-49
+
+**Nghiệm thu:**
+- `reviews.project_id` chuyển sang nullable, thêm `reviews.area_id` nullable, ràng buộc XOR ở tầng bảng — AD-19.
+- Mọi Đợt có sẵn sau migration vẫn thuộc đúng Dự án cũ.
+- Nạp sẵn Mục từ tên Dự án đang mở là **chép văn bản**; **test: nạp xong rồi đổi tên Dự án, Mục cũ không đổi**.
+- Kế thừa Mục chưa đạt hoạt động ở cấp Lĩnh vực.
+
+### Story 8.4: Gỡ Tư liệu khỏi ràng buộc Dự án — FR-50
+
+**Nghiệm thu:**
+- `notes.project_id` và `links.project_id` nullable, `onDelete: setNull`; thêm `area_id` nullable; ràng buộc nhiều-nhất-một — AD-18.
+- Migration điền `area_id` cho mọi Ghi chú và Liên kết đang có, lấy từ Lĩnh vực của Dự án cha.
+- **Test: tạo Dự án có 2 Ghi chú và 1 Liên kết, xoá Dự án, cả ba còn nguyên và đã gắn vào Lĩnh vực cũ.**
+- Hộp xác nhận xoá Dự án nói đúng số lượng sẽ chuyển đi.
+- Màn hình *Tư liệu* với bộ lọc theo Lĩnh vực và *chưa gắn*.
+- `searchText` sinh lại sau mỗi lần chuyển chỗ.
+
+### Story 8.5: Lưu trữ — FR-51
+
+**Nghiệm thu:**
+- `archived_at` nullable trên bốn bảng; `ProjectStatus` **không đổi** — test khẳng định enum vẫn đúng năm giá trị.
+- Lưu trữ không ghi `StatusEvent`, không đụng `status`, `startedAt`, `completedAt`.
+- **Test: lưu trữ một Dự án `Đang làm` rồi đưa trở lại — `status` vẫn `Đang làm`, `startedAt` không đổi.**
+- Danh sách mặc định ẩn mục đã lưu trữ; bộ lọc hiện lại được.
+- Lưu trữ Dự án tự bỏ ghim Hành động của nó.
+- Lưu trữ Lĩnh vực còn Dự án mở thì cảnh báo mà vẫn cho làm; Dự án con **không** bị lưu trữ theo.
+
+### Story 8.6: Sao lưu phiên bản 4 và đọc lại file cũ
+
+**Nghiệm thu:**
+- `backupFormatVersion` 3 → 4; khoá mới `areas`, `standard`, `reviewCadenceDays`, `areaId`, `archivedAt`.
+- Đọc được file v1, v2, v3: khoá `topics` nạp vào `areas`, `archivedAt` thiếu thì để null, `areaId` của Ghi chú suy từ Dự án cha.
+- File v5 trở lên bị **từ chối**, không cố đọc.
+- **Test: xuất → xoá sạch → nhập, so khớp toàn bộ kể cả `createdAt`, `sortOrder`, `archivedAt`.**
+- `searchText` sinh lại khi nhập, không lấy từ file.
+
+### Story 8.7: Lĩnh vực đến hạn xem lại vào khối Cần chú ý — FR-52
+
+**Nghiệm thu:**
+- Dòng nhắc nằm ở *Cần chú ý*, dẫn tới màn hình Lĩnh vực, không tick được.
+- **Test: 6 Lĩnh vực cùng đến hạn, số phần tử của *Làm ngay* không đổi.**
+- Mỗi Lĩnh vực chỉ xuất hiện một lần.

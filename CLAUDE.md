@@ -6,8 +6,13 @@ Hướng dẫn cho Claude Code khi làm việc trong project này.
 
 App Flutter **quản lý dự án và mục tiêu cá nhân** — thay thế hai file `HÀNH ĐỘNG.pdf` và `Ý TƯỞNG.pdf` mà người dùng đang dùng làm nơi chứa bảy hướng đi cá nhân, danh sách hành động và mục tiêu dài hạn.
 
-Trật tự tổ chức: **Chủ đề nhóm Dự án, Dự án chứa Hành động.** Mỗi Hành động có
-độ ưu tiên và hạn riêng.
+Trật tự tổ chức: **Lĩnh vực nhóm Dự án, Dự án chứa Hành động.** Mỗi Hành động
+có độ ưu tiên và hạn riêng.
+
+Từ ngày 2026-09-03 app theo cấu trúc **PARA**: Dự án (có đích) · Lĩnh vực
+(trách nhiệm phải giữ) · Tư liệu (Ghi chú + Liên kết) · Lưu trữ. `Topic`/`Chủ
+đề` **đã đổi tên thành `Area`/`Lĩnh vực`** — từ cũ không còn hiệu lực ở bất kỳ
+đâu. Xem FR-46…FR-52, AD-17…AD-20, Epic 8.
 
 Tính năng **Mục tiêu đã bị bỏ hẳn** ngày 2026-08-28 theo yêu cầu người dùng —
 cả mã nguồn lẫn dữ liệu. Đừng thêm lại nếu không có yêu cầu mới rõ ràng.
@@ -30,7 +35,7 @@ Chạy `flutter` trần sẽ dùng bản 3.29.2 và **giải phụ thuộc thấ
 
 ## Quy tắc tuyệt đối
 
-Bốn quy tắc dưới đây sinh ra từ khuyết tật có thật của hai file PDF gốc và từ lỗi có thật ở project `personal_finance`. Vi phạm chúng làm hỏng sản phẩm theo kiểu **không báo lỗi** — chỉ lặng lẽ cho ra con số sai.
+Tám quy tắc dưới đây sinh ra từ khuyết tật có thật của hai file PDF gốc, từ lỗi có thật ở project `personal_finance`, và từ lỗi mất dữ liệu tìm thấy trong chính repo này ngày 2026-09-03 (quy tắc 7). Vi phạm chúng làm hỏng sản phẩm theo kiểu **không báo lỗi** — chỉ lặng lẽ cho ra con số sai.
 
 ### 1. Giá trị suy ra không bao giờ lưu cứng
 
@@ -90,7 +95,30 @@ dung được chấm lại ở nhiều mốc thời gian, kết quả `Đạt` /
 khoá ngoại tới `Action`. Sửa một Hành động về sau **không được** làm đổi nội
 dung một Đợt đánh giá quá khứ — nhật ký phải giữ đúng chữ đã viết lúc đó.
 
-### 6. Không có mạng, điểm
+### 6. Lưu trữ vuông góc với trạng thái
+
+Cất một thứ khỏi tầm mắt và nói nó đã kết thúc là hai chuyện khác nhau. Lưu
+trữ là cột `archivedAt` nullable trên `areas`, `projects`, `notes`, `links` —
+do repository ghi, **không** ghi `StatusEvent`, **không** đọc và không ghi cột
+`status`.
+
+Cấm tuyệt đối thêm `archived` vào `ProjectStatus` hay `ActionStatus`. Nó sẽ là
+từ đồng nghĩa của `dropped` và `paused`, và sẽ làm sai **mọi** phép tính đang
+dựa trên tập trạng thái đóng — tỷ lệ hoàn thành, cảnh báo nguội, thống kê theo
+hạn — mà không báo lỗi ở đâu cả.
+
+Một Dự án có thể vừa `Đang làm` vừa đã lưu trữ. Đó là chủ ý.
+
+### 7. Tư liệu không chết theo Dự án
+
+`Note` và `Link` gắn vào một Dự án, **hoặc** một Lĩnh vực, **hoặc** không gắn
+gì — nhiều nhất một cái. `projectId` dùng `onDelete: setNull`, không bao giờ
+`cascade`. Xoá một Dự án không được làm mất bài học đã ghi trong đó.
+
+`Review` khác một chút: **đúng một** trong `projectId` / `areaId` khác null,
+không cho phép cả hai cùng null. Cả hai đều `cascade`.
+
+### 8. Không có mạng, điểm
 
 Không có `lib/data/remote/`. Không có `package:http` trong `pubspec.yaml`. Không `HttpClient`, không phân tích hành vi, không thu thập số liệu sử dụng, không quảng cáo, không backend, không tài khoản, không đồng bộ.
 
@@ -151,7 +179,11 @@ AGP **8.11.1** · Kotlin **2.2.20** · Gradle **8.14** — khớp phiên bản F
 
 ## Thuật ngữ — dùng đúng, không đặt từ đồng nghĩa
 
-`Project` · `Action` · `Topic` · `Note` · `Link` · `StatusEvent` · `Review` · `ReviewItem`
+`Project` · `Action` · `Area` · `Note` · `Link` · `StatusEvent` · `Review` · `ReviewItem`
+
+Ba từ **cấm nhập vào mã nguồn**: `Topic` (đã đổi tên thành `Area`), `Resource`
+(từ đồng nghĩa gộp của `Note` và `Link` — AD-20; "Tư liệu" chỉ là nhãn nhóm ở
+giao diện), và `archived` như một giá trị trạng thái (AD-17).
 
 Tên lớp Dart của `Action` là **`ProjectAction`** — `Action` đã là một lớp của
 `package:flutter/widgets.dart`. Thuật ngữ, nhãn giao diện và tên bảng vẫn là

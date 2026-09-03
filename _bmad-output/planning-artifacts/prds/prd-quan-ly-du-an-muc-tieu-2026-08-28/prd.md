@@ -26,6 +26,9 @@ source_brief: "_bmad-output/planning-artifacts/briefs/brief-quan-ly-du-an-muc-ti
 > - **FR-29** màn hình Hôm nay — **viết lại**, xem FR-42 và FR-43.
 > - **§7 mục 1 và 2** — hết hiệu lực cùng với Mục tiêu.
 > - Thêm **§4.9** với FR-41…FR-45.
+> - **Bổ sung ngày 2026-09-03:** thêm **§4.10** với FR-46…FR-52 — cấu trúc
+>   PARA. `Chủ đề` đổi tên thành **Lĩnh vực** (`Topic` → `Area`) ở mọi chỗ
+>   trong tài liệu này, kể cả từ điển §3 và các FR viết trước.
 >
 > Phần văn bản gốc bên dưới được giữ nguyên làm hồ sơ, **không** phải mô tả sản
 > phẩm hiện tại ở những chỗ vừa nêu.
@@ -87,7 +90,9 @@ Từ trong cột **Thuật ngữ** là từ duy nhất được dùng trong code
 | **Hành động** | `Action` | Một việc cụ thể phải làm, luôn thuộc về đúng một Dự án. Tương ứng một dòng gạch đầu dòng trong file `HÀNH ĐỘNG` |
 | **Mục tiêu** | `Goal` | Đích đến dài hạn. Có thể có số (1 tỷ VND) hoặc không số (*"tìm thêm một nguồn thu nhập khác"*) |
 | **Mốc tiến độ** | `GoalUpdate` | Một lần ghi nhận giá trị của Mục tiêu tại một ngày. Chỉ áp dụng cho Mục tiêu có số |
-| **Chủ đề** | `Topic` | Nhóm phân loại Dự án: Gia đình, Thu nhập, Tài chính, Sức khoẻ, Học tập, Khác |
+| **Lĩnh vực** | `Area` | Mảng trách nhiệm phải giữ, không bao giờ kết thúc: Gia đình, Thu nhập, Tài chính, Sức khoẻ, Học tập, Khác. Có tiêu chuẩn cần giữ và nhịp xem lại. **Đổi tên từ `Topic`/Chủ đề ngày 2026-09-03 — từ cũ không còn hiệu lực ở bất kỳ đâu** |
+| **Tư liệu** | *(không có lớp)* | Nhãn nhóm ở giao diện, gộp `Note` và `Link`. **Không** là thực thể — AD-20 |
+| **Lưu trữ** | `archivedAt` | Cất khỏi tầm mắt. Vuông góc với trạng thái, **không** là một giá trị của `ProjectStatus` — AD-17 |
 | **Ghi chú** | `Note` | Nội dung dài dạng markdown gắn vào một Dự án — nguyên tắc, kiến thức, bài học |
 | **Liên kết** | `Link` | Một URL ngoài gắn vào một Dự án, kèm nhãn |
 | **Trạng thái Dự án** | `ProjectStatus` | `Chưa bắt đầu` · `Đang làm` · `Tạm dừng` · `Xong` · `Bỏ` |
@@ -515,6 +520,103 @@ hay để trôi?"*
 - Tiêu đề Chủ đề hiện số Dự án và tổng tiến độ của cả nhóm.
 - Mỗi Dự án hiện thanh tiến độ, trạng thái, độ ưu tiên, số việc quá hạn và số việc ưu tiên cao còn mở.
 - Thanh điều hướng: **Hôm nay · Dự án · Thống kê · Cài đặt**. Không còn tab Mục tiêu; Cài đặt chuyển từ thanh trên xuống thanh dưới.
+
+### 4.10 Cấu trúc PARA — FR-46…FR-52
+
+Bảy yêu cầu này đưa app về bốn nhóm của PARA: **P**rojects (có đích) ·
+**A**reas (trách nhiệm phải giữ) · **R**esources (tư liệu) · **A**rchives
+(ngoài tầm mắt). Chốt ngày 2026-09-03.
+
+Ba khoảng trống được vá, xếp theo mức nghiêm trọng: **tư liệu chết theo Dự
+án** (mất dữ liệu im lặng), **`Topic` mới là cái nhãn chứ chưa là Lĩnh vực**,
+và **nghi thức nhìn lại theo Lĩnh vực đang không làm được**.
+
+Từ điển ở §3 đổi theo: `Topic` → `Area`, nhãn tiếng Việt **Lĩnh vực**. Không
+giữ song song hai từ. Ba từ **không** được nhập vào mã: `Resource` (đồng
+nghĩa gộp của `Note` và `Link`), `archived` như một trạng thái (đồng nghĩa
+của `dropped`/`paused`), `Inbox` (ngoài phạm vi — xem §6).
+
+#### FR-46: Chủ đề đổi tên thành Lĩnh vực
+
+Đổi tên thuần tuý, không đổi hành vi nào.
+
+**Hệ quả kiểm thử được:**
+- Không còn chuỗi `Topic` hay `Chủ đề` ở bất kỳ đâu trong `lib/`, `test/` và tài liệu.
+- Sáu Lĩnh vực dựng sẵn giữ nguyên tên nội dung: Gia đình, Thu nhập, Tài chính, Sức khoẻ, Học tập, Khác.
+- `Khác` vẫn là Lĩnh vực dự phòng không xoá được, Dự án rơi về đó khi Lĩnh vực cũ bị xoá.
+- Sau migration, **không giá trị nào của người dùng đổi** — kiểm bằng test dựng DB v3 có dữ liệu rồi nâng lên v4 và so từng dòng.
+- File sao lưu cũ (`schemaVersion` ≤ 3) đọc được, khoá `topics` trong file cũ nạp vào bảng `areas`.
+
+#### FR-47: Lĩnh vực có tiêu chuẩn cần giữ
+
+Trường văn bản trả lời *"mức tôi muốn giữ ở mảng này là gì"*. Đây là thứ phân
+biệt một Lĩnh vực với một cái nhãn màu.
+
+**Hệ quả kiểm thử được:**
+- Trường `standard` dạng markdown, tuỳ chọn, để trống được.
+- Sáu Lĩnh vực dựng sẵn và mọi Lĩnh vực có trước migration đều để trống — không tự sinh nội dung hộ.
+- Hiện ở đầu màn hình chi tiết Lĩnh vực; để trống thì không chiếm chỗ, chỉ còn nút thêm.
+- **Không có hạn chót, không có trạng thái, không có "xong"** — Lĩnh vực không bao giờ kết thúc. Không thêm cột `status` vào `areas`.
+
+#### FR-48: Lĩnh vực có nhịp xem lại
+
+**Hệ quả kiểm thử được:**
+- Trường `reviewCadenceDays` kiểu `int` **nullable**. Gợi ý sẵn 7 · 30 · 90, nhập số khác được.
+- **Không đặt nhịp thì tuyệt đối không nhắc gì** — cùng một nguyên tắc với "Mục tiêu không có hạn thì không hiện nhịp và dự báo".
+- "Đến hạn xem lại" = ngày Đợt đánh giá gần nhất của Lĩnh vực **+** nhịp. Chưa có Đợt nào thì tính từ ngày tạo Lĩnh vực.
+- Giá trị này **tính tại chỗ, không lưu cột nào** — AD-3. Xoá Đợt gần nhất thì ngày đến hạn phải tự lùi lại theo Đợt trước đó.
+
+#### FR-49: Đợt đánh giá gắn được vào Lĩnh vực
+
+Mở rộng `Review` để nhìn lại được cả Lĩnh vực, không chỉ Dự án.
+
+**Hệ quả kiểm thử được:**
+- Mỗi Đợt thuộc **đúng một** chủ thể: một Dự án **hoặc** một Lĩnh vực, không bao giờ cả hai, không bao giờ mồ côi — AD-19.
+- Mọi Đợt đang có sau migration đều thuộc Dự án, y như trước.
+- Tạo Đợt cho Lĩnh vực thì đề nghị nạp sẵn Mục đánh giá từ tên các Dự án **đang mở** trong Lĩnh vực đó. Nạp là **chép văn bản** vào `ReviewItem.label`, không phải khoá ngoại — sửa Dự án về sau không đổi Đợt cũ.
+- Người dùng bỏ chọn hoặc sửa từng Mục được nạp trước khi lưu; không nạp gì cũng được.
+- Kế thừa Mục chưa đạt từ đợt trước (FR-37) hoạt động y hệt ở cấp Lĩnh vực.
+- Tỷ lệ đạt vẫn tính tại chỗ, không lưu — AD-3.
+
+#### FR-50: Tư liệu sống độc lập với Dự án
+
+Ghi chú và Liên kết phải sống lâu hơn Dự án sinh ra nó. Dự án xong rồi bài học
+vẫn còn giá trị.
+
+**Hệ quả kiểm thử được:**
+- `Note` và `Link` gắn vào **một Dự án**, hoặc **một Lĩnh vực**, hoặc **không gắn gì** (kho chung) — nhiều nhất một cái, AD-18.
+- **Xoá một Dự án không còn xoá Ghi chú và Liên kết của nó.** Chúng chuyển sang gắn vào Lĩnh vực mà Dự án đó thuộc về.
+- Trước khi xoá Dự án, hộp xác nhận nói rõ *"N ghi chú và M liên kết sẽ chuyển sang Lĩnh vực «X»"*.
+- Migration đặt `areaId` cho mọi Ghi chú và Liên kết đang có, lấy từ Lĩnh vực của Dự án cha, để không có bản ghi nào mồ côi cả hai chiều.
+- Màn hình *Tư liệu* liệt kê tất cả, lọc theo Lĩnh vực và theo *chưa gắn*.
+- Chuyển một Ghi chú giữa Dự án ↔ Lĩnh vực ↔ kho chung được, không mất nội dung, `createdAt` giữ nguyên.
+- `searchText` sinh lại đúng sau mỗi lần chuyển.
+
+#### FR-51: Lưu trữ là chiều riêng, không phải trạng thái
+
+*"Không còn trong tầm mắt"* và *"đã xong"* là hai chuyện khác nhau. Một Dự án
+`Xong` vẫn đáng nhìn thấy vài tuần; một Lĩnh vực không còn liên quan thì cất
+đi dù chẳng bao giờ "xong".
+
+**Hệ quả kiểm thử được:**
+- Cột `archivedAt` kiểu `DateTime` **nullable** trên `areas`, `projects`, `notes`, `links`. Null nghĩa là còn trong tầm mắt.
+- **Không thêm giá trị nào vào `ProjectStatus`.** Lưu trữ một Dự án `Đang làm` thì nó vẫn là `Đang làm` — AD-17.
+- Do repository ghi, người dùng chỉ bấm *Lưu trữ* / *Đưa trở lại*. Không có ô nhập ngày — quy tắc dấu thời gian ở AD-5.
+- Lưu trữ **không** ghi `StatusEvent`, **không** đụng vào `status`, `startedAt`, `completedAt`. Chỉ `archivedAt` và `updatedAt` đổi.
+- Mọi danh sách mặc định ẩn mục đã lưu trữ; có bộ lọc *Hiện cả mục đã lưu trữ*.
+- Lưu trữ một Lĩnh vực **không tự lưu trữ Dự án con**. Còn Dự án đang mở thì cảnh báo *"Lĩnh vực này còn N Dự án chưa lưu trữ"* và vẫn cho làm.
+- Thống kê và lịch sử vẫn tính mục đã lưu trữ — lưu trữ là chuyện tầm mắt, không phải chuyện dữ liệu.
+- Lưu trữ một Dự án thì **tự bỏ ghim** mọi Hành động của nó, cùng lý do với `Xong`/`Bỏ` ở quy tắc 4.
+
+#### FR-52: PARA không được đẩy thêm gì vào "Làm ngay"
+
+Nhắc lại ràng buộc cũ để nó không bị lách qua đường vòng.
+
+**Hệ quả kiểm thử được:**
+- Danh sách *Làm ngay* vẫn chỉ gồm Hành động có `pinned = true` do người dùng tự ghim.
+- Lĩnh vực đến hạn xem lại xuất hiện ở khối *Cần chú ý*, **không** ở *Làm ngay*.
+- Nó là một dòng thông tin dẫn tới màn hình Lĩnh vực, không phải một đầu việc tick được.
+- Có test khẳng định: đến hạn xem lại bao nhiêu Lĩnh vực đi nữa, số phần tử của *Làm ngay* không đổi.
 
 ## 5. Yêu cầu phi chức năng
 

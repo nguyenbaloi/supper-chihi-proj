@@ -200,6 +200,33 @@ trước khi giao cho người dùng thử.
 - **Ngăn chặn:** không biên dịch được các plugin đời mới vì Kotlin quá cũ
 - **Quy tắc:** AGP **8.11.1** · Kotlin **2.2.20** · Gradle **8.14**, khớp phiên bản Flutter SDK dùng trong template. Khi nâng SDK, đối chiếu lại ba con số này trong `.fvm/flutter_sdk/packages/flutter_tools/lib/src/android/gradle_utils.dart`.
 
+### AD-17 — Lưu trữ vuông góc với trạng thái
+
+- **Ràng buộc:** `areas`, `projects`, `notes`, `links`
+- **Ngăn chặn:** thêm `archived` vào `ProjectStatus` sẽ (a) tạo từ đồng nghĩa với `dropped` và `paused`, (b) làm sai **mọi** phép tính đang dựa trên tập trạng thái đóng — tỷ lệ hoàn thành, cảnh báo nguội, thống kê theo hạn — mà không báo lỗi ở đâu cả
+- **Quy tắc:** lưu trữ là cột `archivedAt` nullable, do repository ghi, không ghi `StatusEvent`, không đọc và không ghi cột `status`
+
+Một Dự án có thể vừa `Đang làm` vừa đã lưu trữ. Nghe lạ nhưng đúng: người dùng
+cất nó khỏi tầm mắt mà không nói dối về việc nó đang dở.
+
+### AD-18 — Tư liệu không chết theo Dự án
+
+- **Ràng buộc:** `notes`, `links`
+- **Ngăn chặn:** `onDelete: cascade` hiện tại làm mất ghi chú im lặng mỗi lần dọn dẹp một Dự án cũ — đúng kiểu hỏng mà quy tắc tuyệt đối của project sinh ra để chặn
+- **Quy tắc:** `projectId` và `areaId` đều nullable, **nhiều nhất một cái khác null**, biểu diễn bằng `customConstraints` ở tầng bảng chứ không chỉ bằng quy ước. `projectId` đổi sang `onDelete: setNull`; repository chịu trách nhiệm điền `areaId` trước khi xoá Dự án
+
+### AD-19 — Đợt đánh giá thuộc đúng một chủ thể
+
+- **Ràng buộc:** `reviews`
+- **Ngăn chặn:** Đợt mồ côi không hiện ở đâu, hoặc Đợt thuộc hai nơi bị đếm hai lần trong thống kê
+- **Quy tắc:** `projectId` và `areaId` đều nullable nhưng **đúng một cái khác null** (XOR, khác AD-18 ở chỗ không cho phép cả hai cùng null), biểu diễn bằng `customConstraints`. Cả hai cùng `onDelete: cascade` — xoá chủ thể thì Đợt của nó đi theo
+
+### AD-20 — Không có thực thể `Resource`
+
+- **Ràng buộc:** `lib/domain/models/`, từ điển thuật ngữ
+- **Ngăn chặn:** một lớp `Resource` gộp `Note` và `Link` là đúng định nghĩa từ đồng nghĩa mà CLAUDE.md cấm
+- **Quy tắc:** PARA "Resources" chỉ tồn tại như tên màn hình *Tư liệu* ở tầng l10n. Không lớp, không bảng, không provider mang tên đó
+
 ## Quy ước nhất quán
 
 | Hạng mục | Quy ước |
@@ -240,7 +267,10 @@ trước khi giao cho người dùng thử.
 
 ```mermaid
 erDiagram
-    TOPIC ||--o{ PROJECT : "phân loại"
+    AREA ||--o{ PROJECT : "phân loại"
+    AREA ||--o{ NOTE : "chứa trực tiếp, AD-18"
+    AREA ||--o{ LINK : "chứa trực tiếp, AD-18"
+    AREA ||--o{ REVIEW : "được nhìn lại qua, AD-19"
     PROJECT ||--o{ ACTION : "chứa"
     PROJECT ||--o{ NOTE : "chứa"
     PROJECT ||--o{ LINK : "chứa"
@@ -252,16 +282,19 @@ erDiagram
     PROJECT ||--o{ STATUS_EVENT : "ghi lại"
     ACTION ||--o{ STATUS_EVENT : "ghi lại"
 
-    TOPIC {
+    AREA {
         int id PK
         string name
         int colorValue
         string iconKey
         int sortOrder
+        string standard "tiêu chuẩn cần giữ, FR-47"
+        int reviewCadenceDays "nullable, FR-48. Null thì KHÔNG nhắc"
+        datetime archivedAt "nullable, AD-17"
     }
     PROJECT {
         int id PK
-        int topicId FK
+        int areaId FK
         string name
         string description
         string status "not_started|active|paused|done|dropped"
@@ -271,6 +304,7 @@ erDiagram
         datetime updatedAt
         datetime startedAt "nullable, ghi một lần"
         datetime completedAt "nullable"
+        datetime archivedAt "nullable, AD-17. KHÔNG phải trạng thái"
         string searchText "chỉ mục bỏ dấu, AD-12"
     }
     ACTION {
@@ -314,19 +348,23 @@ erDiagram
     }
     NOTE {
         int id PK
-        int projectId FK "cascade"
+        int projectId FK "nullable, setNull — AD-18"
+        int areaId FK "nullable — nhiều nhất một cái khác null"
         string title
         string bodyMarkdown
         datetime createdAt
         datetime updatedAt
+        datetime archivedAt "nullable, AD-17"
         string searchText
     }
     LINK {
         int id PK
-        int projectId FK "cascade"
+        int projectId FK "nullable, setNull — AD-18"
+        int areaId FK "nullable — nhiều nhất một cái khác null"
         string label
         string url
         int sortOrder
+        datetime archivedAt "nullable, AD-17"
     }
     STATUS_EVENT {
         int id PK
@@ -338,7 +376,8 @@ erDiagram
     }
     REVIEW {
         int id PK
-        int projectId FK "cascade"
+        int projectId FK "nullable, cascade — ĐÚNG một trong hai, AD-19"
+        int areaId FK "nullable, cascade — ĐÚNG một trong hai, AD-19"
         datetime date
         string title
         string summaryMarkdown
@@ -371,6 +410,12 @@ erDiagram
 `PROJECT_GOAL` là bảng nối nhiều-nhiều, khoá chính ghép `(projectId, goalId)` — theo FR-25.
 
 `REVIEW` không có cột `metCount` hay `metRatio` — tỷ lệ đạt tính từ `REVIEW_ITEM` theo AD-3.
+
+`AREA` không có cột `nextReviewDate` hay `isDueForReview` — ngày đến hạn xem lại
+tính từ `REVIEW` mới nhất cộng `reviewCadenceDays`, theo AD-3.
+
+`archivedAt` xuất hiện ở bốn bảng và **không bảng nào có `status = archived`** —
+lưu trữ vuông góc với trạng thái, theo AD-17.
 
 `STATUS_EVENT` là bảng chỉ ghi thêm, không sửa. Nó phục vụ FR-8 (*xem lại lịch sử đổi trạng thái*) và là nguồn duy nhất để tính "ngày hoạt động gần nhất" của Dự án ở FR-13.
 
