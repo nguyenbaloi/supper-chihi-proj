@@ -112,7 +112,7 @@ const List<String> _schemaV1 = [
 ];
 
 void main() {
-  test('v1 → v5: thêm Đợt đánh giá, bỏ Mục tiêu, đổi tên Chủ đề, gỡ Tư liệu',
+  test('v1 → v6: qua đủ năm bước nâng cấp, dữ liệu người dùng còn nguyên',
       () async {
     final raw = sqlite.sqlite3.openInMemory();
     for (final stmt in _schemaV1) {
@@ -148,8 +148,8 @@ void main() {
     // Chạm vào cơ sở dữ liệu để buộc drift chạy migration.
     final projects = await db.select(db.projects).get();
 
-    expect(db.schemaVersion, 5);
-    expect(raw.select('PRAGMA user_version').first.values.first, 5);
+    expect(db.schemaVersion, 6);
+    expect(raw.select('PRAGMA user_version').first.values.first, 6);
 
     // Dữ liệu cũ nguyên vẹn.
     expect(projects.length, 1);
@@ -203,7 +203,7 @@ void main() {
     expect(await db.select(db.reviews).get(), isEmpty);
     final reviewId = await db.into(db.reviews).insert(
           ReviewsCompanion.insert(
-            projectId: 1,
+            projectId: const Value(1),
             date: DateTime.utc(2026, 8, 7),
             createdAt: DateTime.utc(2026, 8, 7),
           ),
@@ -219,17 +219,17 @@ void main() {
   });
 
   // AD-10, bước 4: kiểm cấu trúc bằng helper sinh sẵn từ `drift_schemas/`.
-  // Test v1 → v5 ở trên chứng minh **dữ liệu** sống sót; test này chứng minh
-  // **cấu trúc** sau khi nâng cấp khớp từng cột với bản cài mới ở v5.
-  test('v3 → v5: cấu trúc sau nâng cấp khớp bản cài mới', () async {
+  // Test v1 → v6 ở trên chứng minh **dữ liệu** sống sót; test này chứng minh
+  // **cấu trúc** sau khi nâng cấp khớp từng cột với bản cài mới ở v6.
+  test('v3 → v6: cấu trúc sau nâng cấp khớp bản cài mới', () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final connection = await verifier.startAt(3);
     final db = AppDatabase(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 5);
+    await verifier.migrateAndValidate(db, 6);
   });
 
-  test('v3 → v5: Lĩnh vực và Dự án giữ nguyên giá trị', () async {
+  test('v3 → v6: Lĩnh vực và Dự án giữ nguyên giá trị', () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final schema = await verifier.schemaAt(3);
 
@@ -316,12 +316,15 @@ void main() {
     expect(link.url, 'https://apps.ankiweb.net');
   });
 
-  test('v5 chặn Ghi chú gắn vào cả Dự án lẫn Lĩnh vực — AD-18', () async {
+  test('chặn Ghi chú gắn vào cả Dự án lẫn Lĩnh vực — AD-18', () async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     await db.select(db.notes).get();
     await db.into(db.areas).insert(AreasCompanion.insert(
-        name: 'Sức khoẻ', colorValue: 1, iconKey: 'health'));
+        name: 'Sức khoẻ',
+        colorValue: 1,
+        iconKey: 'health',
+        createdAt: DateTime.utc(2026)));
     await db.into(db.projects).insert(ProjectsCompanion.insert(
           areaId: 1,
           name: 'Dự án',
@@ -344,7 +347,84 @@ void main() {
     );
   });
 
-  test('cài mới ở v5 tạo đủ chín bảng', () async {
+  test('v5 → v6: Lĩnh vực nhận mặc định đúng nghĩa, Đợt cũ vẫn thuộc Dự án',
+      () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(5);
+
+    schema.rawDatabase.execute(
+      "INSERT INTO areas (id, name, color_value, icon_key, sort_order, "
+      "is_system_fallback) VALUES (4, 'Tài chính', 2, 'finance', 1, 0)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO projects (id, area_id, name, description, status, priority, "
+      "created_at, updated_at, search_text) "
+      "VALUES (7, 4, 'Trả hết nợ', '', 'active', 'high', "
+      "'2026-08-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z', 'tra het no')",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO reviews (id, project_id, date, title, summary_markdown, "
+      "created_at, search_text) VALUES (1, 7, '2026-08-15T00:00:00.000Z', "
+      "'Nửa tháng', '', '2026-08-15T00:00:00.000Z', 'nua thang')",
+    );
+
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+
+    final area = (await db.select(db.areas).get()).single;
+    expect(area.name, 'Tài chính');
+    expect(area.standard, '',
+        reason: 'không tự nghĩ hộ tiêu chuẩn cho người dùng');
+    expect(area.reviewCadenceDays, isNull,
+        reason: 'null nghĩa là không nhắc gì — FR-48, không phải "chưa cấu hình"');
+    expect(area.createdAt, isNotNull);
+
+    final review = (await db.select(db.reviews).get()).single;
+    expect(review.projectId, 7, reason: 'Đợt cũ vẫn thuộc đúng Dự án cũ');
+    expect(review.areaId, isNull);
+    expect(review.title, 'Nửa tháng');
+  });
+
+  test('chặn Đợt đánh giá mồ côi và Đợt thuộc hai chỗ — AD-19', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    await db.select(db.reviews).get();
+    await db.into(db.areas).insert(AreasCompanion.insert(
+        name: 'Sức khoẻ',
+        colorValue: 1,
+        iconKey: 'health',
+        createdAt: DateTime.utc(2026)));
+    await db.into(db.projects).insert(ProjectsCompanion.insert(
+          areaId: 1,
+          name: 'Dự án',
+          status: 'active',
+          priority: 'medium',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ));
+
+    // Cả hai cùng null — Đợt mồ côi, không màn hình nào liệt kê được.
+    await expectLater(
+      db.into(db.reviews).insert(ReviewsCompanion.insert(
+            date: DateTime.utc(2026, 9),
+            createdAt: DateTime.utc(2026, 9),
+          )),
+      throwsA(isA<Exception>()),
+    );
+
+    // Cả hai cùng có giá trị — bị đếm hai lần trong thống kê.
+    await expectLater(
+      db.into(db.reviews).insert(ReviewsCompanion.insert(
+            projectId: const Value(1),
+            areaId: const Value(1),
+            date: DateTime.utc(2026, 9),
+            createdAt: DateTime.utc(2026, 9),
+          )),
+      throwsA(isA<Exception>()),
+    );
+  });
+
+  test('cài mới ở v6 tạo đủ chín bảng', () async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     await db.select(db.projects).get();

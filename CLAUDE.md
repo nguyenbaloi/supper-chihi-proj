@@ -131,7 +131,7 @@ lib/
   core/        format · l10n · result · money
   domain/      models · rules · repositories (chỉ hợp đồng trừu tượng)
   data/        db (drift) · backup · seed · repositories (cài đặt)
-  features/    today · projects · actions · notes · reviews · stats
+  features/    today · projects · areas · actions · notes · reviews · stats
                search · settings · onboarding
   presentation/ providers · widgets
 ```

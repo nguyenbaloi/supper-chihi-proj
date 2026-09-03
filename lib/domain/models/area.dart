@@ -1,6 +1,9 @@
 import 'package:meta/meta.dart';
 
-/// Nhóm phân loại Dự án — FR-1.
+/// Một mảng trách nhiệm phải giữ, **không bao giờ kết thúc** — FR-1, FR-47.
+///
+/// Khác Dự án ở chỗ không có trạng thái và không có hạn chót. Cái kết thúc
+/// được là Dự án nằm trong nó.
 @immutable
 final class Area {
   const Area({
@@ -9,6 +12,9 @@ final class Area {
     required this.colorValue,
     required this.iconKey,
     required this.sortOrder,
+    required this.createdAt,
+    this.standard = '',
+    this.reviewCadenceDays,
     this.isSystemFallback = false,
   });
 
@@ -24,6 +30,16 @@ final class Area {
 
   final int sortOrder;
 
+  /// FR-47: *"mức tôi muốn giữ ở mảng này là gì"*. Rỗng là hợp lệ — ứng dụng
+  /// không tự nghĩ hộ nội dung này.
+  final String standard;
+
+  /// FR-48: `null` nghĩa là **không nhắc gì cả**, không phải "chưa cấu hình".
+  final int? reviewCadenceDays;
+
+  /// Mốc tính hạn xem lại đầu tiên khi chưa có Đợt nào — FR-48.
+  final DateTime createdAt;
+
   /// Lĩnh vực `Khác` — không xoá được, là nơi Dự án chuyển về khi Lĩnh vực cũ
   /// bị xoá (FR-1).
   final bool isSystemFallback;
@@ -33,6 +49,9 @@ final class Area {
     int? colorValue,
     String? iconKey,
     int? sortOrder,
+    String? standard,
+    int? reviewCadenceDays,
+    bool clearReviewCadence = false,
   }) =>
       Area(
         id: id,
@@ -40,6 +59,11 @@ final class Area {
         colorValue: colorValue ?? this.colorValue,
         iconKey: iconKey ?? this.iconKey,
         sortOrder: sortOrder ?? this.sortOrder,
+        createdAt: createdAt,
+        standard: standard ?? this.standard,
+        reviewCadenceDays: clearReviewCadence
+            ? null
+            : (reviewCadenceDays ?? this.reviewCadenceDays),
         isSystemFallback: isSystemFallback,
       );
 

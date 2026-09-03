@@ -69,6 +69,40 @@ class $AreasTable extends Areas with TableInfo<$AreasTable, AreaRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _standardMeta = const VerificationMeta(
+    'standard',
+  );
+  @override
+  late final GeneratedColumn<String> standard = GeneratedColumn<String>(
+    'standard',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _reviewCadenceDaysMeta = const VerificationMeta(
+    'reviewCadenceDays',
+  );
+  @override
+  late final GeneratedColumn<int> reviewCadenceDays = GeneratedColumn<int>(
+    'review_cadence_days',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
   static const VerificationMeta _isSystemFallbackMeta = const VerificationMeta(
     'isSystemFallback',
   );
@@ -91,6 +125,9 @@ class $AreasTable extends Areas with TableInfo<$AreasTable, AreaRow> {
     colorValue,
     iconKey,
     sortOrder,
+    standard,
+    reviewCadenceDays,
+    createdAt,
     isSystemFallback,
   ];
   @override
@@ -138,6 +175,29 @@ class $AreasTable extends Areas with TableInfo<$AreasTable, AreaRow> {
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('standard')) {
+      context.handle(
+        _standardMeta,
+        standard.isAcceptableOrUnknown(data['standard']!, _standardMeta),
+      );
+    }
+    if (data.containsKey('review_cadence_days')) {
+      context.handle(
+        _reviewCadenceDaysMeta,
+        reviewCadenceDays.isAcceptableOrUnknown(
+          data['review_cadence_days']!,
+          _reviewCadenceDaysMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
     if (data.containsKey('is_system_fallback')) {
       context.handle(
         _isSystemFallbackMeta,
@@ -176,6 +236,18 @@ class $AreasTable extends Areas with TableInfo<$AreasTable, AreaRow> {
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      standard: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}standard'],
+      )!,
+      reviewCadenceDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}review_cadence_days'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
       isSystemFallback: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_system_fallback'],
@@ -196,6 +268,20 @@ class AreaRow extends DataClass implements Insertable<AreaRow> {
   final String iconKey;
   final int sortOrder;
 
+  /// FR-47: *"mức tôi muốn giữ ở mảng này là gì"*. Đây là thứ phân biệt một
+  /// Lĩnh vực với một cái nhãn màu.
+  ///
+  /// Không có `status`, không có `dueDate`: Lĩnh vực **không bao giờ kết
+  /// thúc**. Cái kết thúc được là Dự án.
+  final String standard;
+
+  /// FR-48: số ngày giữa hai lần nhìn lại. `null` nghĩa là **không nhắc gì
+  /// cả** — cùng nguyên tắc với "Mục tiêu không có hạn thì không hiện nhịp".
+  final int? reviewCadenceDays;
+
+  /// Mốc để tính hạn xem lại đầu tiên, khi Lĩnh vực chưa có Đợt nào — FR-48.
+  final DateTime createdAt;
+
   /// Lĩnh vực `Khác` — không xoá được, là nơi Dự án chuyển về (FR-1).
   final bool isSystemFallback;
   const AreaRow({
@@ -204,6 +290,9 @@ class AreaRow extends DataClass implements Insertable<AreaRow> {
     required this.colorValue,
     required this.iconKey,
     required this.sortOrder,
+    required this.standard,
+    this.reviewCadenceDays,
+    required this.createdAt,
     required this.isSystemFallback,
   });
   @override
@@ -214,6 +303,11 @@ class AreaRow extends DataClass implements Insertable<AreaRow> {
     map['color_value'] = Variable<int>(colorValue);
     map['icon_key'] = Variable<String>(iconKey);
     map['sort_order'] = Variable<int>(sortOrder);
+    map['standard'] = Variable<String>(standard);
+    if (!nullToAbsent || reviewCadenceDays != null) {
+      map['review_cadence_days'] = Variable<int>(reviewCadenceDays);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
     map['is_system_fallback'] = Variable<bool>(isSystemFallback);
     return map;
   }
@@ -225,6 +319,11 @@ class AreaRow extends DataClass implements Insertable<AreaRow> {
       colorValue: Value(colorValue),
       iconKey: Value(iconKey),
       sortOrder: Value(sortOrder),
+      standard: Value(standard),
+      reviewCadenceDays: reviewCadenceDays == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reviewCadenceDays),
+      createdAt: Value(createdAt),
       isSystemFallback: Value(isSystemFallback),
     );
   }
@@ -240,6 +339,9 @@ class AreaRow extends DataClass implements Insertable<AreaRow> {
       colorValue: serializer.fromJson<int>(json['colorValue']),
       iconKey: serializer.fromJson<String>(json['iconKey']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      standard: serializer.fromJson<String>(json['standard']),
+      reviewCadenceDays: serializer.fromJson<int?>(json['reviewCadenceDays']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       isSystemFallback: serializer.fromJson<bool>(json['isSystemFallback']),
     );
   }
@@ -252,6 +354,9 @@ class AreaRow extends DataClass implements Insertable<AreaRow> {
       'colorValue': serializer.toJson<int>(colorValue),
       'iconKey': serializer.toJson<String>(iconKey),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'standard': serializer.toJson<String>(standard),
+      'reviewCadenceDays': serializer.toJson<int?>(reviewCadenceDays),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
       'isSystemFallback': serializer.toJson<bool>(isSystemFallback),
     };
   }
@@ -262,6 +367,9 @@ class AreaRow extends DataClass implements Insertable<AreaRow> {
     int? colorValue,
     String? iconKey,
     int? sortOrder,
+    String? standard,
+    Value<int?> reviewCadenceDays = const Value.absent(),
+    DateTime? createdAt,
     bool? isSystemFallback,
   }) => AreaRow(
     id: id ?? this.id,
@@ -269,6 +377,11 @@ class AreaRow extends DataClass implements Insertable<AreaRow> {
     colorValue: colorValue ?? this.colorValue,
     iconKey: iconKey ?? this.iconKey,
     sortOrder: sortOrder ?? this.sortOrder,
+    standard: standard ?? this.standard,
+    reviewCadenceDays: reviewCadenceDays.present
+        ? reviewCadenceDays.value
+        : this.reviewCadenceDays,
+    createdAt: createdAt ?? this.createdAt,
     isSystemFallback: isSystemFallback ?? this.isSystemFallback,
   );
   AreaRow copyWithCompanion(AreasCompanion data) {
@@ -280,6 +393,11 @@ class AreaRow extends DataClass implements Insertable<AreaRow> {
           : this.colorValue,
       iconKey: data.iconKey.present ? data.iconKey.value : this.iconKey,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      standard: data.standard.present ? data.standard.value : this.standard,
+      reviewCadenceDays: data.reviewCadenceDays.present
+          ? data.reviewCadenceDays.value
+          : this.reviewCadenceDays,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       isSystemFallback: data.isSystemFallback.present
           ? data.isSystemFallback.value
           : this.isSystemFallback,
@@ -294,14 +412,26 @@ class AreaRow extends DataClass implements Insertable<AreaRow> {
           ..write('colorValue: $colorValue, ')
           ..write('iconKey: $iconKey, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('standard: $standard, ')
+          ..write('reviewCadenceDays: $reviewCadenceDays, ')
+          ..write('createdAt: $createdAt, ')
           ..write('isSystemFallback: $isSystemFallback')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, colorValue, iconKey, sortOrder, isSystemFallback);
+  int get hashCode => Object.hash(
+    id,
+    name,
+    colorValue,
+    iconKey,
+    sortOrder,
+    standard,
+    reviewCadenceDays,
+    createdAt,
+    isSystemFallback,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -311,6 +441,9 @@ class AreaRow extends DataClass implements Insertable<AreaRow> {
           other.colorValue == this.colorValue &&
           other.iconKey == this.iconKey &&
           other.sortOrder == this.sortOrder &&
+          other.standard == this.standard &&
+          other.reviewCadenceDays == this.reviewCadenceDays &&
+          other.createdAt == this.createdAt &&
           other.isSystemFallback == this.isSystemFallback);
 }
 
@@ -320,6 +453,9 @@ class AreasCompanion extends UpdateCompanion<AreaRow> {
   final Value<int> colorValue;
   final Value<String> iconKey;
   final Value<int> sortOrder;
+  final Value<String> standard;
+  final Value<int?> reviewCadenceDays;
+  final Value<DateTime> createdAt;
   final Value<bool> isSystemFallback;
   const AreasCompanion({
     this.id = const Value.absent(),
@@ -327,6 +463,9 @@ class AreasCompanion extends UpdateCompanion<AreaRow> {
     this.colorValue = const Value.absent(),
     this.iconKey = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.standard = const Value.absent(),
+    this.reviewCadenceDays = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.isSystemFallback = const Value.absent(),
   });
   AreasCompanion.insert({
@@ -335,16 +474,23 @@ class AreasCompanion extends UpdateCompanion<AreaRow> {
     required int colorValue,
     required String iconKey,
     this.sortOrder = const Value.absent(),
+    this.standard = const Value.absent(),
+    this.reviewCadenceDays = const Value.absent(),
+    required DateTime createdAt,
     this.isSystemFallback = const Value.absent(),
   }) : name = Value(name),
        colorValue = Value(colorValue),
-       iconKey = Value(iconKey);
+       iconKey = Value(iconKey),
+       createdAt = Value(createdAt);
   static Insertable<AreaRow> custom({
     Expression<int>? id,
     Expression<String>? name,
     Expression<int>? colorValue,
     Expression<String>? iconKey,
     Expression<int>? sortOrder,
+    Expression<String>? standard,
+    Expression<int>? reviewCadenceDays,
+    Expression<DateTime>? createdAt,
     Expression<bool>? isSystemFallback,
   }) {
     return RawValuesInsertable({
@@ -353,6 +499,9 @@ class AreasCompanion extends UpdateCompanion<AreaRow> {
       if (colorValue != null) 'color_value': colorValue,
       if (iconKey != null) 'icon_key': iconKey,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (standard != null) 'standard': standard,
+      if (reviewCadenceDays != null) 'review_cadence_days': reviewCadenceDays,
+      if (createdAt != null) 'created_at': createdAt,
       if (isSystemFallback != null) 'is_system_fallback': isSystemFallback,
     });
   }
@@ -363,6 +512,9 @@ class AreasCompanion extends UpdateCompanion<AreaRow> {
     Value<int>? colorValue,
     Value<String>? iconKey,
     Value<int>? sortOrder,
+    Value<String>? standard,
+    Value<int?>? reviewCadenceDays,
+    Value<DateTime>? createdAt,
     Value<bool>? isSystemFallback,
   }) {
     return AreasCompanion(
@@ -371,6 +523,9 @@ class AreasCompanion extends UpdateCompanion<AreaRow> {
       colorValue: colorValue ?? this.colorValue,
       iconKey: iconKey ?? this.iconKey,
       sortOrder: sortOrder ?? this.sortOrder,
+      standard: standard ?? this.standard,
+      reviewCadenceDays: reviewCadenceDays ?? this.reviewCadenceDays,
+      createdAt: createdAt ?? this.createdAt,
       isSystemFallback: isSystemFallback ?? this.isSystemFallback,
     );
   }
@@ -393,6 +548,15 @@ class AreasCompanion extends UpdateCompanion<AreaRow> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (standard.present) {
+      map['standard'] = Variable<String>(standard.value);
+    }
+    if (reviewCadenceDays.present) {
+      map['review_cadence_days'] = Variable<int>(reviewCadenceDays.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
     if (isSystemFallback.present) {
       map['is_system_fallback'] = Variable<bool>(isSystemFallback.value);
     }
@@ -407,6 +571,9 @@ class AreasCompanion extends UpdateCompanion<AreaRow> {
           ..write('colorValue: $colorValue, ')
           ..write('iconKey: $iconKey, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('standard: $standard, ')
+          ..write('reviewCadenceDays: $reviewCadenceDays, ')
+          ..write('createdAt: $createdAt, ')
           ..write('isSystemFallback: $isSystemFallback')
           ..write(')'))
         .toString();
@@ -2977,11 +3144,23 @@ class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, ReviewRow> {
   late final GeneratedColumn<int> projectId = GeneratedColumn<int>(
     'project_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
       'REFERENCES projects (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _areaIdMeta = const VerificationMeta('areaId');
+  @override
+  late final GeneratedColumn<int> areaId = GeneratedColumn<int>(
+    'area_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES areas (id) ON DELETE CASCADE',
     ),
   );
   static const VerificationMeta _dateMeta = const VerificationMeta('date');
@@ -3054,6 +3233,7 @@ class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, ReviewRow> {
   List<GeneratedColumn> get $columns => [
     id,
     projectId,
+    areaId,
     date,
     title,
     summaryMarkdown,
@@ -3081,8 +3261,12 @@ class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, ReviewRow> {
         _projectIdMeta,
         projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
       );
-    } else if (isInserting) {
-      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('area_id')) {
+      context.handle(
+        _areaIdMeta,
+        areaId.isAcceptableOrUnknown(data['area_id']!, _areaIdMeta),
+      );
     }
     if (data.containsKey('date')) {
       context.handle(
@@ -3146,7 +3330,11 @@ class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, ReviewRow> {
       projectId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}project_id'],
-      )!,
+      ),
+      areaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}area_id'],
+      ),
       date: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}date'],
@@ -3182,7 +3370,14 @@ class $ReviewsTable extends Reviews with TableInfo<$ReviewsTable, ReviewRow> {
 
 class ReviewRow extends DataClass implements Insertable<ReviewRow> {
   final int id;
-  final int projectId;
+
+  /// AD-19: Đợt thuộc **đúng một** chủ thể — một Dự án *hoặc* một Lĩnh vực.
+  /// Khác AD-18 ở chỗ không cho phép cả hai cùng `null`: một Đợt mồ côi thì
+  /// không hiện ở đâu cả.
+  final int? projectId;
+
+  /// Nhìn lại cả một mảng đời sống, không chỉ một Dự án — FR-49.
+  final int? areaId;
   final DateTime date;
   final String title;
   final String summaryMarkdown;
@@ -3193,7 +3388,8 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
   final String searchText;
   const ReviewRow({
     required this.id,
-    required this.projectId,
+    this.projectId,
+    this.areaId,
     required this.date,
     required this.title,
     required this.summaryMarkdown,
@@ -3205,7 +3401,12 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['project_id'] = Variable<int>(projectId);
+    if (!nullToAbsent || projectId != null) {
+      map['project_id'] = Variable<int>(projectId);
+    }
+    if (!nullToAbsent || areaId != null) {
+      map['area_id'] = Variable<int>(areaId);
+    }
     map['date'] = Variable<DateTime>(date);
     map['title'] = Variable<String>(title);
     map['summary_markdown'] = Variable<String>(summaryMarkdown);
@@ -3220,7 +3421,12 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
   ReviewsCompanion toCompanion(bool nullToAbsent) {
     return ReviewsCompanion(
       id: Value(id),
-      projectId: Value(projectId),
+      projectId: projectId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(projectId),
+      areaId: areaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(areaId),
       date: Value(date),
       title: Value(title),
       summaryMarkdown: Value(summaryMarkdown),
@@ -3239,7 +3445,8 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ReviewRow(
       id: serializer.fromJson<int>(json['id']),
-      projectId: serializer.fromJson<int>(json['projectId']),
+      projectId: serializer.fromJson<int?>(json['projectId']),
+      areaId: serializer.fromJson<int?>(json['areaId']),
       date: serializer.fromJson<DateTime>(json['date']),
       title: serializer.fromJson<String>(json['title']),
       summaryMarkdown: serializer.fromJson<String>(json['summaryMarkdown']),
@@ -3253,7 +3460,8 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'projectId': serializer.toJson<int>(projectId),
+      'projectId': serializer.toJson<int?>(projectId),
+      'areaId': serializer.toJson<int?>(areaId),
       'date': serializer.toJson<DateTime>(date),
       'title': serializer.toJson<String>(title),
       'summaryMarkdown': serializer.toJson<String>(summaryMarkdown),
@@ -3265,7 +3473,8 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
 
   ReviewRow copyWith({
     int? id,
-    int? projectId,
+    Value<int?> projectId = const Value.absent(),
+    Value<int?> areaId = const Value.absent(),
     DateTime? date,
     String? title,
     String? summaryMarkdown,
@@ -3274,7 +3483,8 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
     String? searchText,
   }) => ReviewRow(
     id: id ?? this.id,
-    projectId: projectId ?? this.projectId,
+    projectId: projectId.present ? projectId.value : this.projectId,
+    areaId: areaId.present ? areaId.value : this.areaId,
     date: date ?? this.date,
     title: title ?? this.title,
     summaryMarkdown: summaryMarkdown ?? this.summaryMarkdown,
@@ -3288,6 +3498,7 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
     return ReviewRow(
       id: data.id.present ? data.id.value : this.id,
       projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      areaId: data.areaId.present ? data.areaId.value : this.areaId,
       date: data.date.present ? data.date.value : this.date,
       title: data.title.present ? data.title.value : this.title,
       summaryMarkdown: data.summaryMarkdown.present
@@ -3308,6 +3519,7 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
     return (StringBuffer('ReviewRow(')
           ..write('id: $id, ')
           ..write('projectId: $projectId, ')
+          ..write('areaId: $areaId, ')
           ..write('date: $date, ')
           ..write('title: $title, ')
           ..write('summaryMarkdown: $summaryMarkdown, ')
@@ -3322,6 +3534,7 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
   int get hashCode => Object.hash(
     id,
     projectId,
+    areaId,
     date,
     title,
     summaryMarkdown,
@@ -3335,6 +3548,7 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
       (other is ReviewRow &&
           other.id == this.id &&
           other.projectId == this.projectId &&
+          other.areaId == this.areaId &&
           other.date == this.date &&
           other.title == this.title &&
           other.summaryMarkdown == this.summaryMarkdown &&
@@ -3345,7 +3559,8 @@ class ReviewRow extends DataClass implements Insertable<ReviewRow> {
 
 class ReviewsCompanion extends UpdateCompanion<ReviewRow> {
   final Value<int> id;
-  final Value<int> projectId;
+  final Value<int?> projectId;
+  final Value<int?> areaId;
   final Value<DateTime> date;
   final Value<String> title;
   final Value<String> summaryMarkdown;
@@ -3355,6 +3570,7 @@ class ReviewsCompanion extends UpdateCompanion<ReviewRow> {
   const ReviewsCompanion({
     this.id = const Value.absent(),
     this.projectId = const Value.absent(),
+    this.areaId = const Value.absent(),
     this.date = const Value.absent(),
     this.title = const Value.absent(),
     this.summaryMarkdown = const Value.absent(),
@@ -3364,19 +3580,20 @@ class ReviewsCompanion extends UpdateCompanion<ReviewRow> {
   });
   ReviewsCompanion.insert({
     this.id = const Value.absent(),
-    required int projectId,
+    this.projectId = const Value.absent(),
+    this.areaId = const Value.absent(),
     required DateTime date,
     this.title = const Value.absent(),
     this.summaryMarkdown = const Value.absent(),
     this.nextReviewDate = const Value.absent(),
     required DateTime createdAt,
     this.searchText = const Value.absent(),
-  }) : projectId = Value(projectId),
-       date = Value(date),
+  }) : date = Value(date),
        createdAt = Value(createdAt);
   static Insertable<ReviewRow> custom({
     Expression<int>? id,
     Expression<int>? projectId,
+    Expression<int>? areaId,
     Expression<DateTime>? date,
     Expression<String>? title,
     Expression<String>? summaryMarkdown,
@@ -3387,6 +3604,7 @@ class ReviewsCompanion extends UpdateCompanion<ReviewRow> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (projectId != null) 'project_id': projectId,
+      if (areaId != null) 'area_id': areaId,
       if (date != null) 'date': date,
       if (title != null) 'title': title,
       if (summaryMarkdown != null) 'summary_markdown': summaryMarkdown,
@@ -3398,7 +3616,8 @@ class ReviewsCompanion extends UpdateCompanion<ReviewRow> {
 
   ReviewsCompanion copyWith({
     Value<int>? id,
-    Value<int>? projectId,
+    Value<int?>? projectId,
+    Value<int?>? areaId,
     Value<DateTime>? date,
     Value<String>? title,
     Value<String>? summaryMarkdown,
@@ -3409,6 +3628,7 @@ class ReviewsCompanion extends UpdateCompanion<ReviewRow> {
     return ReviewsCompanion(
       id: id ?? this.id,
       projectId: projectId ?? this.projectId,
+      areaId: areaId ?? this.areaId,
       date: date ?? this.date,
       title: title ?? this.title,
       summaryMarkdown: summaryMarkdown ?? this.summaryMarkdown,
@@ -3426,6 +3646,9 @@ class ReviewsCompanion extends UpdateCompanion<ReviewRow> {
     }
     if (projectId.present) {
       map['project_id'] = Variable<int>(projectId.value);
+    }
+    if (areaId.present) {
+      map['area_id'] = Variable<int>(areaId.value);
     }
     if (date.present) {
       map['date'] = Variable<DateTime>(date.value);
@@ -3453,6 +3676,7 @@ class ReviewsCompanion extends UpdateCompanion<ReviewRow> {
     return (StringBuffer('ReviewsCompanion(')
           ..write('id: $id, ')
           ..write('projectId: $projectId, ')
+          ..write('areaId: $areaId, ')
           ..write('date: $date, ')
           ..write('title: $title, ')
           ..write('summaryMarkdown: $summaryMarkdown, ')
@@ -4755,6 +4979,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
+        'areas',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('reviews', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
         'reviews',
         limitUpdateKind: UpdateKind.delete,
       ),
@@ -4773,6 +5004,9 @@ typedef $$AreasTableCreateCompanionBuilder =
       required int colorValue,
       required String iconKey,
       Value<int> sortOrder,
+      Value<String> standard,
+      Value<int?> reviewCadenceDays,
+      required DateTime createdAt,
       Value<bool> isSystemFallback,
     });
 typedef $$AreasTableUpdateCompanionBuilder =
@@ -4782,6 +5016,9 @@ typedef $$AreasTableUpdateCompanionBuilder =
       Value<int> colorValue,
       Value<String> iconKey,
       Value<int> sortOrder,
+      Value<String> standard,
+      Value<int?> reviewCadenceDays,
+      Value<DateTime> createdAt,
       Value<bool> isSystemFallback,
     });
 
@@ -4844,6 +5081,25 @@ final class $$AreasTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$ReviewsTable, List<ReviewRow>> _reviewsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.reviews,
+    aliasName: $_aliasNameGenerator(db.areas.id, db.reviews.areaId),
+  );
+
+  $$ReviewsTableProcessedTableManager get reviewsRefs {
+    final manager = $$ReviewsTableTableManager(
+      $_db,
+      $_db.reviews,
+    ).filter((f) => f.areaId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_reviewsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$AreasTableFilterComposer extends Composer<_$AppDatabase, $AreasTable> {
@@ -4876,6 +5132,21 @@ class $$AreasTableFilterComposer extends Composer<_$AppDatabase, $AreasTable> {
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get standard => $composableBuilder(
+    column: $table.standard,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get reviewCadenceDays => $composableBuilder(
+    column: $table.reviewCadenceDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4958,6 +5229,31 @@ class $$AreasTableFilterComposer extends Composer<_$AppDatabase, $AreasTable> {
     );
     return f(composer);
   }
+
+  Expression<bool> reviewsRefs(
+    Expression<bool> Function($$ReviewsTableFilterComposer f) f,
+  ) {
+    final $$ReviewsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reviews,
+      getReferencedColumn: (t) => t.areaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReviewsTableFilterComposer(
+            $db: $db,
+            $table: $db.reviews,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AreasTableOrderingComposer
@@ -4994,6 +5290,21 @@ class $$AreasTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get standard => $composableBuilder(
+    column: $table.standard,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get reviewCadenceDays => $composableBuilder(
+    column: $table.reviewCadenceDays,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isSystemFallback => $composableBuilder(
     column: $table.isSystemFallback,
     builder: (column) => ColumnOrderings(column),
@@ -5025,6 +5336,17 @@ class $$AreasTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get standard =>
+      $composableBuilder(column: $table.standard, builder: (column) => column);
+
+  GeneratedColumn<int> get reviewCadenceDays => $composableBuilder(
+    column: $table.reviewCadenceDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
   GeneratedColumn<bool> get isSystemFallback => $composableBuilder(
     column: $table.isSystemFallback,
@@ -5105,6 +5427,31 @@ class $$AreasTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> reviewsRefs<T extends Object>(
+    Expression<T> Function($$ReviewsTableAnnotationComposer a) f,
+  ) {
+    final $$ReviewsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reviews,
+      getReferencedColumn: (t) => t.areaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReviewsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.reviews,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AreasTableTableManager
@@ -5124,6 +5471,7 @@ class $$AreasTableTableManager
             bool projectsRefs,
             bool notesRefs,
             bool linksRefs,
+            bool reviewsRefs,
           })
         > {
   $$AreasTableTableManager(_$AppDatabase db, $AreasTable table)
@@ -5144,6 +5492,9 @@ class $$AreasTableTableManager
                 Value<int> colorValue = const Value.absent(),
                 Value<String> iconKey = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<String> standard = const Value.absent(),
+                Value<int?> reviewCadenceDays = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
                 Value<bool> isSystemFallback = const Value.absent(),
               }) => AreasCompanion(
                 id: id,
@@ -5151,6 +5502,9 @@ class $$AreasTableTableManager
                 colorValue: colorValue,
                 iconKey: iconKey,
                 sortOrder: sortOrder,
+                standard: standard,
+                reviewCadenceDays: reviewCadenceDays,
+                createdAt: createdAt,
                 isSystemFallback: isSystemFallback,
               ),
           createCompanionCallback:
@@ -5160,6 +5514,9 @@ class $$AreasTableTableManager
                 required int colorValue,
                 required String iconKey,
                 Value<int> sortOrder = const Value.absent(),
+                Value<String> standard = const Value.absent(),
+                Value<int?> reviewCadenceDays = const Value.absent(),
+                required DateTime createdAt,
                 Value<bool> isSystemFallback = const Value.absent(),
               }) => AreasCompanion.insert(
                 id: id,
@@ -5167,6 +5524,9 @@ class $$AreasTableTableManager
                 colorValue: colorValue,
                 iconKey: iconKey,
                 sortOrder: sortOrder,
+                standard: standard,
+                reviewCadenceDays: reviewCadenceDays,
+                createdAt: createdAt,
                 isSystemFallback: isSystemFallback,
               ),
           withReferenceMapper: (p0) => p0
@@ -5176,13 +5536,19 @@ class $$AreasTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({projectsRefs = false, notesRefs = false, linksRefs = false}) {
+              ({
+                projectsRefs = false,
+                notesRefs = false,
+                linksRefs = false,
+                reviewsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (projectsRefs) db.projects,
                     if (notesRefs) db.notes,
                     if (linksRefs) db.links,
+                    if (reviewsRefs) db.reviews,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -5242,6 +5608,23 @@ class $$AreasTableTableManager
                               ),
                           typedResults: items,
                         ),
+                      if (reviewsRefs)
+                        await $_getPrefetchedData<
+                          AreaRow,
+                          $AreasTable,
+                          ReviewRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AreasTableReferences
+                              ._reviewsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AreasTableReferences(db, table, p0).reviewsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.areaId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -5266,6 +5649,7 @@ typedef $$AreasTableProcessedTableManager =
         bool projectsRefs,
         bool notesRefs,
         bool linksRefs,
+        bool reviewsRefs,
       })
     >;
 typedef $$ProjectsTableCreateCompanionBuilder =
@@ -7501,7 +7885,8 @@ typedef $$LinksTableProcessedTableManager =
 typedef $$ReviewsTableCreateCompanionBuilder =
     ReviewsCompanion Function({
       Value<int> id,
-      required int projectId,
+      Value<int?> projectId,
+      Value<int?> areaId,
       required DateTime date,
       Value<String> title,
       Value<String> summaryMarkdown,
@@ -7512,7 +7897,8 @@ typedef $$ReviewsTableCreateCompanionBuilder =
 typedef $$ReviewsTableUpdateCompanionBuilder =
     ReviewsCompanion Function({
       Value<int> id,
-      Value<int> projectId,
+      Value<int?> projectId,
+      Value<int?> areaId,
       Value<DateTime> date,
       Value<String> title,
       Value<String> summaryMarkdown,
@@ -7528,14 +7914,32 @@ final class $$ReviewsTableReferences
   static $ProjectsTable _projectIdTable(_$AppDatabase db) => db.projects
       .createAlias($_aliasNameGenerator(db.reviews.projectId, db.projects.id));
 
-  $$ProjectsTableProcessedTableManager get projectId {
-    final $_column = $_itemColumn<int>('project_id')!;
-
+  $$ProjectsTableProcessedTableManager? get projectId {
+    final $_column = $_itemColumn<int>('project_id');
+    if ($_column == null) return null;
     final manager = $$ProjectsTableTableManager(
       $_db,
       $_db.projects,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $AreasTable _areaIdTable(_$AppDatabase db) => db.areas.createAlias(
+    $_aliasNameGenerator(db.reviews.areaId, db.areas.id),
+  );
+
+  $$AreasTableProcessedTableManager? get areaId {
+    final $_column = $_itemColumn<int>('area_id');
+    if ($_column == null) return null;
+    final manager = $$AreasTableTableManager(
+      $_db,
+      $_db.areas,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_areaIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -7619,6 +8023,29 @@ class $$ReviewsTableFilterComposer
           }) => $$ProjectsTableFilterComposer(
             $db: $db,
             $table: $db.projects,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AreasTableFilterComposer get areaId {
+    final $$AreasTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.areaId,
+      referencedTable: $db.areas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AreasTableFilterComposer(
+            $db: $db,
+            $table: $db.areas,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -7720,6 +8147,29 @@ class $$ReviewsTableOrderingComposer
     );
     return composer;
   }
+
+  $$AreasTableOrderingComposer get areaId {
+    final $$AreasTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.areaId,
+      referencedTable: $db.areas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AreasTableOrderingComposer(
+            $db: $db,
+            $table: $db.areas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$ReviewsTableAnnotationComposer
@@ -7781,6 +8231,29 @@ class $$ReviewsTableAnnotationComposer
     return composer;
   }
 
+  $$AreasTableAnnotationComposer get areaId {
+    final $$AreasTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.areaId,
+      referencedTable: $db.areas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AreasTableAnnotationComposer(
+            $db: $db,
+            $table: $db.areas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   Expression<T> reviewItemsRefs<T extends Object>(
     Expression<T> Function($$ReviewItemsTableAnnotationComposer a) f,
   ) {
@@ -7820,7 +8293,11 @@ class $$ReviewsTableTableManager
           $$ReviewsTableUpdateCompanionBuilder,
           (ReviewRow, $$ReviewsTableReferences),
           ReviewRow,
-          PrefetchHooks Function({bool projectId, bool reviewItemsRefs})
+          PrefetchHooks Function({
+            bool projectId,
+            bool areaId,
+            bool reviewItemsRefs,
+          })
         > {
   $$ReviewsTableTableManager(_$AppDatabase db, $ReviewsTable table)
     : super(
@@ -7836,7 +8313,8 @@ class $$ReviewsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<int> projectId = const Value.absent(),
+                Value<int?> projectId = const Value.absent(),
+                Value<int?> areaId = const Value.absent(),
                 Value<DateTime> date = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> summaryMarkdown = const Value.absent(),
@@ -7846,6 +8324,7 @@ class $$ReviewsTableTableManager
               }) => ReviewsCompanion(
                 id: id,
                 projectId: projectId,
+                areaId: areaId,
                 date: date,
                 title: title,
                 summaryMarkdown: summaryMarkdown,
@@ -7856,7 +8335,8 @@ class $$ReviewsTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required int projectId,
+                Value<int?> projectId = const Value.absent(),
+                Value<int?> areaId = const Value.absent(),
                 required DateTime date,
                 Value<String> title = const Value.absent(),
                 Value<String> summaryMarkdown = const Value.absent(),
@@ -7866,6 +8346,7 @@ class $$ReviewsTableTableManager
               }) => ReviewsCompanion.insert(
                 id: id,
                 projectId: projectId,
+                areaId: areaId,
                 date: date,
                 title: title,
                 summaryMarkdown: summaryMarkdown,
@@ -7882,7 +8363,7 @@ class $$ReviewsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({projectId = false, reviewItemsRefs = false}) {
+              ({projectId = false, areaId = false, reviewItemsRefs = false}) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
@@ -7913,6 +8394,19 @@ class $$ReviewsTableTableManager
                                         ._projectIdTable(db),
                                     referencedColumn: $$ReviewsTableReferences
                                         ._projectIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (areaId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.areaId,
+                                    referencedTable: $$ReviewsTableReferences
+                                        ._areaIdTable(db),
+                                    referencedColumn: $$ReviewsTableReferences
+                                        ._areaIdTable(db)
                                         .id,
                                   )
                                   as T;
@@ -7963,7 +8457,11 @@ typedef $$ReviewsTableProcessedTableManager =
       $$ReviewsTableUpdateCompanionBuilder,
       (ReviewRow, $$ReviewsTableReferences),
       ReviewRow,
-      PrefetchHooks Function({bool projectId, bool reviewItemsRefs})
+      PrefetchHooks Function({
+        bool projectId,
+        bool areaId,
+        bool reviewItemsRefs,
+      })
     >;
 typedef $$ReviewItemsTableCreateCompanionBuilder =
     ReviewItemsCompanion Function({

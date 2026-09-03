@@ -491,6 +491,9 @@ thứ đã nguội đi mà không phải nói dối rằng chúng đã `Bỏ`.
 - Không cột `nextReviewDate` hay `isDueForReview` trên `areas` — kiểm bằng test schema guard, AD-3.
 - Ngày đến hạn xem lại tính tại chỗ; **test: xoá Đợt gần nhất thì ngày đến hạn lùi về theo Đợt trước đó**.
 - Nhịp để trống thì không sinh nhắc nhở nào — test khẳng định.
+- Thêm cột `created_at` cho `areas`: FR-48 đếm từ ngày tạo khi chưa có Đợt nào,
+  mà bảng chưa từng có trường đó. Migration điền bằng thời điểm nâng cấp — ngày
+  tạo thật của sáu Lĩnh vực dựng sẵn chưa bao giờ được ghi ở đâu.
 
 ### Story 8.3: Đợt đánh giá cấp Lĩnh vực — FR-49
 
@@ -529,9 +532,12 @@ thứ đã nguội đi mà không phải nói dối rằng chúng đã `Bỏ`.
 ### Story 8.6: Sao lưu phiên bản 4 và đọc lại file cũ
 
 **Nghiệm thu:**
-- `backupFormatVersion` 4 → 5. Phần `areaId` của Ghi chú và Liên kết đã làm ở
-  Story 8.4; story này thêm khoá `areas` (đổi tên từ `topics`), `standard`,
-  `reviewCadenceDays`, `archivedAt`.
+- `backupFormatVersion` 5 → 6. Đã làm trước ở các story khác vì schema thêm dữ
+  liệu người dùng thì định dạng phải theo ngay, nếu không xuất ra là mất:
+  `areaId` của Ghi chú và Liên kết (v4, Story 8.4); `standard`,
+  `reviewCadenceDays`, `createdAt` của Lĩnh vực và `areaId` của Đợt đánh giá
+  (v5, Story 8.2–8.3). Story này còn lại: đổi khoá `topics` → `areas` và thêm
+  `archivedAt`.
 - Đọc được file v1, v2, v3: khoá `topics` nạp vào `areas`, `archivedAt` thiếu thì để null, `areaId` của Ghi chú suy từ Dự án cha.
 - File v5 trở lên bị **từ chối**, không cố đọc.
 - **Test: xuất → xoá sạch → nhập, so khớp toàn bộ kể cả `createdAt`, `sortOrder`, `archivedAt`.**

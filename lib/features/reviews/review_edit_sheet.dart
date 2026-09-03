@@ -10,20 +10,23 @@ import '../../presentation/providers/providers.dart';
 /// FR-35 và FR-37: tạo Đợt đánh giá, kèm bước chép các Mục chưa đạt từ Đợt trước.
 Future<void> showReviewEditSheet(
   BuildContext context, {
-  required int projectId,
+  int? projectId,
+  int? areaId,
   Review? existing,
 }) =>
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => _ReviewEditSheet(projectId: projectId, existing: existing),
+      builder: (_) =>
+          _ReviewEditSheet(projectId: projectId, areaId: areaId, existing: existing),
     );
 
 class _ReviewEditSheet extends ConsumerStatefulWidget {
-  const _ReviewEditSheet({required this.projectId, this.existing});
+  const _ReviewEditSheet({this.projectId, this.areaId, this.existing});
 
-  final int projectId;
+  final int? projectId;
+  final int? areaId;
   final Review? existing;
 
   @override
@@ -41,6 +44,14 @@ class _ReviewEditSheetState extends ConsumerState<_ReviewEditSheet> {
   /// Nhãn của Mục được chọn để chép sang. Chỉ dùng khi tạo mới.
   final Set<int> _carrySelected = {};
   List<ReviewItem> _candidates = const [];
+
+  /// FR-49: tên các Dự án **đang mở** trong Lĩnh vực, đề nghị nạp sẵn thành
+  /// Mục đánh giá. Chỉ dùng khi Đợt này thuộc một Lĩnh vực.
+  ///
+  /// Đây là **chép văn bản**, không phải khoá ngoại tới Dự án — AD-15. Đổi tên
+  /// Dự án về sau không được làm đổi một Đợt đã lưu.
+  final Set<String> _prefillSelected = {};
+  List<String> _prefillLabels = const [];
   bool _loadedCandidates = false;
   bool _busy = false;
 
@@ -55,7 +66,11 @@ class _ReviewEditSheetState extends ConsumerState<_ReviewEditSheet> {
     if (_loadedCandidates || widget.existing != null) return;
     _loadedCandidates = true;
     final summaries =
-        ref.read(projectReviewsProvider(widget.projectId)).value ?? const [];
+        (widget.projectId != null
+                ? ref.read(projectReviewsProvider(widget.projectId!))
+                : ref.read(areaReviewsProvider(widget.areaId!)))
+            .value ??
+            const [];
     if (summaries.isEmpty) return;
     final previous = summaries.first.review;
     final items = await ref.read(reviewRepositoryProvider).getItems(previous.id);
@@ -67,12 +82,31 @@ class _ReviewEditSheetState extends ConsumerState<_ReviewEditSheet> {
     });
   }
 
+  /// Chỉ gợi ý khi đây là Đợt **đầu tiên** của Lĩnh vực. Từ Đợt thứ hai trở đi
+  /// việc kế thừa Mục chưa đạt (FR-37) đã lo phần này, và hiện cả hai danh
+  /// sách cùng lúc sẽ tạo ra Mục trùng.
+  void _loadPrefill() {
+    if (widget.areaId == null || widget.existing != null) return;
+    if (_candidates.isNotEmpty) return;
+    final summaries = ref.read(areaReviewsProvider(widget.areaId!)).value;
+    if (summaries != null && summaries.isNotEmpty) return;
+    final projects = ref.read(allProjectSummariesProvider).value ?? const [];
+    final labels = projects
+        .where((s) => s.project.areaId == widget.areaId && s.project.status.isOpen)
+        .map((s) => s.project.name)
+        .toList();
+    if (labels.length == _prefillLabels.length) return;
+    _prefillLabels = labels;
+    _prefillSelected.addAll(labels);
+  }
+
   Future<void> _submit() async {
     setState(() => _busy = true);
     final repo = ref.read(reviewRepositoryProvider);
     if (widget.existing == null) {
       final created = await repo.create(
         projectId: widget.projectId,
+        areaId: widget.areaId,
         date: _date,
         title: _title.text.trim(),
         summaryMarkdown: _summary.text,
@@ -82,6 +116,11 @@ class _ReviewEditSheetState extends ConsumerState<_ReviewEditSheet> {
           _candidates.where((i) => _carrySelected.contains(i.id)).toList();
       if (chosen.isNotEmpty) {
         await repo.carryForward(targetReviewId: created.id, items: chosen);
+      }
+      // Chép tên Dự án thành Mục — bản chụp văn bản, không nối khoá ngoại.
+      for (final label in _prefillLabels) {
+        if (!_prefillSelected.contains(label)) continue;
+        await repo.addItem(reviewId: created.id, label: label);
       }
     } else {
       await repo.update(widget.existing!.copyWith(
@@ -98,6 +137,7 @@ class _ReviewEditSheetState extends ConsumerState<_ReviewEditSheet> {
   @override
   Widget build(BuildContext context) {
     _loadCandidates();
+    _loadPrefill();
     final theme = Theme.of(context);
     final inset = MediaQuery.of(context).viewInsets.bottom;
 
@@ -159,6 +199,24 @@ class _ReviewEditSheetState extends ConsumerState<_ReviewEditSheet> {
                 border: OutlineInputBorder(),
               ),
             ),
+            if (_prefillLabels.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Text(S.reviewPrefillFromProjects,
+                  style: theme.textTheme.titleSmall),
+              Text(S.reviewPrefillHint, style: theme.textTheme.bodySmall),
+              for (final label in _prefillLabels)
+                CheckboxListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  value: _prefillSelected.contains(label),
+                  title: Text(label),
+                  onChanged: (v) => setState(() {
+                    v == true
+                        ? _prefillSelected.add(label)
+                        : _prefillSelected.remove(label);
+                  }),
+                ),
+            ],
             if (_candidates.isNotEmpty) ...[
               const SizedBox(height: 20),
               Text(S.reviewCarryForward, style: theme.textTheme.titleSmall),

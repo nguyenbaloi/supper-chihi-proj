@@ -244,12 +244,18 @@ final class ReviewSummary {
 
 abstract interface class ReviewRepository {
   Stream<List<ReviewSummary>> watchByProject(int projectId);
+
+  /// Đợt đánh giá của một Lĩnh vực — FR-49. **Không** gồm Đợt của các Dự án
+  /// thuộc Lĩnh vực đó: hai loại trả lời hai câu hỏi khác nhau.
+  Stream<List<ReviewSummary>> watchByArea(int areaId);
   Stream<List<Review>> watchAllReviews();
   Stream<List<ReviewItem>> watchItems(int reviewId);
   Future<List<ReviewItem>> getItems(int reviewId);
 
+  /// Truyền **đúng một** trong [projectId] và [areaId] — AD-19.
   Future<Review> create({
-    required int projectId,
+    int? projectId,
+    int? areaId,
     required DateTime date,
     String title = '',
     String summaryMarkdown = '',

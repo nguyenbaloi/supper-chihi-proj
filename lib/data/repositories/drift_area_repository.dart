@@ -6,9 +6,11 @@ import '../db/database.dart';
 import 'mappers.dart';
 
 class DriftAreaRepository implements AreaRepository {
-  DriftAreaRepository(this._db);
+  DriftAreaRepository(this._db, {DateTime Function()? clock})
+      : _now = clock ?? DateTime.now;
 
   final AppDatabase _db;
+  final DateTime Function() _now;
 
   @override
   Stream<List<Area>> watchAll() => (_db.select(_db.areas)
@@ -33,12 +35,16 @@ class DriftAreaRepository implements AreaRepository {
     final maxOrder = await _db
         .customSelect('SELECT COALESCE(MAX(sort_order), -1) AS m FROM areas')
         .getSingle();
+    final order = maxOrder.read<int>('m') + 1;
+    // AD-5: dấu thời gian do hệ thống ghi, không có ô nhập nào.
+    final now = _now().toUtc();
     final id = await _db.into(_db.areas).insert(
           AreasCompanion.insert(
             name: name,
             colorValue: colorValue,
             iconKey: iconKey,
-            sortOrder: Value(maxOrder.read<int>('m') + 1),
+            sortOrder: Value(order),
+            createdAt: now,
           ),
         );
     return Area(
@@ -46,7 +52,8 @@ class DriftAreaRepository implements AreaRepository {
       name: name,
       colorValue: colorValue,
       iconKey: iconKey,
-      sortOrder: maxOrder.read<int>('m') + 1,
+      sortOrder: order,
+      createdAt: now,
     );
   }
 
@@ -58,6 +65,10 @@ class DriftAreaRepository implements AreaRepository {
         colorValue: Value(area.colorValue),
         iconKey: Value(area.iconKey),
         sortOrder: Value(area.sortOrder),
+        standard: Value(area.standard),
+        // `Value(null)` xoá nhịp — đúng ý "không nhắc gì nữa", khác với
+        // `Value.absent()` là "không đụng tới".
+        reviewCadenceDays: Value(area.reviewCadenceDays),
       ),
     );
   }

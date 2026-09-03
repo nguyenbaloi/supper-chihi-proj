@@ -2,7 +2,8 @@ import 'package:meta/meta.dart';
 
 import 'enums.dart';
 
-/// Một lần nhìn lại Dự án tại một mốc thời gian — FR-35.
+/// Một lần nhìn lại một Dự án **hoặc** một Lĩnh vực tại một mốc thời gian —
+/// FR-35, FR-49.
 ///
 /// **Không có** trường `metCount` hay `metRatio`. Tỷ lệ đạt luôn tính từ danh
 /// sách [ReviewItem] (AD-3).
@@ -10,7 +11,8 @@ import 'enums.dart';
 final class Review {
   const Review({
     required this.id,
-    required this.projectId,
+    this.projectId,
+    this.areaId,
     required this.date,
     required this.title,
     required this.summaryMarkdown,
@@ -19,7 +21,13 @@ final class Review {
   });
 
   final int id;
-  final int projectId;
+
+  /// AD-19: **đúng một** trong [projectId] và [areaId] khác `null`. Không bao
+  /// giờ cả hai, không bao giờ cả hai cùng `null`.
+  final int? projectId;
+
+  /// Nhìn lại cả một mảng đời sống thay vì một Dự án — FR-49.
+  final int? areaId;
 
   /// Ngày đánh giá, do người dùng chọn.
   final DateTime date;
@@ -44,6 +52,7 @@ final class Review {
       Review(
         id: id,
         projectId: projectId,
+        areaId: areaId,
         date: date ?? this.date,
         title: title ?? this.title,
         summaryMarkdown: summaryMarkdown ?? this.summaryMarkdown,

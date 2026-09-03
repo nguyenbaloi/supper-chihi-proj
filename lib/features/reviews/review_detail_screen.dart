@@ -15,11 +15,15 @@ class ReviewDetailScreen extends ConsumerStatefulWidget {
   const ReviewDetailScreen({
     super.key,
     required this.reviewId,
-    required this.projectId,
-  });
+    this.projectId,
+    this.areaId,
+  }) : assert(projectId != null || areaId != null, 'AD-19');
 
   final int reviewId;
-  final int projectId;
+
+  /// AD-19: đúng một trong hai khác `null`, khớp với chủ thể của Đợt.
+  final int? projectId;
+  final int? areaId;
 
   @override
   ConsumerState<ReviewDetailScreen> createState() => _ReviewDetailScreenState();
@@ -48,8 +52,11 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final summaries =
-        ref.watch(projectReviewsProvider(widget.projectId)).value ?? const [];
+    final summaries = (widget.projectId != null
+            ? ref.watch(projectReviewsProvider(widget.projectId!))
+            : ref.watch(areaReviewsProvider(widget.areaId!)))
+        .value ??
+        const [];
     final match = summaries.where((s) => s.review.id == widget.reviewId);
     if (match.isEmpty) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -68,6 +75,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
             onPressed: () => showReviewEditSheet(
               context,
               projectId: widget.projectId,
+              areaId: widget.areaId,
               existing: review,
             ),
           ),

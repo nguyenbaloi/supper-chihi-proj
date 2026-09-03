@@ -20,9 +20,16 @@ import '../../core/result/result.dart';
 ///   Lĩnh vực mà xuất ra file v3 thì **mất chỗ gắn**, đúng kiểu mất im lặng mà
 ///   FR-50 sinh ra để chặn.
 ///
-/// File v1…v3 vẫn nhập được: thiếu `areaId` thì hiểu là `null`, và
-/// `projectId` ở các phiên bản đó luôn có giá trị.
-const int backupFormatVersion = 4;
+/// - **v5** thêm `topics.standard`, `topics.reviewCadenceDays`,
+///   `topics.createdAt` và `reviews.areaId` — Story 8.2 và 8.3, FR-47…FR-49.
+///   Cùng lý do với v4: schema thêm dữ liệu người dùng thì định dạng phải theo
+///   ngay, nếu không xuất ra là mất.
+///
+/// File v1…v4 vẫn nhập được. Trường thiếu nhận mặc định **đúng nghĩa**, không
+/// phải giá trị bừa: `areaId` là `null`, `standard` là rỗng,
+/// `reviewCadenceDays` là `null` (tức không nhắc gì), `createdAt` lấy thời
+/// điểm nhập.
+const int backupFormatVersion = 5;
 
 /// Thứ tự chèn tôn trọng khoá ngoại. Xoá thì đi ngược danh sách này.
 ///
@@ -158,7 +165,9 @@ const Map<String, List<String>> _requiredFields = {
   // trường này nên không có phép kiểm nào bị mất.
   'notes': ['id', 'title', 'createdAt', 'updatedAt'],
   'links': ['id', 'label', 'url'],
-  'reviews': ['id', 'projectId', 'date', 'createdAt'],
+  // `projectId` rời khỏi danh sách bắt buộc từ v5: Đợt của Lĩnh vực dùng
+  // `areaId` thay thế — AD-19. File v1…v4 luôn có `projectId`.
+  'reviews': ['id', 'date', 'createdAt'],
   'reviewItems': ['id', 'reviewId', 'label', 'verdict'],
   'statusEvents': ['id', 'entityType', 'entityId', 'fromStatus', 'toStatus', 'at'],
 };

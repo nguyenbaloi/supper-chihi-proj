@@ -10,6 +10,7 @@ import '../../domain/rules/completion.dart';
 import '../../domain/rules/day.dart';
 import '../../domain/rules/stale.dart';
 import '../../presentation/providers/providers.dart';
+import '../areas/area_detail_screen.dart';
 import '../../presentation/widgets/chips.dart';
 import 'project_detail_screen.dart';
 import 'project_edit_sheet.dart';
@@ -94,38 +95,51 @@ class _AreaHeader extends StatelessWidget {
     final done = projects.fold<int>(0, (n, s) => n + s.doneCount);
     final total = projects.fold<int>(0, (n, s) => n + s.countedTotal);
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(10),
+    return InkWell(
+      // Lối vào duy nhất tới màn hình Lĩnh vực — nơi có mức cần giữ, nhịp xem
+      // lại và Đợt đánh giá của cả mảng (FR-47…FR-49).
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => AreaDetailScreen(areaId: area.id),
+        ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 22,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 4,
+              height: 22,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              area.name,
-              style: theme.textTheme.titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w700, color: color),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                area.name,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
             ),
-          ),
-          Text(
-            total == 0
-                ? S.projectCount(projects.length)
-                : S.projectCountWithTally(projects.length, done, total),
-            style: theme.textTheme.bodySmall,
-          ),
-        ],
+            Text(
+              total == 0
+                  ? S.projectCount(projects.length)
+                  : S.projectCountWithTally(projects.length, done, total),
+              style: theme.textTheme.bodySmall,
+            ),
+            const Icon(Icons.chevron_right, size: 18),
+          ],
+        ),
       ),
     );
   }
@@ -164,10 +178,11 @@ class _ProjectCard extends ConsumerWidget {
     );
 
     final open = actions.where((a) => a.status.isOpen).toList();
-    final highOpen =
-        open.where((a) => a.priority == Priority.high).length;
+    final highOpen = open.where((a) => a.priority == Priority.high).length;
     final overdue = open
-        .where((a) => a.dueDate != null && isOverdue(dueDate: a.dueDate!, now: now))
+        .where(
+          (a) => a.dueDate != null && isOverdue(dueDate: a.dueDate!, now: now),
+        )
         .length;
 
     return Card(
@@ -187,9 +202,12 @@ class _ProjectCard extends ConsumerWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Text(p.name,
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w600)),
+                    child: Text(
+                      p.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                   PriorityChip(p.priority),
                 ],
@@ -206,7 +224,8 @@ class _ProjectCard extends ConsumerWidget {
                             ? 0
                             : tally.doneCount / tally.countedTotal,
                         minHeight: 6,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
                       ),
                     ),
                   ),
@@ -266,24 +285,26 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(999),
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(999),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: color),
+        const SizedBox(width: 3),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 12, color: color),
-            const SizedBox(width: 3),
-            Text(label,
-                style: Theme.of(context)
-                    .textTheme
-                    .labelSmall
-                    ?.copyWith(color: color, fontWeight: FontWeight.w600)),
-          ],
-        ),
-      );
+      ],
+    ),
+  );
 }
 
 class _FilterBar extends ConsumerWidget {
@@ -305,11 +326,19 @@ class _FilterBar extends ConsumerWidget {
             initialValue: filter.sort,
             onSelected: controller.setSort,
             itemBuilder: (_) => const [
-              PopupMenuItem(value: ProjectSort.priority, child: Text(S.sortPriority)),
               PopupMenuItem(
-                  value: ProjectSort.lastActivity, child: Text(S.sortLastActivity)),
+                value: ProjectSort.priority,
+                child: Text(S.sortPriority),
+              ),
+              PopupMenuItem(
+                value: ProjectSort.lastActivity,
+                child: Text(S.sortLastActivity),
+              ),
               PopupMenuItem(value: ProjectSort.name, child: Text(S.sortName)),
-              PopupMenuItem(value: ProjectSort.dueDate, child: Text(S.sortDueDate)),
+              PopupMenuItem(
+                value: ProjectSort.dueDate,
+                child: Text(S.sortDueDate),
+              ),
             ],
             child: Chip(
               avatar: const Icon(Icons.sort, size: 16),
@@ -336,11 +365,11 @@ class _FilterBar extends ConsumerWidget {
   }
 
   static String _sortLabel(ProjectSort s) => switch (s) {
-        ProjectSort.priority => S.sortPriority,
-        ProjectSort.lastActivity => S.sortLastActivity,
-        ProjectSort.name => S.sortName,
-        ProjectSort.dueDate => S.sortDueDate,
-      };
+    ProjectSort.priority => S.sortPriority,
+    ProjectSort.lastActivity => S.sortLastActivity,
+    ProjectSort.name => S.sortName,
+    ProjectSort.dueDate => S.sortDueDate,
+  };
 }
 
 class _EmptyProjects extends StatelessWidget {
@@ -348,13 +377,13 @@ class _EmptyProjects extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(
-            S.projectEmptyList,
-            style: Theme.of(context).textTheme.bodyLarge,
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Text(
+        S.projectEmptyList,
+        style: Theme.of(context).textTheme.bodyLarge,
+        textAlign: TextAlign.center,
+      ),
+    ),
+  );
 }

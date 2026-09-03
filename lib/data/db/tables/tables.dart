@@ -17,6 +17,20 @@ class Areas extends Table {
   TextColumn get iconKey => text().withLength(max: 40)();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
 
+  /// FR-47: *"mức tôi muốn giữ ở mảng này là gì"*. Đây là thứ phân biệt một
+  /// Lĩnh vực với một cái nhãn màu.
+  ///
+  /// Không có `status`, không có `dueDate`: Lĩnh vực **không bao giờ kết
+  /// thúc**. Cái kết thúc được là Dự án.
+  TextColumn get standard => text().withDefault(const Constant(''))();
+
+  /// FR-48: số ngày giữa hai lần nhìn lại. `null` nghĩa là **không nhắc gì
+  /// cả** — cùng nguyên tắc với "Mục tiêu không có hạn thì không hiện nhịp".
+  IntColumn get reviewCadenceDays => integer().nullable()();
+
+  /// Mốc để tính hạn xem lại đầu tiên, khi Lĩnh vực chưa có Đợt nào — FR-48.
+  DateTimeColumn get createdAt => dateTime()();
+
   /// Lĩnh vực `Khác` — không xoá được, là nơi Dự án chuyển về (FR-1).
   BoolColumn get isSystemFallback => boolean().withDefault(const Constant(false))();
 }
@@ -144,8 +158,17 @@ class StatusEvents extends Table {
 @DataClassName('ReviewRow')
 class Reviews extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get projectId =>
-      integer().references(Projects, #id, onDelete: KeyAction.cascade)();
+
+  /// AD-19: Đợt thuộc **đúng một** chủ thể — một Dự án *hoặc* một Lĩnh vực.
+  /// Khác AD-18 ở chỗ không cho phép cả hai cùng `null`: một Đợt mồ côi thì
+  /// không hiện ở đâu cả.
+  IntColumn get projectId => integer()
+      .nullable()
+      .references(Projects, #id, onDelete: KeyAction.cascade)();
+
+  /// Nhìn lại cả một mảng đời sống, không chỉ một Dự án — FR-49.
+  IntColumn get areaId =>
+      integer().nullable().references(Areas, #id, onDelete: KeyAction.cascade)();
   DateTimeColumn get date => dateTime()();
   TextColumn get title => text().withDefault(const Constant(''))();
   TextColumn get summaryMarkdown => text().withDefault(const Constant(''))();
@@ -154,6 +177,13 @@ class Reviews extends Table {
   DateTimeColumn get nextReviewDate => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   TextColumn get searchText => text().withDefault(const Constant(''))();
+
+  /// AD-19: **đúng một** chủ thể. `XOR` chứ không phải "nhiều nhất một" như
+  /// AD-18 — Đợt không thuộc đâu cả thì không màn hình nào liệt kê nó.
+  @override
+  List<String> get customConstraints => const [
+        'CHECK ((project_id IS NULL) <> (area_id IS NULL))',
+      ];
 }
 
 /// Một dòng trong Đợt đánh giá — FR-36.

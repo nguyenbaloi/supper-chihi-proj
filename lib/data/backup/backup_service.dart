@@ -37,6 +37,9 @@ class BackupService {
               'colorValue': r.colorValue,
               'iconKey': r.iconKey,
               'sortOrder': r.sortOrder,
+              'standard': r.standard,
+              'reviewCadenceDays': r.reviewCadenceDays,
+              'createdAt': isoOrNull(r.createdAt),
               'isSystemFallback': r.isSystemFallback,
             }
         ],
@@ -103,6 +106,7 @@ class BackupService {
             {
               'id': r.id,
               'projectId': r.projectId,
+              'areaId': r.areaId,
               'date': isoOrNull(r.date),
               'title': r.title,
               'summaryMarkdown': r.summaryMarkdown,
@@ -232,6 +236,11 @@ class BackupService {
                 colorValue: readInt(r, 'colorValue'),
                 iconKey: readString(r, 'iconKey'),
                 sortOrder: Value(readInt(r, 'sortOrder')),
+                // File v1…v4 chưa có ba trường này — mặc định đúng nghĩa:
+                // chưa ghi tiêu chuẩn, và không đặt nhịp thì không nhắc.
+                createdAt: readDateOrNull(r, 'createdAt') ?? _now().toUtc(),
+                standard: Value(readString(r, 'standard')),
+                reviewCadenceDays: Value(readIntOrNull(r, 'reviewCadenceDays')),
                 isSystemFallback: Value(readBool(r, 'isSystemFallback')),
               ));
         case 'projects':
@@ -299,7 +308,8 @@ class BackupService {
         case 'reviews':
           await _db.into(_db.reviews).insert(ReviewsCompanion.insert(
                 id: Value(readInt(r, 'id')),
-                projectId: readInt(r, 'projectId'),
+                projectId: Value(readIntOrNull(r, 'projectId')),
+                areaId: Value(readIntOrNull(r, 'areaId')),
                 date: readDate(r, 'date'),
                 title: Value(readString(r, 'title')),
                 summaryMarkdown: Value(readString(r, 'summaryMarkdown')),

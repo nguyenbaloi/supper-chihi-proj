@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_projects/data/db/database.dart';
 import 'package:personal_projects/data/repositories/drift_action_repository.dart';
+import 'package:personal_projects/data/repositories/drift_area_repository.dart';
 import 'package:personal_projects/data/repositories/drift_project_repository.dart';
 import 'package:personal_projects/data/repositories/drift_review_repository.dart';
 import 'package:personal_projects/data/seed/seeder.dart';
@@ -28,6 +29,62 @@ void main() {
   });
 
   tearDown(() => db.close());
+
+  group('Story 8.3 — Đợt đánh giá cấp Lĩnh vực (FR-49, AD-19)', () {
+    test('Đợt của Lĩnh vực và Đợt của Dự án không lẫn vào nhau', () async {
+      final area = (await db.select(db.areas).get()).first;
+      final p = await projects.create(name: 'Dự án trong lĩnh vực');
+
+      await reviews.create(areaId: area.id, date: DateTime.utc(2026, 9, 1));
+      await reviews.create(projectId: p.id, date: DateTime.utc(2026, 9, 2));
+
+      final byArea = await reviews.watchByArea(area.id).first;
+      final byProject = await reviews.watchByProject(p.id).first;
+
+      expect(byArea.length, 1);
+      expect(byArea.single.review.areaId, area.id);
+      expect(byArea.single.review.projectId, isNull);
+
+      expect(byProject.length, 1);
+      expect(byProject.single.review.projectId, p.id);
+      expect(byProject.single.review.areaId, isNull);
+    });
+
+    // AD-15: nạp sẵn Mục từ tên Dự án là **chép văn bản**. Đây là kịch bản
+    // "chép Mục sang Đợt mới rồi sửa cái cũ" mà CLAUDE.md bắt phải có test.
+    test('Mục nạp từ tên Dự án không đổi theo khi Dự án đổi tên', () async {
+      final area = (await db.select(db.areas).get()).first;
+      final p = await projects.create(name: 'Tên lúc đánh giá');
+
+      final r = await reviews.create(
+          areaId: area.id, date: DateTime.utc(2026, 9, 1));
+      await reviews.addItem(reviewId: r.id, label: p.name);
+
+      await projects.update(p.copyWith(
+          name: 'Tên đã sửa về sau', updatedAt: DateTime.utc(2026, 10)));
+
+      final items = await reviews.getItems(r.id);
+      expect(items.single.label, 'Tên lúc đánh giá',
+          reason: 'nhật ký phải giữ đúng chữ đã viết lúc đó');
+    });
+
+    test('xoá Lĩnh vực thì Đợt của nó đi theo, Đợt của Dự án thì không',
+        () async {
+      final areas = DriftAreaRepository(db, clock: clock);
+      final area = await areas.create(
+          name: 'Tạm thời', colorValue: 1, iconKey: 'other');
+      final p = await projects.create(name: 'Dự án');
+
+      await reviews.create(areaId: area.id, date: DateTime.utc(2026, 9, 1));
+      await reviews.create(projectId: p.id, date: DateTime.utc(2026, 9, 2));
+
+      await areas.delete(area.id);
+
+      final remaining = await db.select(db.reviews).get();
+      expect(remaining.length, 1);
+      expect(remaining.single.projectId, p.id);
+    });
+  });
 
   group('Story 7.3 — tỷ lệ đạt suy ra (FR-39)', () {
     test('Một phần vào mẫu số nhưng không vào tử số', () {

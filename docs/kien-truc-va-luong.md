@@ -1,6 +1,6 @@
 # Kiến trúc và luồng use case
 
-Bản đồ để soi tổng thể tính năng. Mô tả **trạng thái hôm nay** (schema v5).
+Bản đồ để soi tổng thể tính năng. Mô tả **trạng thái hôm nay** (schema v6).
 Chủ đề đã đổi tên thành **Lĩnh vực** ở Story 8.1; những phần Epic 8 còn nợ
 được đánh dấu `[PARA]`.
 
@@ -25,10 +25,14 @@ lập. Provider khai báo tay (không codegen Riverpod).
 ```
 Area   1──n  Project  1──n  Action
   │              │
-  │              └──n  Review  1──n  ReviewItem   [PARA: gắn được vào Area]
+  │              └──n  Review  1──n  ReviewItem
+  ├──n  Review ──┘  (Đợt thuộc ĐÚNG một chủ thể — AD-19)
   │
   └── Note và Link gắn vào nhiều nhất MỘT chỗ — AD-18:
         một Project · một Area · hoặc không gắn gì (kho chung)
+
+Area có `standard` (mức cần giữ) và `reviewCadenceDays` (nhịp xem lại).
+Không có `status`, không có `dueDate` — Lĩnh vực không bao giờ kết thúc.
 
 StatusEvent   bảng chỉ ghi thêm, trỏ tới Project|Action bằng entityType+entityId
 ```
@@ -47,6 +51,9 @@ Ba ràng buộc hình dạng:
 | **Dự án** | *Mọi thứ đang chạy thế nào?* | `watchSummaries(filter)`, nhóm theo Lĩnh vực |
 | **Thống kê** | *Tôi có làm đúng hạn không?* | 6 nhóm `DueOutcome` |
 | **Cài đặt** | *Sao lưu, ngưỡng nguội, xoá sạch* | `AppSettings` + `backup` |
+
+Màn hình **Lĩnh vực** vào từ tiêu đề nhóm trên tab Dự án; **Tư liệu** từ biểu
+tượng thư mục trên cùng tab đó.
 
 Tìm kiếm nằm ở thanh tiêu đề, không phải một tab.
 
@@ -92,6 +99,12 @@ Liên kết, lọc theo Lĩnh vực hoặc *chưa xếp chỗ*.
 Xoá Dự án **không** xoá chúng — chúng chuyển sang Lĩnh vực của Dự án, và hộp
 xác nhận nói rõ chuyển đi đâu (FR-50).
 
+**UC-7b · Lĩnh vực**
+`tab Dự án → chạm tiêu đề nhóm → mức cần giữ · nhịp xem lại · Đợt đánh giá của mảng`
+Nhịp để trống thì **không hiện ngày nào cả** — không bịa ra một cái hạn người
+dùng chưa từng đặt. Hạn xem lại = Đợt gần nhất + nhịp, tính tại chỗ; chưa có
+Đợt nào thì đếm từ ngày tạo Lĩnh vực.
+
 **UC-8 · Đợt đánh giá định kỳ**
 `chi tiết Dự án → tab Đánh giá → tạo Đợt (ngày, tiêu đề, tóm tắt, ngày xem lại tiếp)`
 `→ thêm Mục, mỗi Mục chấm Đạt / Một phần / Chưa đạt`
@@ -105,7 +118,7 @@ Quét năm loại: Dự án, Hành động, Ghi chú, Liên kết, Đợt đánh
 chỉ mục, không phải giá trị nghiệp vụ.
 
 **UC-10 · Sao lưu và khôi phục**
-`Xuất → một file JSON duy nhất (backupFormatVersion 4) → share_plus`
+`Xuất → một file JSON duy nhất (backupFormatVersion 5) → share_plus`
 Khoá JSON vẫn mang tên cũ `topics`/`topicId`: định dạng file là hợp đồng riêng
 với tên bảng, đổi ở Story 8.6.
 `Nhập → kiểm tra toàn bộ → THAY THẾ TẤT CẢ trong một giao dịch → sinh lại searchText`
@@ -120,6 +133,7 @@ chối**, không cố đọc.
 | Nguội hay không | `now − hoạt động gần nhất > ngưỡng` | `rules/stale.dart` |
 | Khối Cần chú ý | phân loại theo hạn + ưu tiên | `rules/attention.dart` |
 | Tỷ lệ đạt của Đợt | `\|Đạt\| ÷ tổng Mục` | `rules/review.dart` |
+| Hạn xem lại Lĩnh vực | `Đợt gần nhất + nhịp`, null nếu không đặt nhịp | `rules/cadence.dart` |
 | 6 nhóm đúng/muộn hạn | so `completedAt` với `dueDate` | `rules/stats.dart` |
 
 Chưa có dữ liệu thì hiện `—`, **không bao giờ hiện `0%`**. Không bảng nào có
@@ -129,8 +143,9 @@ cột `completionRatio`, `actionCount`, `metRatio`.
 
 1. ~~Xoá Dự án là mất Ghi chú~~ — **đã vá ở Story 8.4** (UC-7).
 2. **Không có lưu trữ.** Dự án `Xong` hoặc `Bỏ` nằm mãi trong danh sách, chỉ ẩn được bằng bộ lọc.
-3. **Đợt đánh giá chỉ ở cấp Dự án.** Không nhìn lại được cả một mảng đời sống.
-4. **`Area` mới chỉ là nhãn màu** — chưa ghi được "mức tôi muốn giữ" hay nhịp xem lại (Story 8.2).
+3. ~~Đợt đánh giá chỉ ở cấp Dự án~~ — **đã làm ở Story 8.3**.
+4. ~~`Area` mới chỉ là nhãn màu~~ — **đã làm ở Story 8.2**. Còn nợ: hạn xem lại chưa hiện ở khối *Cần chú ý* (Story 8.7).
 5. **Hành động không có Ghi chú riêng**, chỉ một trường `note` một dòng.
 
-Điểm 2–4 là phần Epic 8 còn nợ. Điểm 5 chưa có ai đề xuất.
+Epic 8 còn nợ điểm 2 (Lưu trữ — Story 8.5), phần nhắc của điểm 4 (Story 8.7),
+và đổi khoá sao lưu `topics` → `areas` (Story 8.6). Điểm 5 chưa có ai đề xuất.

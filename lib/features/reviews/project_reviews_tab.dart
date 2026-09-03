@@ -85,7 +85,8 @@ class _ReviewCard extends ConsumerWidget {
       child: ListTile(
         onTap: () => Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) => ReviewDetailScreen(reviewId: r.id, projectId: r.projectId),
+            builder: (_) =>
+                ReviewDetailScreen(reviewId: r.id, projectId: r.projectId),
           ),
         ),
         title: Text(r.title.isEmpty ? VnFormat.date(r.date) : r.title),

@@ -70,8 +70,31 @@ void main() {
     });
   });
 
+  // AD-3: hạn xem lại của Lĩnh vực là giá trị suy ra. Có cột lưu cứng là nó
+  // đứng yên khi người dùng xoá Đợt gần nhất, và nói dối từ đó trở đi.
+  test('AD-3 — areas không có cột nào lưu cứng hạn xem lại', () {
+    final names = db.areas.$columns.map((c) => c.name).toSet();
+    for (final forbidden in [
+      'next_review_date',
+      'is_due_for_review',
+      'last_review_date',
+      'review_count',
+    ]) {
+      expect(names.contains(forbidden), isFalse,
+          reason: 'areas.$forbidden là giá trị suy ra, cấm lưu — AD-3');
+    }
+    expect(names.contains('review_cadence_days'), isTrue);
+    expect(names.contains('standard'), isTrue);
+    expect(names.contains('created_at'), isTrue);
+  });
+
+  test('AD-19 — reviews có đúng hai khoá chủ thể, cả hai đều nullable', () {
+    expect(db.reviews.projectId.$nullable, isTrue);
+    expect(db.reviews.areaId.$nullable, isTrue);
+  });
+
   test('mở cơ sở dữ liệu rỗng rồi đọc lại thành công', () async {
     expect(await db.select(db.projects).get(), isEmpty);
-    expect(db.schemaVersion, 5);
+    expect(db.schemaVersion, 6);
   });
 }

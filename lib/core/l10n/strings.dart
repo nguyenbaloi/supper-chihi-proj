@@ -149,6 +149,29 @@ abstract final class S {
   // Tư liệu — FR-50. "Tư liệu" là nhãn nhóm gộp Ghi chú và Liên kết ở giao
   // diện, KHÔNG phải một thực thể; không có lớp `Resource` nào — AD-20.
   static const resources = 'Tư liệu';
+
+  // Lĩnh vực — FR-47, FR-48.
+  static const area = 'Lĩnh vực';
+  static const areaStandard = 'Mức cần giữ';
+  static const areaStandardHint =
+      'Mảng này giữ ở mức nào thì gọi là ổn? Viết cho mình đọc lại sau.';
+  static const areaStandardEmpty = 'Chưa ghi mức cần giữ.';
+  static const areaCadence = 'Nhịp xem lại';
+  static const areaCadenceNone = 'Không nhắc';
+  static const areaCadenceNoneHint =
+      'Không đặt nhịp thì ứng dụng không nhắc gì cả.';
+  static String areaCadenceEvery(int days) => 'Mỗi $days ngày';
+  static const areaNextReview = 'Xem lại lần tới';
+  static String areaReviewDueIn(int days) => 'Còn $days ngày';
+  static const areaReviewDueToday = 'Đến hạn hôm nay';
+  static String areaReviewOverdue(int days) => 'Trễ $days ngày';
+  static const areaReviewsEmpty = 'Chưa có đợt đánh giá nào cho lĩnh vực này.';
+  static const areaReviewNew = 'Đợt đánh giá mới';
+  static const areaEdit = 'Sửa lĩnh vực';
+  static const areaNoProjects = 'Chưa có dự án nào trong lĩnh vực này.';
+  static const reviewPrefillFromProjects = 'Nạp sẵn từ dự án đang mở';
+  static const reviewPrefillHint =
+      'Chép tên dự án thành mục đánh giá. Sửa tên dự án sau này không làm đổi đợt đã lưu.';
   static const resourcesAll = 'Tất cả';
   static const resourcesUnattached = 'Chưa xếp chỗ';
   static const resourcesEmpty = 'Chưa có tư liệu nào.';

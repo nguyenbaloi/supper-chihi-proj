@@ -16,6 +16,9 @@ extension AreaMapper on AreaRow {
         colorValue: colorValue,
         iconKey: iconKey,
         sortOrder: sortOrder,
+        createdAt: createdAt,
+        standard: standard,
+        reviewCadenceDays: reviewCadenceDays,
         isSystemFallback: isSystemFallback,
       );
 }

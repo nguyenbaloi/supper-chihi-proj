@@ -28,6 +28,9 @@ SELECT
   t.icon_key          AS t_icon_key,
   t.sort_order        AS t_sort_order,
   t.is_system_fallback AS t_is_system_fallback,
+  t.created_at          AS t_created_at,
+  t.standard            AS t_standard,
+  t.review_cadence_days AS t_review_cadence_days,
   (SELECT COUNT(*) FROM actions a
      WHERE a.project_id = p.id AND a.status <> 'dropped')     AS counted_total,
   (SELECT COUNT(*) FROM actions a
@@ -70,6 +73,9 @@ JOIN areas t ON t.id = p.area_id
         colorValue: row.read<int>('t_color_value'),
         iconKey: row.read<String>('t_icon_key'),
         sortOrder: row.read<int>('t_sort_order'),
+        createdAt: row.read<DateTime>('t_created_at'),
+        standard: row.read<String>('t_standard'),
+        reviewCadenceDays: row.readNullable<int>('t_review_cadence_days'),
         isSystemFallback: row.read<int>('t_is_system_fallback') == 1,
       ),
       doneCount: row.read<int>('done_count'),

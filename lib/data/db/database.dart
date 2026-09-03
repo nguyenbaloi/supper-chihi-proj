@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'personal_projects'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -94,6 +94,32 @@ class AppDatabase extends _$AppDatabase {
             // đó nên câu lệnh chết ngay giữa migration.
             await m.alterTable(TableMigration(notes, newColumns: [notes.areaId]));
             await m.alterTable(TableMigration(links, newColumns: [links.areaId]));
+          }
+          if (from < 6) {
+            // v5 → v6: Lĩnh vực có tiêu chuẩn và nhịp xem lại (FR-47, FR-48),
+            // Đợt đánh giá gắn được vào Lĩnh vực (FR-49) — Story 8.2 và 8.3.
+            //
+            // `standard` và `reviewCadenceDays` có mặc định nên thêm thẳng
+            // được. `createdAt` thì không: nó `NOT NULL` và không có mặc định,
+            // nên phải dựng lại bảng và điền một giá trị.
+            //
+            // Điền bằng thời điểm chạy migration. Đó là con số **đúng nhất có
+            // thể biết** — ngày tạo thật của sáu Lĩnh vực dựng sẵn chưa từng
+            // được ghi ở đâu. Hệ quả duy nhất: hạn xem lại đầu tiên đếm từ hôm
+            // nâng cấp, không phải từ ngày cài app. Không có gì sai lệch về
+            // sau vì từ Đợt đầu tiên trở đi nó đếm theo Đợt.
+            await m.alterTable(TableMigration(
+              areas,
+              columnTransformer: {
+                areas.createdAt: Variable<DateTime>(DateTime.now().toUtc()),
+              },
+              newColumns: [areas.standard, areas.reviewCadenceDays, areas.createdAt],
+            ));
+
+            // `reviews.project_id` từ NOT NULL thành nullable, thêm `area_id`,
+            // và ràng buộc XOR của AD-19. Mọi Đợt đang có đều thuộc Dự án nên
+            // vế XOR vẫn đúng ngay sau khi nâng cấp.
+            await m.alterTable(TableMigration(reviews, newColumns: [reviews.areaId]));
           }
         },
         beforeOpen: (details) async {

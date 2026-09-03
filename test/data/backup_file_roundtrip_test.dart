@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:personal_projects/data/backup/backup_codec.dart';
 import 'package:personal_projects/data/backup/backup_service.dart';
 import 'package:personal_projects/data/db/database.dart';
 import 'package:personal_projects/data/repositories/drift_content_repositories.dart';
@@ -48,8 +49,9 @@ void main() {
     final file = File('${tempDir.path}/para.json');
     await file.writeAsString(
         await BackupService(oldPhone, clock: clock).exportJson());
-    expect(jsonDecode(await file.readAsString())['schemaVersion'], 4,
-        reason: 'định dạng phải lên v4, nếu không areaId không có chỗ ghi');
+    expect(jsonDecode(await file.readAsString())['schemaVersion'],
+        backupFormatVersion,
+        reason: 'schema thêm dữ liệu người dùng thì định dạng phải theo ngay');
 
     final newPhone = await freshDb();
     final result = await BackupService(newPhone, clock: clock)

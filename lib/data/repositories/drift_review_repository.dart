@@ -21,24 +21,32 @@ SELECT
   (SELECT COUNT(*) FROM review_items i WHERE i.review_id = r.id)                     AS item_count,
   (SELECT COUNT(*) FROM review_items i WHERE i.review_id = r.id AND i.verdict = 'met') AS met_count
 FROM reviews r
-WHERE r.project_id = ?
+WHERE r.%s = ?
 ORDER BY r.date DESC, r.id DESC
 ''';
 
-  @override
-  Stream<List<ReviewSummary>> watchByProject(int projectId) => _db
+  Stream<List<ReviewSummary>> _watchSummaries(String column, int id) => _db
       .customSelect(
-        _summarySql,
-        variables: [Variable<int>(projectId)],
+        _summarySql.replaceFirst('%s', column),
+        variables: [Variable<int>(id)],
         readsFrom: {_db.reviews, _db.reviewItems},
       )
       .watch()
       .map((rows) => rows.map(_toSummary).toList());
 
+  @override
+  Stream<List<ReviewSummary>> watchByProject(int projectId) =>
+      _watchSummaries('project_id', projectId);
+
+  @override
+  Stream<List<ReviewSummary>> watchByArea(int areaId) =>
+      _watchSummaries('area_id', areaId);
+
   ReviewSummary _toSummary(QueryRow row) => ReviewSummary(
         review: Review(
           id: row.read<int>('id'),
-          projectId: row.read<int>('project_id'),
+          projectId: row.readNullable<int>('project_id'),
+          areaId: row.readNullable<int>('area_id'),
           date: row.read<DateTime>('date'),
           title: row.read<String>('title'),
           summaryMarkdown: row.read<String>('summary_markdown'),
@@ -57,6 +65,7 @@ ORDER BY r.date DESC, r.id DESC
   Review _toReview(ReviewRow r) => Review(
         id: r.id,
         projectId: r.projectId,
+        areaId: r.areaId,
         date: r.date,
         title: r.title,
         summaryMarkdown: r.summaryMarkdown,
@@ -95,18 +104,22 @@ ORDER BY r.date DESC, r.id DESC
 
   @override
   Future<Review> create({
-    required int projectId,
+    int? projectId,
+    int? areaId,
     required DateTime date,
     String title = '',
     String summaryMarkdown = '',
     DateTime? nextReviewDate,
   }) async {
+    assert((projectId == null) != (areaId == null),
+        'AD-19: Đợt thuộc đúng một chủ thể');
     final now = _now().toUtc();
     final day = startOfDay(date);
     final next = nextReviewDate == null ? null : startOfDay(nextReviewDate);
     final id = await _db.into(_db.reviews).insert(
           ReviewsCompanion.insert(
-            projectId: projectId,
+            projectId: Value(projectId),
+            areaId: Value(areaId),
             date: day,
             title: Value(title),
             summaryMarkdown: Value(summaryMarkdown),
@@ -118,6 +131,7 @@ ORDER BY r.date DESC, r.id DESC
     return Review(
       id: id,
       projectId: projectId,
+      areaId: areaId,
       date: day,
       title: title,
       summaryMarkdown: summaryMarkdown,

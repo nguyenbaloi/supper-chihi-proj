@@ -18,6 +18,7 @@ class Seeder {
   /// FR-1: sáu Lĩnh vực chuẩn. Gọi ở mỗi lần mở app — người dùng không bao giờ
   /// gặp danh sách Lĩnh vực rỗng, kể cả sau khi xoá sạch dữ liệu.
   Future<void> ensureAreas() async {
+    final now = _now().toUtc();
     await _db.transaction(() async {
       final existing = await _db.select(_db.areas).get();
       final byName = {for (final t in existing) t.name: t};
@@ -30,6 +31,7 @@ class Seeder {
                 colorValue: seed.colorValue,
                 iconKey: seed.iconKey,
                 sortOrder: Value(i),
+                createdAt: now,
                 isSystemFallback: Value(seed.isFallback),
               ),
             );
@@ -110,7 +112,7 @@ class Seeder {
         for (final r in seed.reviews) {
           final reviewId = await _db.into(_db.reviews).insert(
                 ReviewsCompanion.insert(
-                  projectId: projectId,
+                  projectId: Value(projectId),
                   date: startOfDay(r.date),
                   title: Value(r.title),
                   summaryMarkdown: Value(r.summary),

@@ -147,6 +147,13 @@ final projectReviewsProvider = StreamProvider.family<List<ReviewSummary>, int>(
   (ref, projectId) => ref.watch(reviewRepositoryProvider).watchByProject(projectId),
 );
 
+/// Đợt đánh giá của một Lĩnh vực — FR-49. Tách hẳn với
+/// `projectReviewsProvider`: hai loại trả lời hai câu hỏi khác nhau và không
+/// bao giờ trộn vào một danh sách.
+final areaReviewsProvider = StreamProvider.family<List<ReviewSummary>, int>(
+  (ref, areaId) => ref.watch(reviewRepositoryProvider).watchByArea(areaId),
+);
+
 final reviewItemsProvider = StreamProvider.family<List<ReviewItem>, int>(
   (ref, reviewId) => ref.watch(reviewRepositoryProvider).watchItems(reviewId),
 );
