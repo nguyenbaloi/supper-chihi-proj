@@ -149,19 +149,86 @@ void main() {
   });
 
   group('Story 2.1 — xoá Dự án (FR-7)', () {
-    test('xoá theo tầng Hành động, Ghi chú, Liên kết nhưng giữ Mục tiêu', () async {
+    // FR-50, AD-18. Trước v5 test này khẳng định điều ngược lại: Ghi chú và
+    // Liên kết bị xoá theo. Đó chính là lỗi mất dữ liệu Story 8.4 vá.
+    test('xoá theo tầng Hành động, nhưng Ghi chú và Liên kết chuyển sang Lĩnh vực',
+        () async {
       final notes = DriftNoteRepository(db, clock: clock);
       final links = DriftLinkRepository(db);
       final p = await projects.create(name: 'Kế hoạch tài chính');
       await actions.create(projectId: p.id, title: 'Việc 1');
       await notes.create(projectId: p.id, title: 'Nợ tốt', bodyMarkdown: '...');
+      await notes.create(projectId: p.id, title: 'Khi nào nên vay');
       await links.create(projectId: p.id, label: 'Sheet', url: 'https://x.test');
+
+      final before = await projects.attachedContentCount(p.id);
+      expect(before, (notes: 2, links: 1));
+
       await projects.delete(p.id);
 
       expect(await projects.getById(p.id), isNull);
-      expect(await db.select(db.actions).get(), isEmpty);
-      expect(await db.select(db.notes).get(), isEmpty);
-      expect(await db.select(db.links).get(), isEmpty);
+      expect(await db.select(db.actions).get(), isEmpty,
+          reason: 'Hành động vẫn chết theo Dự án — AD-8');
+
+      final survivingNotes = await db.select(db.notes).get();
+      expect(survivingNotes.length, 2);
+      expect(survivingNotes.map((n) => n.title).toSet(),
+          {'Nợ tốt', 'Khi nào nên vay'});
+      expect(survivingNotes.first.bodyMarkdown, '...');
+      for (final n in survivingNotes) {
+        expect(n.projectId, isNull);
+        expect(n.areaId, p.areaId,
+            reason: 'phải về Lĩnh vực của Dự án, không rơi vào kho chung');
+      }
+
+      final survivingLinks = await db.select(db.links).get();
+      expect(survivingLinks.single.url, 'https://x.test');
+      expect(survivingLinks.single.projectId, isNull);
+      expect(survivingLinks.single.areaId, p.areaId);
+    });
+
+    test('chuyển Tư liệu giữa Dự án, Lĩnh vực và kho chung giữ nguyên nội dung',
+        () async {
+      final notes = DriftNoteRepository(db, clock: clock);
+      final p = await projects.create(name: 'Dự án');
+      final n = await notes.create(
+          projectId: p.id, title: 'Bài học', bodyMarkdown: 'Nội dung dài');
+      final createdAt = (await db.select(db.notes).get()).single.createdAt;
+
+      await notes.move(n.id, areaId: p.areaId);
+      var row = (await db.select(db.notes).get()).single;
+      expect(row.projectId, isNull);
+      expect(row.areaId, p.areaId);
+
+      await notes.move(n.id);
+      row = (await db.select(db.notes).get()).single;
+      expect(row.projectId, isNull);
+      expect(row.areaId, isNull, reason: 'không tham số nào nghĩa là kho chung');
+
+      await notes.move(n.id, projectId: p.id);
+      row = (await db.select(db.notes).get()).single;
+      expect(row.projectId, p.id);
+      expect(row.title, 'Bài học');
+      expect(row.bodyMarkdown, 'Nội dung dài');
+      expect(row.createdAt, createdAt, reason: 'createdAt không bao giờ đổi');
+      expect(row.searchText, contains('bai hoc'),
+          reason: 'searchText là dẫn xuất, phải sinh lại sau mỗi lần chuyển');
+    });
+
+    test('xoá Lĩnh vực thì Tư liệu gắn thẳng vào nó về Khác, không mất', () async {
+      final notes = DriftNoteRepository(db, clock: clock);
+      final areas = DriftAreaRepository(db);
+      final area = await areas.create(
+          name: 'Tạm', colorValue: 1, iconKey: 'other');
+      await notes.create(areaId: area.id, title: 'Ghi chú của Lĩnh vực');
+
+      await areas.delete(area.id);
+
+      final row = (await db.select(db.notes).get()).single;
+      expect(row.title, 'Ghi chú của Lĩnh vực');
+      final fallback = (await db.select(db.areas).get())
+          .firstWhere((a) => a.isSystemFallback);
+      expect(row.areaId, fallback.id);
     });
   });
 

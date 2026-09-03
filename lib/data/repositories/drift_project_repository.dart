@@ -237,6 +237,21 @@ JOIN areas t ON t.id = p.area_id
   /// FR-7: xoá theo tầng Hành động, Ghi chú, Liên kết, mối nối — nhưng
   /// **không** xoá Mục tiêu đã nối.
   @override
+  Future<AttachedContentCount> attachedContentCount(int projectId) async {
+    final notes = await (_db.selectOnly(_db.notes)
+          ..addColumns([_db.notes.id.count()])
+          ..where(_db.notes.projectId.equals(projectId)))
+        .map((r) => r.read(_db.notes.id.count())!)
+        .getSingle();
+    final links = await (_db.selectOnly(_db.links)
+          ..addColumns([_db.links.id.count()])
+          ..where(_db.links.projectId.equals(projectId)))
+        .map((r) => r.read(_db.links.id.count())!)
+        .getSingle();
+    return (notes: notes, links: links);
+  }
+
+  @override
   Future<void> delete(int id) async {
     await _db.transaction(() async {
       await (_db.delete(_db.statusEvents)
@@ -256,6 +271,27 @@ JOIN areas t ON t.id = p.area_id
                   e.entityId.isIn(actionIds)))
             .go();
       }
+      // FR-50, AD-18: Ghi chú và Liên kết **không** chết theo Dự án. Chúng
+      // chuyển sang Lĩnh vực của Dự án, nơi vẫn tìm lại được.
+      //
+      // Phải làm ở đây chứ không dựa vào `onDelete: setNull` của khoá ngoại:
+      // setNull chỉ thả chúng vào kho chung, mất luôn manh mối chúng từng
+      // thuộc mảng nào. setNull là lưới an toàn, không phải hành vi mong muốn.
+      final project = await (_db.select(_db.projects)..where((p) => p.id.equals(id)))
+          .getSingleOrNull();
+      if (project != null) {
+        await (_db.update(_db.notes)..where((n) => n.projectId.equals(id)))
+            .write(NotesCompanion(
+          projectId: const Value(null),
+          areaId: Value(project.areaId),
+        ));
+        await (_db.update(_db.links)..where((l) => l.projectId.equals(id)))
+            .write(LinksCompanion(
+          projectId: const Value(null),
+          areaId: Value(project.areaId),
+        ));
+      }
+
       await (_db.delete(_db.projects)..where((p) => p.id.equals(id))).go();
     });
   }

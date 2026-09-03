@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -111,7 +112,7 @@ const List<String> _schemaV1 = [
 ];
 
 void main() {
-  test('v1 → v4: thêm Đợt đánh giá, bỏ Mục tiêu, đổi tên Chủ đề thành Lĩnh vực',
+  test('v1 → v5: thêm Đợt đánh giá, bỏ Mục tiêu, đổi tên Chủ đề, gỡ Tư liệu',
       () async {
     final raw = sqlite.sqlite3.openInMemory();
     for (final stmt in _schemaV1) {
@@ -147,8 +148,8 @@ void main() {
     // Chạm vào cơ sở dữ liệu để buộc drift chạy migration.
     final projects = await db.select(db.projects).get();
 
-    expect(db.schemaVersion, 4);
-    expect(raw.select('PRAGMA user_version').first.values.first, 4);
+    expect(db.schemaVersion, 5);
+    expect(raw.select('PRAGMA user_version').first.values.first, 5);
 
     // Dữ liệu cũ nguyên vẹn.
     expect(projects.length, 1);
@@ -218,17 +219,17 @@ void main() {
   });
 
   // AD-10, bước 4: kiểm cấu trúc bằng helper sinh sẵn từ `drift_schemas/`.
-  // Test v1 → v4 ở trên chứng minh **dữ liệu** sống sót; test này chứng minh
-  // **cấu trúc** sau khi nâng cấp khớp từng cột với bản cài mới ở v4.
-  test('v3 → v4: cấu trúc sau nâng cấp khớp bản cài mới', () async {
+  // Test v1 → v5 ở trên chứng minh **dữ liệu** sống sót; test này chứng minh
+  // **cấu trúc** sau khi nâng cấp khớp từng cột với bản cài mới ở v5.
+  test('v3 → v5: cấu trúc sau nâng cấp khớp bản cài mới', () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final connection = await verifier.startAt(3);
     final db = AppDatabase(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 4);
+    await verifier.migrateAndValidate(db, 5);
   });
 
-  test('v3 → v4: Lĩnh vực và Dự án giữ nguyên giá trị', () async {
+  test('v3 → v5: Lĩnh vực và Dự án giữ nguyên giá trị', () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final schema = await verifier.schemaAt(3);
 
@@ -274,7 +275,76 @@ void main() {
     );
   });
 
-  test('cài mới ở v4 tạo đủ chín bảng', () async {
+  test('v4 → v5: Ghi chú và Liên kết cũ giữ nguyên chỗ gắn, areaId để trống',
+      () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(4);
+
+    schema.rawDatabase.execute(
+      "INSERT INTO areas (id, name, color_value, icon_key, sort_order, "
+      "is_system_fallback) VALUES (3, 'Học tập', 9, 'study', 0, 0)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO projects (id, area_id, name, description, status, priority, "
+      "created_at, updated_at, search_text) "
+      "VALUES (5, 3, 'Học tiếng Anh', '', 'active', 'medium', "
+      "'2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z', 'hoc tieng anh')",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO notes (id, project_id, title, body_markdown, created_at, "
+      "updated_at, search_text) VALUES (1, 5, 'Cách học từ vựng', 'nội dung', "
+      "'2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z', 'cach hoc tu vung')",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO links (id, project_id, label, url, sort_order, search_text) "
+      "VALUES (1, 5, 'Anki', 'https://apps.ankiweb.net', 0, 'anki')",
+    );
+
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+
+    final note = (await db.select(db.notes).get()).single;
+    expect(note.projectId, 5, reason: 'chỗ gắn cũ phải giữ nguyên');
+    expect(note.areaId, isNull,
+        reason: 'điền areaId khi projectId còn giá trị sẽ phạm CHECK của AD-18');
+    expect(note.bodyMarkdown, 'nội dung');
+    expect(note.createdAt, DateTime.utc(2026, 7, 1));
+
+    final link = (await db.select(db.links).get()).single;
+    expect(link.projectId, 5);
+    expect(link.areaId, isNull);
+    expect(link.url, 'https://apps.ankiweb.net');
+  });
+
+  test('v5 chặn Ghi chú gắn vào cả Dự án lẫn Lĩnh vực — AD-18', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    await db.select(db.notes).get();
+    await db.into(db.areas).insert(AreasCompanion.insert(
+        name: 'Sức khoẻ', colorValue: 1, iconKey: 'health'));
+    await db.into(db.projects).insert(ProjectsCompanion.insert(
+          areaId: 1,
+          name: 'Dự án',
+          status: 'active',
+          priority: 'medium',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ));
+
+    await expectLater(
+      db.into(db.notes).insert(NotesCompanion.insert(
+            projectId: const Value(1),
+            areaId: const Value(1),
+            title: 'Gắn hai chỗ',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          )),
+      throwsA(isA<Exception>()),
+      reason: 'ràng buộc phải nằm ở tầng bảng, không chỉ là quy ước',
+    );
+  });
+
+  test('cài mới ở v5 tạo đủ chín bảng', () async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     await db.select(db.projects).get();

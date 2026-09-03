@@ -2003,11 +2003,23 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, NoteRow> {
   late final GeneratedColumn<int> projectId = GeneratedColumn<int>(
     'project_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES projects (id) ON DELETE CASCADE',
+      'REFERENCES projects (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _areaIdMeta = const VerificationMeta('areaId');
+  @override
+  late final GeneratedColumn<int> areaId = GeneratedColumn<int>(
+    'area_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES areas (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
@@ -2073,6 +2085,7 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, NoteRow> {
   List<GeneratedColumn> get $columns => [
     id,
     projectId,
+    areaId,
     title,
     bodyMarkdown,
     createdAt,
@@ -2099,8 +2112,12 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, NoteRow> {
         _projectIdMeta,
         projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
       );
-    } else if (isInserting) {
-      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('area_id')) {
+      context.handle(
+        _areaIdMeta,
+        areaId.isAcceptableOrUnknown(data['area_id']!, _areaIdMeta),
+      );
     }
     if (data.containsKey('title')) {
       context.handle(
@@ -2157,7 +2174,11 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, NoteRow> {
       projectId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}project_id'],
-      )!,
+      ),
+      areaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}area_id'],
+      ),
       title: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}title'],
@@ -2189,7 +2210,14 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, NoteRow> {
 
 class NoteRow extends DataClass implements Insertable<NoteRow> {
   final int id;
-  final int projectId;
+
+  /// AD-18: Ghi chú **sống lâu hơn** Dự án sinh ra nó. Trước v5 cột này là
+  /// `NOT NULL` với `onDelete: cascade`, nghĩa là dọn một Dự án cũ là mất sạch
+  /// bài học đã ghi trong đó — mất im lặng, không cảnh báo.
+  final int? projectId;
+
+  /// Gắn thẳng vào Lĩnh vực, không qua Dự án nào — FR-50.
+  final int? areaId;
   final String title;
   final String bodyMarkdown;
   final DateTime createdAt;
@@ -2197,7 +2225,8 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
   final String searchText;
   const NoteRow({
     required this.id,
-    required this.projectId,
+    this.projectId,
+    this.areaId,
     required this.title,
     required this.bodyMarkdown,
     required this.createdAt,
@@ -2208,7 +2237,12 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['project_id'] = Variable<int>(projectId);
+    if (!nullToAbsent || projectId != null) {
+      map['project_id'] = Variable<int>(projectId);
+    }
+    if (!nullToAbsent || areaId != null) {
+      map['area_id'] = Variable<int>(areaId);
+    }
     map['title'] = Variable<String>(title);
     map['body_markdown'] = Variable<String>(bodyMarkdown);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -2220,7 +2254,12 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
   NotesCompanion toCompanion(bool nullToAbsent) {
     return NotesCompanion(
       id: Value(id),
-      projectId: Value(projectId),
+      projectId: projectId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(projectId),
+      areaId: areaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(areaId),
       title: Value(title),
       bodyMarkdown: Value(bodyMarkdown),
       createdAt: Value(createdAt),
@@ -2236,7 +2275,8 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return NoteRow(
       id: serializer.fromJson<int>(json['id']),
-      projectId: serializer.fromJson<int>(json['projectId']),
+      projectId: serializer.fromJson<int?>(json['projectId']),
+      areaId: serializer.fromJson<int?>(json['areaId']),
       title: serializer.fromJson<String>(json['title']),
       bodyMarkdown: serializer.fromJson<String>(json['bodyMarkdown']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -2249,7 +2289,8 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'projectId': serializer.toJson<int>(projectId),
+      'projectId': serializer.toJson<int?>(projectId),
+      'areaId': serializer.toJson<int?>(areaId),
       'title': serializer.toJson<String>(title),
       'bodyMarkdown': serializer.toJson<String>(bodyMarkdown),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -2260,7 +2301,8 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
 
   NoteRow copyWith({
     int? id,
-    int? projectId,
+    Value<int?> projectId = const Value.absent(),
+    Value<int?> areaId = const Value.absent(),
     String? title,
     String? bodyMarkdown,
     DateTime? createdAt,
@@ -2268,7 +2310,8 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
     String? searchText,
   }) => NoteRow(
     id: id ?? this.id,
-    projectId: projectId ?? this.projectId,
+    projectId: projectId.present ? projectId.value : this.projectId,
+    areaId: areaId.present ? areaId.value : this.areaId,
     title: title ?? this.title,
     bodyMarkdown: bodyMarkdown ?? this.bodyMarkdown,
     createdAt: createdAt ?? this.createdAt,
@@ -2279,6 +2322,7 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
     return NoteRow(
       id: data.id.present ? data.id.value : this.id,
       projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      areaId: data.areaId.present ? data.areaId.value : this.areaId,
       title: data.title.present ? data.title.value : this.title,
       bodyMarkdown: data.bodyMarkdown.present
           ? data.bodyMarkdown.value
@@ -2296,6 +2340,7 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
     return (StringBuffer('NoteRow(')
           ..write('id: $id, ')
           ..write('projectId: $projectId, ')
+          ..write('areaId: $areaId, ')
           ..write('title: $title, ')
           ..write('bodyMarkdown: $bodyMarkdown, ')
           ..write('createdAt: $createdAt, ')
@@ -2309,6 +2354,7 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
   int get hashCode => Object.hash(
     id,
     projectId,
+    areaId,
     title,
     bodyMarkdown,
     createdAt,
@@ -2321,6 +2367,7 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
       (other is NoteRow &&
           other.id == this.id &&
           other.projectId == this.projectId &&
+          other.areaId == this.areaId &&
           other.title == this.title &&
           other.bodyMarkdown == this.bodyMarkdown &&
           other.createdAt == this.createdAt &&
@@ -2330,7 +2377,8 @@ class NoteRow extends DataClass implements Insertable<NoteRow> {
 
 class NotesCompanion extends UpdateCompanion<NoteRow> {
   final Value<int> id;
-  final Value<int> projectId;
+  final Value<int?> projectId;
+  final Value<int?> areaId;
   final Value<String> title;
   final Value<String> bodyMarkdown;
   final Value<DateTime> createdAt;
@@ -2339,6 +2387,7 @@ class NotesCompanion extends UpdateCompanion<NoteRow> {
   const NotesCompanion({
     this.id = const Value.absent(),
     this.projectId = const Value.absent(),
+    this.areaId = const Value.absent(),
     this.title = const Value.absent(),
     this.bodyMarkdown = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2347,19 +2396,20 @@ class NotesCompanion extends UpdateCompanion<NoteRow> {
   });
   NotesCompanion.insert({
     this.id = const Value.absent(),
-    required int projectId,
+    this.projectId = const Value.absent(),
+    this.areaId = const Value.absent(),
     required String title,
     this.bodyMarkdown = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.searchText = const Value.absent(),
-  }) : projectId = Value(projectId),
-       title = Value(title),
+  }) : title = Value(title),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<NoteRow> custom({
     Expression<int>? id,
     Expression<int>? projectId,
+    Expression<int>? areaId,
     Expression<String>? title,
     Expression<String>? bodyMarkdown,
     Expression<DateTime>? createdAt,
@@ -2369,6 +2419,7 @@ class NotesCompanion extends UpdateCompanion<NoteRow> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (projectId != null) 'project_id': projectId,
+      if (areaId != null) 'area_id': areaId,
       if (title != null) 'title': title,
       if (bodyMarkdown != null) 'body_markdown': bodyMarkdown,
       if (createdAt != null) 'created_at': createdAt,
@@ -2379,7 +2430,8 @@ class NotesCompanion extends UpdateCompanion<NoteRow> {
 
   NotesCompanion copyWith({
     Value<int>? id,
-    Value<int>? projectId,
+    Value<int?>? projectId,
+    Value<int?>? areaId,
     Value<String>? title,
     Value<String>? bodyMarkdown,
     Value<DateTime>? createdAt,
@@ -2389,6 +2441,7 @@ class NotesCompanion extends UpdateCompanion<NoteRow> {
     return NotesCompanion(
       id: id ?? this.id,
       projectId: projectId ?? this.projectId,
+      areaId: areaId ?? this.areaId,
       title: title ?? this.title,
       bodyMarkdown: bodyMarkdown ?? this.bodyMarkdown,
       createdAt: createdAt ?? this.createdAt,
@@ -2405,6 +2458,9 @@ class NotesCompanion extends UpdateCompanion<NoteRow> {
     }
     if (projectId.present) {
       map['project_id'] = Variable<int>(projectId.value);
+    }
+    if (areaId.present) {
+      map['area_id'] = Variable<int>(areaId.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -2429,6 +2485,7 @@ class NotesCompanion extends UpdateCompanion<NoteRow> {
     return (StringBuffer('NotesCompanion(')
           ..write('id: $id, ')
           ..write('projectId: $projectId, ')
+          ..write('areaId: $areaId, ')
           ..write('title: $title, ')
           ..write('bodyMarkdown: $bodyMarkdown, ')
           ..write('createdAt: $createdAt, ')
@@ -2464,11 +2521,23 @@ class $LinksTable extends Links with TableInfo<$LinksTable, LinkRow> {
   late final GeneratedColumn<int> projectId = GeneratedColumn<int>(
     'project_id',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
-    requiredDuringInsert: true,
+    requiredDuringInsert: false,
     defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES projects (id) ON DELETE CASCADE',
+      'REFERENCES projects (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _areaIdMeta = const VerificationMeta('areaId');
+  @override
+  late final GeneratedColumn<int> areaId = GeneratedColumn<int>(
+    'area_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES areas (id) ON DELETE SET NULL',
     ),
   );
   static const VerificationMeta _labelMeta = const VerificationMeta('label');
@@ -2525,6 +2594,7 @@ class $LinksTable extends Links with TableInfo<$LinksTable, LinkRow> {
   List<GeneratedColumn> get $columns => [
     id,
     projectId,
+    areaId,
     label,
     url,
     sortOrder,
@@ -2550,8 +2620,12 @@ class $LinksTable extends Links with TableInfo<$LinksTable, LinkRow> {
         _projectIdMeta,
         projectId.isAcceptableOrUnknown(data['project_id']!, _projectIdMeta),
       );
-    } else if (isInserting) {
-      context.missing(_projectIdMeta);
+    }
+    if (data.containsKey('area_id')) {
+      context.handle(
+        _areaIdMeta,
+        areaId.isAcceptableOrUnknown(data['area_id']!, _areaIdMeta),
+      );
     }
     if (data.containsKey('label')) {
       context.handle(
@@ -2597,7 +2671,11 @@ class $LinksTable extends Links with TableInfo<$LinksTable, LinkRow> {
       projectId: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}project_id'],
-      )!,
+      ),
+      areaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}area_id'],
+      ),
       label: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}label'],
@@ -2625,14 +2703,18 @@ class $LinksTable extends Links with TableInfo<$LinksTable, LinkRow> {
 
 class LinkRow extends DataClass implements Insertable<LinkRow> {
   final int id;
-  final int projectId;
+
+  /// AD-18 — xem ghi chú ở [Notes.projectId].
+  final int? projectId;
+  final int? areaId;
   final String label;
   final String url;
   final int sortOrder;
   final String searchText;
   const LinkRow({
     required this.id,
-    required this.projectId,
+    this.projectId,
+    this.areaId,
     required this.label,
     required this.url,
     required this.sortOrder,
@@ -2642,7 +2724,12 @@ class LinkRow extends DataClass implements Insertable<LinkRow> {
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['project_id'] = Variable<int>(projectId);
+    if (!nullToAbsent || projectId != null) {
+      map['project_id'] = Variable<int>(projectId);
+    }
+    if (!nullToAbsent || areaId != null) {
+      map['area_id'] = Variable<int>(areaId);
+    }
     map['label'] = Variable<String>(label);
     map['url'] = Variable<String>(url);
     map['sort_order'] = Variable<int>(sortOrder);
@@ -2653,7 +2740,12 @@ class LinkRow extends DataClass implements Insertable<LinkRow> {
   LinksCompanion toCompanion(bool nullToAbsent) {
     return LinksCompanion(
       id: Value(id),
-      projectId: Value(projectId),
+      projectId: projectId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(projectId),
+      areaId: areaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(areaId),
       label: Value(label),
       url: Value(url),
       sortOrder: Value(sortOrder),
@@ -2668,7 +2760,8 @@ class LinkRow extends DataClass implements Insertable<LinkRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return LinkRow(
       id: serializer.fromJson<int>(json['id']),
-      projectId: serializer.fromJson<int>(json['projectId']),
+      projectId: serializer.fromJson<int?>(json['projectId']),
+      areaId: serializer.fromJson<int?>(json['areaId']),
       label: serializer.fromJson<String>(json['label']),
       url: serializer.fromJson<String>(json['url']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
@@ -2680,7 +2773,8 @@ class LinkRow extends DataClass implements Insertable<LinkRow> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'projectId': serializer.toJson<int>(projectId),
+      'projectId': serializer.toJson<int?>(projectId),
+      'areaId': serializer.toJson<int?>(areaId),
       'label': serializer.toJson<String>(label),
       'url': serializer.toJson<String>(url),
       'sortOrder': serializer.toJson<int>(sortOrder),
@@ -2690,14 +2784,16 @@ class LinkRow extends DataClass implements Insertable<LinkRow> {
 
   LinkRow copyWith({
     int? id,
-    int? projectId,
+    Value<int?> projectId = const Value.absent(),
+    Value<int?> areaId = const Value.absent(),
     String? label,
     String? url,
     int? sortOrder,
     String? searchText,
   }) => LinkRow(
     id: id ?? this.id,
-    projectId: projectId ?? this.projectId,
+    projectId: projectId.present ? projectId.value : this.projectId,
+    areaId: areaId.present ? areaId.value : this.areaId,
     label: label ?? this.label,
     url: url ?? this.url,
     sortOrder: sortOrder ?? this.sortOrder,
@@ -2707,6 +2803,7 @@ class LinkRow extends DataClass implements Insertable<LinkRow> {
     return LinkRow(
       id: data.id.present ? data.id.value : this.id,
       projectId: data.projectId.present ? data.projectId.value : this.projectId,
+      areaId: data.areaId.present ? data.areaId.value : this.areaId,
       label: data.label.present ? data.label.value : this.label,
       url: data.url.present ? data.url.value : this.url,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
@@ -2721,6 +2818,7 @@ class LinkRow extends DataClass implements Insertable<LinkRow> {
     return (StringBuffer('LinkRow(')
           ..write('id: $id, ')
           ..write('projectId: $projectId, ')
+          ..write('areaId: $areaId, ')
           ..write('label: $label, ')
           ..write('url: $url, ')
           ..write('sortOrder: $sortOrder, ')
@@ -2731,13 +2829,14 @@ class LinkRow extends DataClass implements Insertable<LinkRow> {
 
   @override
   int get hashCode =>
-      Object.hash(id, projectId, label, url, sortOrder, searchText);
+      Object.hash(id, projectId, areaId, label, url, sortOrder, searchText);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is LinkRow &&
           other.id == this.id &&
           other.projectId == this.projectId &&
+          other.areaId == this.areaId &&
           other.label == this.label &&
           other.url == this.url &&
           other.sortOrder == this.sortOrder &&
@@ -2746,7 +2845,8 @@ class LinkRow extends DataClass implements Insertable<LinkRow> {
 
 class LinksCompanion extends UpdateCompanion<LinkRow> {
   final Value<int> id;
-  final Value<int> projectId;
+  final Value<int?> projectId;
+  final Value<int?> areaId;
   final Value<String> label;
   final Value<String> url;
   final Value<int> sortOrder;
@@ -2754,6 +2854,7 @@ class LinksCompanion extends UpdateCompanion<LinkRow> {
   const LinksCompanion({
     this.id = const Value.absent(),
     this.projectId = const Value.absent(),
+    this.areaId = const Value.absent(),
     this.label = const Value.absent(),
     this.url = const Value.absent(),
     this.sortOrder = const Value.absent(),
@@ -2761,17 +2862,18 @@ class LinksCompanion extends UpdateCompanion<LinkRow> {
   });
   LinksCompanion.insert({
     this.id = const Value.absent(),
-    required int projectId,
+    this.projectId = const Value.absent(),
+    this.areaId = const Value.absent(),
     required String label,
     required String url,
     this.sortOrder = const Value.absent(),
     this.searchText = const Value.absent(),
-  }) : projectId = Value(projectId),
-       label = Value(label),
+  }) : label = Value(label),
        url = Value(url);
   static Insertable<LinkRow> custom({
     Expression<int>? id,
     Expression<int>? projectId,
+    Expression<int>? areaId,
     Expression<String>? label,
     Expression<String>? url,
     Expression<int>? sortOrder,
@@ -2780,6 +2882,7 @@ class LinksCompanion extends UpdateCompanion<LinkRow> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (projectId != null) 'project_id': projectId,
+      if (areaId != null) 'area_id': areaId,
       if (label != null) 'label': label,
       if (url != null) 'url': url,
       if (sortOrder != null) 'sort_order': sortOrder,
@@ -2789,7 +2892,8 @@ class LinksCompanion extends UpdateCompanion<LinkRow> {
 
   LinksCompanion copyWith({
     Value<int>? id,
-    Value<int>? projectId,
+    Value<int?>? projectId,
+    Value<int?>? areaId,
     Value<String>? label,
     Value<String>? url,
     Value<int>? sortOrder,
@@ -2798,6 +2902,7 @@ class LinksCompanion extends UpdateCompanion<LinkRow> {
     return LinksCompanion(
       id: id ?? this.id,
       projectId: projectId ?? this.projectId,
+      areaId: areaId ?? this.areaId,
       label: label ?? this.label,
       url: url ?? this.url,
       sortOrder: sortOrder ?? this.sortOrder,
@@ -2813,6 +2918,9 @@ class LinksCompanion extends UpdateCompanion<LinkRow> {
     }
     if (projectId.present) {
       map['project_id'] = Variable<int>(projectId.value);
+    }
+    if (areaId.present) {
+      map['area_id'] = Variable<int>(areaId.value);
     }
     if (label.present) {
       map['label'] = Variable<String>(label.value);
@@ -2834,6 +2942,7 @@ class LinksCompanion extends UpdateCompanion<LinkRow> {
     return (StringBuffer('LinksCompanion(')
           ..write('id: $id, ')
           ..write('projectId: $projectId, ')
+          ..write('areaId: $areaId, ')
           ..write('label: $label, ')
           ..write('url: $url, ')
           ..write('sortOrder: $sortOrder, ')
@@ -4614,14 +4723,28 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         'projects',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [TableUpdate('notes', kind: UpdateKind.delete)],
+      result: [TableUpdate('notes', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'areas',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('notes', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'projects',
         limitUpdateKind: UpdateKind.delete,
       ),
-      result: [TableUpdate('links', kind: UpdateKind.delete)],
+      result: [TableUpdate('links', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'areas',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('links', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -4683,6 +4806,44 @@ final class $$AreasTableReferences
       manager.$state.copyWith(prefetchedData: cache),
     );
   }
+
+  static MultiTypedResultKey<$NotesTable, List<NoteRow>> _notesRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.notes,
+    aliasName: $_aliasNameGenerator(db.areas.id, db.notes.areaId),
+  );
+
+  $$NotesTableProcessedTableManager get notesRefs {
+    final manager = $$NotesTableTableManager(
+      $_db,
+      $_db.notes,
+    ).filter((f) => f.areaId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_notesRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$LinksTable, List<LinkRow>> _linksRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.links,
+    aliasName: $_aliasNameGenerator(db.areas.id, db.links.areaId),
+  );
+
+  $$LinksTableProcessedTableManager get linksRefs {
+    final manager = $$LinksTableTableManager(
+      $_db,
+      $_db.links,
+    ).filter((f) => f.areaId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_linksRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$AreasTableFilterComposer extends Composer<_$AppDatabase, $AreasTable> {
@@ -4739,6 +4900,56 @@ class $$AreasTableFilterComposer extends Composer<_$AppDatabase, $AreasTable> {
           }) => $$ProjectsTableFilterComposer(
             $db: $db,
             $table: $db.projects,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> notesRefs(
+    Expression<bool> Function($$NotesTableFilterComposer f) f,
+  ) {
+    final $$NotesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.areaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NotesTableFilterComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> linksRefs(
+    Expression<bool> Function($$LinksTableFilterComposer f) f,
+  ) {
+    final $$LinksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.links,
+      getReferencedColumn: (t) => t.areaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LinksTableFilterComposer(
+            $db: $db,
+            $table: $db.links,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -4844,6 +5055,56 @@ class $$AreasTableAnnotationComposer
     );
     return f(composer);
   }
+
+  Expression<T> notesRefs<T extends Object>(
+    Expression<T> Function($$NotesTableAnnotationComposer a) f,
+  ) {
+    final $$NotesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.areaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$NotesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> linksRefs<T extends Object>(
+    Expression<T> Function($$LinksTableAnnotationComposer a) f,
+  ) {
+    final $$LinksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.links,
+      getReferencedColumn: (t) => t.areaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$LinksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.links,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AreasTableTableManager
@@ -4859,7 +5120,11 @@ class $$AreasTableTableManager
           $$AreasTableUpdateCompanionBuilder,
           (AreaRow, $$AreasTableReferences),
           AreaRow,
-          PrefetchHooks Function({bool projectsRefs})
+          PrefetchHooks Function({
+            bool projectsRefs,
+            bool notesRefs,
+            bool linksRefs,
+          })
         > {
   $$AreasTableTableManager(_$AppDatabase db, $AreasTable table)
     : super(
@@ -4910,28 +5175,77 @@ class $$AreasTableTableManager
                     (e.readTable(table), $$AreasTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback: ({projectsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (projectsRefs) db.projects],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (projectsRefs)
-                    await $_getPrefetchedData<AreaRow, $AreasTable, ProjectRow>(
-                      currentTable: table,
-                      referencedTable: $$AreasTableReferences
-                          ._projectsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$AreasTableReferences(db, table, p0).projectsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.areaId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({projectsRefs = false, notesRefs = false, linksRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (projectsRefs) db.projects,
+                    if (notesRefs) db.notes,
+                    if (linksRefs) db.links,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (projectsRefs)
+                        await $_getPrefetchedData<
+                          AreaRow,
+                          $AreasTable,
+                          ProjectRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AreasTableReferences
+                              ._projectsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AreasTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).projectsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.areaId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (notesRefs)
+                        await $_getPrefetchedData<
+                          AreaRow,
+                          $AreasTable,
+                          NoteRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AreasTableReferences
+                              ._notesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AreasTableReferences(db, table, p0).notesRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.areaId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (linksRefs)
+                        await $_getPrefetchedData<
+                          AreaRow,
+                          $AreasTable,
+                          LinkRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$AreasTableReferences
+                              ._linksRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$AreasTableReferences(db, table, p0).linksRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.areaId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -4948,7 +5262,11 @@ typedef $$AreasTableProcessedTableManager =
       $$AreasTableUpdateCompanionBuilder,
       (AreaRow, $$AreasTableReferences),
       AreaRow,
-      PrefetchHooks Function({bool projectsRefs})
+      PrefetchHooks Function({
+        bool projectsRefs,
+        bool notesRefs,
+        bool linksRefs,
+      })
     >;
 typedef $$ProjectsTableCreateCompanionBuilder =
     ProjectsCompanion Function({
@@ -6294,7 +6612,8 @@ typedef $$ActionsTableProcessedTableManager =
 typedef $$NotesTableCreateCompanionBuilder =
     NotesCompanion Function({
       Value<int> id,
-      required int projectId,
+      Value<int?> projectId,
+      Value<int?> areaId,
       required String title,
       Value<String> bodyMarkdown,
       required DateTime createdAt,
@@ -6304,7 +6623,8 @@ typedef $$NotesTableCreateCompanionBuilder =
 typedef $$NotesTableUpdateCompanionBuilder =
     NotesCompanion Function({
       Value<int> id,
-      Value<int> projectId,
+      Value<int?> projectId,
+      Value<int?> areaId,
       Value<String> title,
       Value<String> bodyMarkdown,
       Value<DateTime> createdAt,
@@ -6319,14 +6639,31 @@ final class $$NotesTableReferences
   static $ProjectsTable _projectIdTable(_$AppDatabase db) => db.projects
       .createAlias($_aliasNameGenerator(db.notes.projectId, db.projects.id));
 
-  $$ProjectsTableProcessedTableManager get projectId {
-    final $_column = $_itemColumn<int>('project_id')!;
-
+  $$ProjectsTableProcessedTableManager? get projectId {
+    final $_column = $_itemColumn<int>('project_id');
+    if ($_column == null) return null;
     final manager = $$ProjectsTableTableManager(
       $_db,
       $_db.projects,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $AreasTable _areaIdTable(_$AppDatabase db) =>
+      db.areas.createAlias($_aliasNameGenerator(db.notes.areaId, db.areas.id));
+
+  $$AreasTableProcessedTableManager? get areaId {
+    final $_column = $_itemColumn<int>('area_id');
+    if ($_column == null) return null;
+    final manager = $$AreasTableTableManager(
+      $_db,
+      $_db.areas,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_areaIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -6386,6 +6723,29 @@ class $$NotesTableFilterComposer extends Composer<_$AppDatabase, $NotesTable> {
           }) => $$ProjectsTableFilterComposer(
             $db: $db,
             $table: $db.projects,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AreasTableFilterComposer get areaId {
+    final $$AreasTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.areaId,
+      referencedTable: $db.areas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AreasTableFilterComposer(
+            $db: $db,
+            $table: $db.areas,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6457,6 +6817,29 @@ class $$NotesTableOrderingComposer
     );
     return composer;
   }
+
+  $$AreasTableOrderingComposer get areaId {
+    final $$AreasTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.areaId,
+      referencedTable: $db.areas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AreasTableOrderingComposer(
+            $db: $db,
+            $table: $db.areas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$NotesTableAnnotationComposer
@@ -6512,6 +6895,29 @@ class $$NotesTableAnnotationComposer
     );
     return composer;
   }
+
+  $$AreasTableAnnotationComposer get areaId {
+    final $$AreasTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.areaId,
+      referencedTable: $db.areas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AreasTableAnnotationComposer(
+            $db: $db,
+            $table: $db.areas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$NotesTableTableManager
@@ -6527,7 +6933,7 @@ class $$NotesTableTableManager
           $$NotesTableUpdateCompanionBuilder,
           (NoteRow, $$NotesTableReferences),
           NoteRow,
-          PrefetchHooks Function({bool projectId})
+          PrefetchHooks Function({bool projectId, bool areaId})
         > {
   $$NotesTableTableManager(_$AppDatabase db, $NotesTable table)
     : super(
@@ -6543,7 +6949,8 @@ class $$NotesTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<int> projectId = const Value.absent(),
+                Value<int?> projectId = const Value.absent(),
+                Value<int?> areaId = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> bodyMarkdown = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -6552,6 +6959,7 @@ class $$NotesTableTableManager
               }) => NotesCompanion(
                 id: id,
                 projectId: projectId,
+                areaId: areaId,
                 title: title,
                 bodyMarkdown: bodyMarkdown,
                 createdAt: createdAt,
@@ -6561,7 +6969,8 @@ class $$NotesTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required int projectId,
+                Value<int?> projectId = const Value.absent(),
+                Value<int?> areaId = const Value.absent(),
                 required String title,
                 Value<String> bodyMarkdown = const Value.absent(),
                 required DateTime createdAt,
@@ -6570,6 +6979,7 @@ class $$NotesTableTableManager
               }) => NotesCompanion.insert(
                 id: id,
                 projectId: projectId,
+                areaId: areaId,
                 title: title,
                 bodyMarkdown: bodyMarkdown,
                 createdAt: createdAt,
@@ -6582,7 +6992,7 @@ class $$NotesTableTableManager
                     (e.readTable(table), $$NotesTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback: ({projectId = false}) {
+          prefetchHooksCallback: ({projectId = false, areaId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -6615,6 +7025,19 @@ class $$NotesTableTableManager
                               )
                               as T;
                     }
+                    if (areaId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.areaId,
+                                referencedTable: $$NotesTableReferences
+                                    ._areaIdTable(db),
+                                referencedColumn: $$NotesTableReferences
+                                    ._areaIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
 
                     return state;
                   },
@@ -6639,12 +7062,13 @@ typedef $$NotesTableProcessedTableManager =
       $$NotesTableUpdateCompanionBuilder,
       (NoteRow, $$NotesTableReferences),
       NoteRow,
-      PrefetchHooks Function({bool projectId})
+      PrefetchHooks Function({bool projectId, bool areaId})
     >;
 typedef $$LinksTableCreateCompanionBuilder =
     LinksCompanion Function({
       Value<int> id,
-      required int projectId,
+      Value<int?> projectId,
+      Value<int?> areaId,
       required String label,
       required String url,
       Value<int> sortOrder,
@@ -6653,7 +7077,8 @@ typedef $$LinksTableCreateCompanionBuilder =
 typedef $$LinksTableUpdateCompanionBuilder =
     LinksCompanion Function({
       Value<int> id,
-      Value<int> projectId,
+      Value<int?> projectId,
+      Value<int?> areaId,
       Value<String> label,
       Value<String> url,
       Value<int> sortOrder,
@@ -6667,14 +7092,31 @@ final class $$LinksTableReferences
   static $ProjectsTable _projectIdTable(_$AppDatabase db) => db.projects
       .createAlias($_aliasNameGenerator(db.links.projectId, db.projects.id));
 
-  $$ProjectsTableProcessedTableManager get projectId {
-    final $_column = $_itemColumn<int>('project_id')!;
-
+  $$ProjectsTableProcessedTableManager? get projectId {
+    final $_column = $_itemColumn<int>('project_id');
+    if ($_column == null) return null;
     final manager = $$ProjectsTableTableManager(
       $_db,
       $_db.projects,
     ).filter((f) => f.id.sqlEquals($_column));
     final item = $_typedResult.readTableOrNull(_projectIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $AreasTable _areaIdTable(_$AppDatabase db) =>
+      db.areas.createAlias($_aliasNameGenerator(db.links.areaId, db.areas.id));
+
+  $$AreasTableProcessedTableManager? get areaId {
+    final $_column = $_itemColumn<int>('area_id');
+    if ($_column == null) return null;
+    final manager = $$AreasTableTableManager(
+      $_db,
+      $_db.areas,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_areaIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
@@ -6729,6 +7171,29 @@ class $$LinksTableFilterComposer extends Composer<_$AppDatabase, $LinksTable> {
           }) => $$ProjectsTableFilterComposer(
             $db: $db,
             $table: $db.projects,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$AreasTableFilterComposer get areaId {
+    final $$AreasTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.areaId,
+      referencedTable: $db.areas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AreasTableFilterComposer(
+            $db: $db,
+            $table: $db.areas,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -6795,6 +7260,29 @@ class $$LinksTableOrderingComposer
     );
     return composer;
   }
+
+  $$AreasTableOrderingComposer get areaId {
+    final $$AreasTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.areaId,
+      referencedTable: $db.areas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AreasTableOrderingComposer(
+            $db: $db,
+            $table: $db.areas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$LinksTableAnnotationComposer
@@ -6845,6 +7333,29 @@ class $$LinksTableAnnotationComposer
     );
     return composer;
   }
+
+  $$AreasTableAnnotationComposer get areaId {
+    final $$AreasTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.areaId,
+      referencedTable: $db.areas,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AreasTableAnnotationComposer(
+            $db: $db,
+            $table: $db.areas,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$LinksTableTableManager
@@ -6860,7 +7371,7 @@ class $$LinksTableTableManager
           $$LinksTableUpdateCompanionBuilder,
           (LinkRow, $$LinksTableReferences),
           LinkRow,
-          PrefetchHooks Function({bool projectId})
+          PrefetchHooks Function({bool projectId, bool areaId})
         > {
   $$LinksTableTableManager(_$AppDatabase db, $LinksTable table)
     : super(
@@ -6876,7 +7387,8 @@ class $$LinksTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<int> projectId = const Value.absent(),
+                Value<int?> projectId = const Value.absent(),
+                Value<int?> areaId = const Value.absent(),
                 Value<String> label = const Value.absent(),
                 Value<String> url = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
@@ -6884,6 +7396,7 @@ class $$LinksTableTableManager
               }) => LinksCompanion(
                 id: id,
                 projectId: projectId,
+                areaId: areaId,
                 label: label,
                 url: url,
                 sortOrder: sortOrder,
@@ -6892,7 +7405,8 @@ class $$LinksTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required int projectId,
+                Value<int?> projectId = const Value.absent(),
+                Value<int?> areaId = const Value.absent(),
                 required String label,
                 required String url,
                 Value<int> sortOrder = const Value.absent(),
@@ -6900,6 +7414,7 @@ class $$LinksTableTableManager
               }) => LinksCompanion.insert(
                 id: id,
                 projectId: projectId,
+                areaId: areaId,
                 label: label,
                 url: url,
                 sortOrder: sortOrder,
@@ -6911,7 +7426,7 @@ class $$LinksTableTableManager
                     (e.readTable(table), $$LinksTableReferences(db, table, e)),
               )
               .toList(),
-          prefetchHooksCallback: ({projectId = false}) {
+          prefetchHooksCallback: ({projectId = false, areaId = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -6944,6 +7459,19 @@ class $$LinksTableTableManager
                               )
                               as T;
                     }
+                    if (areaId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.areaId,
+                                referencedTable: $$LinksTableReferences
+                                    ._areaIdTable(db),
+                                referencedColumn: $$LinksTableReferences
+                                    ._areaIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
 
                     return state;
                   },
@@ -6968,7 +7496,7 @@ typedef $$LinksTableProcessedTableManager =
       $$LinksTableUpdateCompanionBuilder,
       (LinkRow, $$LinksTableReferences),
       LinkRow,
-      PrefetchHooks Function({bool projectId})
+      PrefetchHooks Function({bool projectId, bool areaId})
     >;
 typedef $$ReviewsTableCreateCompanionBuilder =
     ReviewsCompanion Function({

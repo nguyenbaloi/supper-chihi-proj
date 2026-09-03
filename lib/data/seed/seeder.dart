@@ -97,7 +97,7 @@ class Seeder {
         for (final n in seed.notes) {
           await _db.into(_db.notes).insert(
                 NotesCompanion.insert(
-                  projectId: projectId,
+                  projectId: Value(projectId),
                   title: n.title,
                   bodyMarkdown: Value(n.body),
                   createdAt: now,
@@ -139,7 +139,7 @@ class Seeder {
           final l = seed.links[i];
           await _db.into(_db.links).insert(
                 LinksCompanion.insert(
-                  projectId: projectId,
+                  projectId: Value(projectId),
                   label: l.label,
                   url: l.url,
                   sortOrder: Value(i),

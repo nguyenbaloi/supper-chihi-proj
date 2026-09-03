@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/l10n/strings.dart';
 import 'domain/models/enums.dart';
+import 'features/notes/resources_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/projects/projects_screen.dart';
 import 'features/stats/stats_screen.dart';
@@ -120,6 +121,17 @@ class _HomeShellState extends State<HomeShell> {
           _ => S.settings,
         }),
         actions: [
+          // Kho Tư liệu — FR-50. Vào từ tab Dự án vì đó là nơi người dùng đang
+          // nghĩ về nội dung; không chiếm một ô trên thanh dưới, vốn chỉ dành
+          // cho bốn màn hình chính.
+          if (_index == 1)
+            IconButton(
+              tooltip: S.resources,
+              icon: const Icon(Icons.folder_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const ResourcesScreen()),
+              ),
+            ),
           // Cài đặt đã xuống thanh dưới nên chỉ còn tìm kiếm ở đây.
           if (_index != 3)
             IconButton(

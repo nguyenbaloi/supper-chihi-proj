@@ -1,6 +1,6 @@
 # Kiến trúc và luồng use case
 
-Bản đồ để soi tổng thể tính năng. Mô tả **trạng thái hôm nay** (schema v4).
+Bản đồ để soi tổng thể tính năng. Mô tả **trạng thái hôm nay** (schema v5).
 Chủ đề đã đổi tên thành **Lĩnh vực** ở Story 8.1; những phần Epic 8 còn nợ
 được đánh dấu `[PARA]`.
 
@@ -24,11 +24,11 @@ lập. Provider khai báo tay (không codegen Riverpod).
 
 ```
 Area   1──n  Project  1──n  Action
-                 │
-                 ├──n  Note          [PARA: gắn được vào Area, hoặc để trống]
-                 ├──n  Link          [PARA: như trên]
-                 └──n  Review  1──n  ReviewItem
-                          [PARA: gắn được vào Area]
+  │              │
+  │              └──n  Review  1──n  ReviewItem   [PARA: gắn được vào Area]
+  │
+  └── Note và Link gắn vào nhiều nhất MỘT chỗ — AD-18:
+        một Project · một Area · hoặc không gắn gì (kho chung)
 
 StatusEvent   bảng chỉ ghi thêm, trỏ tới Project|Action bằng entityType+entityId
 ```
@@ -87,8 +87,10 @@ tác vụ nền. Chỉ `Đang làm` mới nguội được.
 
 **UC-7 · Ghi chú và Liên kết**
 `chi tiết Dự án → tab Ghi chú → soạn markdown` · `Liên kết mở bằng trình duyệt hệ điều hành`
-⚠️ **Xoá Dự án hiện xoá theo cả Ghi chú lẫn Liên kết** (`onDelete: cascade`), không
-cảnh báo. `[PARA]` FR-50 vá chỗ này.
+`Tư liệu` (biểu tượng thư mục trên tab Dự án) liệt kê **tất cả** Ghi chú và
+Liên kết, lọc theo Lĩnh vực hoặc *chưa xếp chỗ*.
+Xoá Dự án **không** xoá chúng — chúng chuyển sang Lĩnh vực của Dự án, và hộp
+xác nhận nói rõ chuyển đi đâu (FR-50).
 
 **UC-8 · Đợt đánh giá định kỳ**
 `chi tiết Dự án → tab Đánh giá → tạo Đợt (ngày, tiêu đề, tóm tắt, ngày xem lại tiếp)`
@@ -103,7 +105,7 @@ Quét năm loại: Dự án, Hành động, Ghi chú, Liên kết, Đợt đánh
 chỉ mục, không phải giá trị nghiệp vụ.
 
 **UC-10 · Sao lưu và khôi phục**
-`Xuất → một file JSON duy nhất (backupFormatVersion 3) → share_plus`
+`Xuất → một file JSON duy nhất (backupFormatVersion 4) → share_plus`
 Khoá JSON vẫn mang tên cũ `topics`/`topicId`: định dạng file là hợp đồng riêng
 với tên bảng, đổi ở Story 8.6.
 `Nhập → kiểm tra toàn bộ → THAY THẾ TẤT CẢ trong một giao dịch → sinh lại searchText`
@@ -125,10 +127,10 @@ cột `completionRatio`, `actionCount`, `metRatio`.
 
 ## 6. Chỗ hở — xem khi review
 
-1. **Xoá Dự án là mất Ghi chú** (UC-7). Mất im lặng. Nghiêm trọng nhất.
+1. ~~Xoá Dự án là mất Ghi chú~~ — **đã vá ở Story 8.4** (UC-7).
 2. **Không có lưu trữ.** Dự án `Xong` hoặc `Bỏ` nằm mãi trong danh sách, chỉ ẩn được bằng bộ lọc.
 3. **Đợt đánh giá chỉ ở cấp Dự án.** Không nhìn lại được cả một mảng đời sống.
 4. **`Area` mới chỉ là nhãn màu** — chưa ghi được "mức tôi muốn giữ" hay nhịp xem lại (Story 8.2).
 5. **Hành động không có Ghi chú riêng**, chỉ một trường `note` một dòng.
 
-Bốn điểm đầu là nội dung đề xuất PARA. Điểm 5 chưa có ai đề xuất.
+Điểm 2–4 là phần Epic 8 còn nợ. Điểm 5 chưa có ai đề xuất.

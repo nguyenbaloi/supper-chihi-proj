@@ -11,18 +11,26 @@ import '../../core/result/result.dart';
 
 /// Phiên bản định dạng, đi theo `schemaVersion` của cơ sở dữ liệu.
 ///
-/// Phiên bản 3 bỏ ba mục `goals`, `goalUpdates`, `projectGoals`. File phiên
-/// bản 2 vẫn nhập được: các mục lạ bị bỏ qua vì bộ nhập chỉ đọc đúng những tên
-/// có trong [backupSections].
-const int backupFormatVersion = 3;
+/// - **v3** bỏ ba mục `goals`, `goalUpdates`, `projectGoals`. File v2 vẫn nhập
+///   được: các mục lạ bị bỏ qua vì bộ nhập chỉ đọc đúng những tên có trong
+///   [backupSections].
+/// - **v4** cho `notes.projectId` và `links.projectId` nhận `null`, và thêm
+///   `notes.areaId` / `links.areaId` — Story 8.4, FR-50. Phải tăng phiên bản
+///   ngay ở story này chứ không đợi Story 8.6: một Ghi chú đã chuyển sang
+///   Lĩnh vực mà xuất ra file v3 thì **mất chỗ gắn**, đúng kiểu mất im lặng mà
+///   FR-50 sinh ra để chặn.
+///
+/// File v1…v3 vẫn nhập được: thiếu `areaId` thì hiểu là `null`, và
+/// `projectId` ở các phiên bản đó luôn có giá trị.
+const int backupFormatVersion = 4;
 
 /// Thứ tự chèn tôn trọng khoá ngoại. Xoá thì đi ngược danh sách này.
 ///
 /// **`topics` và `topicId` là cố ý, không phải sót khi đổi tên.** Bảng và lớp
 /// Dart đã đổi thành `Area`/`areaId` ở Story 8.1, nhưng khoá JSON là **hợp
 /// đồng** — file sao lưu phiên bản 3 nào cũng mang tên cũ và phải đọc lại
-/// được sau nhiều năm. Khoá đổi sang `areas`/`areaId` ở phiên bản 4, cùng
-/// lúc bổ sung nhánh đọc cho phiên bản cũ (Story 8.6).
+/// được sau nhiều năm. Phiên bản 4 vẫn giữ nguyên tên cũ; khoá đổi sang
+/// `areas`/`areaId` ở Story 8.6, kèm nhánh đọc cho phiên bản cũ.
 const List<String> backupSections = [
   'topics',
   'projects',
@@ -145,8 +153,11 @@ const Map<String, List<String>> _requiredFields = {
   'topics': ['id', 'name', 'colorValue', 'iconKey'],
   'projects': ['id', 'topicId', 'name', 'status', 'priority', 'createdAt', 'updatedAt'],
   'actions': ['id', 'projectId', 'title', 'status', 'createdAt', 'updatedAt'],
-  'notes': ['id', 'projectId', 'title', 'createdAt', 'updatedAt'],
-  'links': ['id', 'projectId', 'label', 'url'],
+  // `projectId` rời khỏi danh sách bắt buộc từ v4: nó được phép `null` khi Ghi
+  // chú gắn vào Lĩnh vực hoặc nằm ở kho chung — AD-18. File v1…v3 vẫn luôn có
+  // trường này nên không có phép kiểm nào bị mất.
+  'notes': ['id', 'title', 'createdAt', 'updatedAt'],
+  'links': ['id', 'label', 'url'],
   'reviews': ['id', 'projectId', 'date', 'createdAt'],
   'reviewItems': ['id', 'reviewId', 'label', 'verdict'],
   'statusEvents': ['id', 'entityType', 'entityId', 'fromStatus', 'toStatus', 'at'],

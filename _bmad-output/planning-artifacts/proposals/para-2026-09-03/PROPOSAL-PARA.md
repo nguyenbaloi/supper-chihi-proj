@@ -125,7 +125,7 @@ vẫn còn giá trị.
 - `Note` và `Link` gắn vào **một Dự án**, hoặc **một Lĩnh vực**, hoặc **không gắn gì** (kho chung) — nhiều nhất một cái, AD-18.
 - **Xoá một Dự án không còn xoá Ghi chú và Liên kết của nó.** Chúng chuyển sang gắn vào Lĩnh vực mà Dự án đó thuộc về.
 - Trước khi xoá Dự án, hộp xác nhận nói rõ *"N ghi chú và M liên kết sẽ chuyển sang Lĩnh vực «X»"*.
-- Migration đặt `areaId` cho mọi Ghi chú và Liên kết đang có, lấy từ Lĩnh vực của Dự án cha, để không có bản ghi nào mồ côi cả hai chiều.
+- Migration **để trống** `areaId` cho Ghi chú và Liên kết đang có: chúng vẫn giữ `projectId`, nên đã có chỗ thuộc về. Điền thêm `areaId` sẽ vi phạm chính ràng buộc nhiều-nhất-một ở AD-18. `areaId` chỉ được ghi vào lúc Dự án cha bị xoá.
 - Màn hình *Tư liệu* liệt kê tất cả, lọc theo Lĩnh vực và theo *chưa gắn*.
 - Chuyển một Ghi chú giữa Dự án ↔ Lĩnh vực ↔ kho chung được, không mất nội dung, `createdAt` giữ nguyên.
 - `searchText` sinh lại đúng sau mỗi lần chuyển.
@@ -231,7 +231,9 @@ thứ đã nguội đi mà không phải nói dối rằng chúng đã `Bỏ`.
 
 **Nghiệm thu:**
 - `notes.project_id` và `links.project_id` nullable, `onDelete: setNull`; thêm `area_id` nullable; ràng buộc nhiều-nhất-một — AD-18.
-- Migration điền `area_id` cho mọi Ghi chú và Liên kết đang có, lấy từ Lĩnh vực của Dự án cha.
+- Migration **để trống** `area_id`: bản ghi nào còn `project_id` thì đã có chỗ thuộc về, và điền thêm sẽ phạm CHECK của AD-18. `area_id` chỉ ghi lúc xoá Dự án cha.
+- **Test v4 → v5**: Ghi chú và Liên kết cũ giữ nguyên `project_id`, `area_id` là `null`, nội dung và `createdAt` không đổi.
+- **Test ràng buộc thật**: chèn một Ghi chú có cả `project_id` lẫn `area_id` phải bị cơ sở dữ liệu từ chối, không chỉ bị quy ước trong mã ngăn.
 - **Test: tạo Dự án có 2 Ghi chú và 1 Liên kết, xoá Dự án, cả ba còn nguyên và đã gắn vào Lĩnh vực cũ.**
 - Hộp xác nhận xoá Dự án nói đúng số lượng sẽ chuyển đi.
 - Màn hình *Tư liệu* với bộ lọc theo Lĩnh vực và *chưa gắn*.

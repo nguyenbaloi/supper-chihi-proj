@@ -72,6 +72,6 @@ void main() {
 
   test('mở cơ sở dữ liệu rỗng rồi đọc lại thành công', () async {
     expect(await db.select(db.projects).get(), isEmpty);
-    expect(db.schemaVersion, 4);
+    expect(db.schemaVersion, 5);
   });
 }

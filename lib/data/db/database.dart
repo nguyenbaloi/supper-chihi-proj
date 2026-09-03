@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'personal_projects'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +75,25 @@ class AppDatabase extends _$AppDatabase {
                 projects.areaId: const CustomExpression<int>('topic_id'),
               },
             ));
+          }
+          if (from < 5) {
+            // v4 → v5: Ghi chú và Liên kết thôi chết theo Dự án — FR-50,
+            // AD-18, Story 8.4.
+            //
+            // `alterTable` dựng lại hai bảng từ định nghĩa Dart hiện tại:
+            // `project_id` thành nullable với `onDelete: setNull`, thêm
+            // `area_id` nullable, và ràng buộc CHECK nhiều-nhất-một.
+            //
+            // `area_id` **để trống** cho mọi bản ghi đang có. Đó là chủ ý,
+            // không phải bỏ sót: bản ghi nào còn `project_id` thì đã có chỗ
+            // thuộc về, và điền thêm `area_id` sẽ vi phạm đúng cái CHECK vừa
+            // dựng. `area_id` chỉ được ghi lúc Dự án cha bị xoá.
+            //
+            // `newColumns` là bắt buộc: không khai báo thì `alterTable` đưa
+            // `area_id` vào cả câu SELECT chép dữ liệu, mà bảng cũ chưa có cột
+            // đó nên câu lệnh chết ngay giữa migration.
+            await m.alterTable(TableMigration(notes, newColumns: [notes.areaId]));
+            await m.alterTable(TableMigration(links, newColumns: [links.areaId]));
           }
         },
         beforeOpen: (details) async {

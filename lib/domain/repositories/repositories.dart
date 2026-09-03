@@ -109,7 +109,12 @@ abstract interface class ProjectRepository {
 
   /// Xoá Dự án và mọi Hành động, Ghi chú, Liên kết, mối nối của nó.
   /// **Không** xoá Mục tiêu đã nối (FR-7).
+  /// Xoá Dự án. Ghi chú và Liên kết **không** bị xoá theo: chúng chuyển sang
+  /// Lĩnh vực của Dự án — AD-18, FR-50.
   Future<void> delete(int id);
+
+  /// Đếm số Ghi chú và Liên kết sẽ chuyển đi nếu xoá Dự án này.
+  Future<AttachedContentCount> attachedContentCount(int projectId);
 
   Stream<List<StatusEvent>> watchStatusHistory(int projectId);
 }
@@ -145,17 +150,55 @@ abstract interface class ActionRepository {
   Stream<List<ProjectAction>> watchAll();
 }
 
+/// Số Ghi chú và Liên kết sẽ chuyển đi khi xoá một Dự án — FR-50.
+///
+/// Hộp xác nhận xoá phải nói đúng con số này, vì hành vi đã đổi: trước v5
+/// chúng bị xoá theo, từ v5 chúng chuyển sang Lĩnh vực của Dự án.
+typedef AttachedContentCount = ({int notes, int links});
+
 abstract interface class NoteRepository {
   Stream<List<Note>> watchByProject(int projectId);
-  Future<Note> create({required int projectId, required String title, String bodyMarkdown = ''});
+
+  /// Ghi chú gắn thẳng vào Lĩnh vực, **không** gồm Ghi chú của các Dự án
+  /// thuộc Lĩnh vực đó — AD-18 cho phép gắn nhiều nhất một nơi.
+  Stream<List<Note>> watchByArea(int areaId);
+
+  /// Kho chung: không thuộc Dự án nào và cũng không thuộc Lĩnh vực nào.
+  Stream<List<Note>> watchUnattached();
+
+  Stream<List<Note>> watchAll();
+
+  /// Truyền nhiều nhất một trong [projectId] và [areaId]; cả hai `null` thì
+  /// Ghi chú nằm ở kho chung.
+  Future<Note> create({
+    int? projectId,
+    int? areaId,
+    required String title,
+    String bodyMarkdown = '',
+  });
+
   Future<void> update(Note note);
+
+  /// Chuyển sang chỗ khác. Nội dung và `createdAt` giữ nguyên; `searchText`
+  /// được sinh lại — FR-50.
+  Future<void> move(int id, {int? projectId, int? areaId});
+
   Future<void> delete(int id);
 }
 
 abstract interface class LinkRepository {
   Stream<List<Link>> watchByProject(int projectId);
-  Future<Link> create({required int projectId, required String label, required String url});
+  Stream<List<Link>> watchByArea(int areaId);
+  Stream<List<Link>> watchUnattached();
+  Stream<List<Link>> watchAll();
+  Future<Link> create({
+    int? projectId,
+    int? areaId,
+    required String label,
+    required String url,
+  });
   Future<void> update(Link link);
+  Future<void> move(int id, {int? projectId, int? areaId});
   Future<void> delete(int id);
 }
 

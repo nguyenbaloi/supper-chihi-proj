@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_projects/data/backup/backup_service.dart';
 import 'package:personal_projects/data/db/database.dart';
+import 'package:personal_projects/data/repositories/drift_content_repositories.dart';
 import 'package:personal_projects/data/seed/seeder.dart';
 
 /// Chu trình chuyển máy đi qua **file thật trên đĩa**, không phải chuỗi trong
@@ -24,6 +25,53 @@ void main() {
     addTearDown(db.close);
     return db;
   }
+
+  // FR-50: một Ghi chú đã rời Dự án và chuyển sang Lĩnh vực phải sống sót qua
+  // file. Định dạng v3 không có chỗ ghi `areaId`, nên nếu quên tăng
+  // `backupFormatVersion` ở Story 8.4 thì chỗ gắn biến mất — mất im lặng, đúng
+  // kiểu hỏng mà FR-50 sinh ra để chặn.
+  test('Tư liệu gắn vào Lĩnh vực và Tư liệu ở kho chung đi qua file nguyên vẹn',
+      () async {
+    final oldPhone = await freshDb();
+    DateTime clock() => DateTime.utc(2026, 9, 3);
+    await Seeder(oldPhone, clock: clock).applyProjectSeed();
+
+    final notes = DriftNoteRepository(oldPhone, clock: clock);
+    final links = DriftLinkRepository(oldPhone);
+    final area = (await oldPhone.select(oldPhone.areas).get()).first;
+
+    await notes.create(
+        areaId: area.id, title: 'Nguyên tắc chung', bodyMarkdown: 'Giữ mức này');
+    await notes.create(title: 'Chưa xếp chỗ');
+    await links.create(areaId: area.id, label: 'Tham khảo', url: 'https://a.test');
+
+    final file = File('${tempDir.path}/para.json');
+    await file.writeAsString(
+        await BackupService(oldPhone, clock: clock).exportJson());
+    expect(jsonDecode(await file.readAsString())['schemaVersion'], 4,
+        reason: 'định dạng phải lên v4, nếu không areaId không có chỗ ghi');
+
+    final newPhone = await freshDb();
+    final result = await BackupService(newPhone, clock: clock)
+        .import(await file.readAsString());
+    expect(result.isOk, isTrue);
+
+    final attached = (await newPhone.select(newPhone.notes).get())
+        .firstWhere((n) => n.title == 'Nguyên tắc chung');
+    expect(attached.areaId, area.id);
+    expect(attached.projectId, isNull);
+    expect(attached.bodyMarkdown, 'Giữ mức này');
+
+    final loose = (await newPhone.select(newPhone.notes).get())
+        .firstWhere((n) => n.title == 'Chưa xếp chỗ');
+    expect(loose.areaId, isNull);
+    expect(loose.projectId, isNull);
+
+    final link = (await newPhone.select(newPhone.links).get())
+        .firstWhere((l) => l.label == 'Tham khảo');
+    expect(link.areaId, area.id);
+    expect(link.projectId, isNull);
+  });
 
   test('chuyển máy: máy cũ xuất ra file, máy mới nhập vào, khớp từng chữ',
       () async {

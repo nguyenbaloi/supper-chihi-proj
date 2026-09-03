@@ -123,6 +123,17 @@ final projectNotesProvider = StreamProvider.family<List<Note>, int>(
   (ref, projectId) => ref.watch(noteRepositoryProvider).watchByProject(projectId),
 );
 
+/// Toàn bộ Tư liệu, không lọc theo chỗ gắn — nguồn của màn hình Tư liệu
+/// (FR-50). Lọc theo Lĩnh vực / chưa xếp chỗ làm ở tầng hiển thị vì danh sách
+/// nhỏ và bộ lọc đổi liên tục.
+final allNotesProvider = StreamProvider<List<Note>>(
+  (ref) => ref.watch(noteRepositoryProvider).watchAll(),
+);
+
+final allLinksProvider = StreamProvider<List<Link>>(
+  (ref) => ref.watch(linkRepositoryProvider).watchAll(),
+);
+
 final projectLinksProvider = StreamProvider.family<List<Link>, int>(
   (ref, projectId) => ref.watch(linkRepositoryProvider).watchByProject(projectId),
 );

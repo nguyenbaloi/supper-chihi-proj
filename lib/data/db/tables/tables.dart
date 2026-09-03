@@ -77,24 +77,52 @@ class Actions extends Table {
 @DataClassName('NoteRow')
 class Notes extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get projectId =>
-      integer().references(Projects, #id, onDelete: KeyAction.cascade)();
+
+  /// AD-18: Ghi chú **sống lâu hơn** Dự án sinh ra nó. Trước v5 cột này là
+  /// `NOT NULL` với `onDelete: cascade`, nghĩa là dọn một Dự án cũ là mất sạch
+  /// bài học đã ghi trong đó — mất im lặng, không cảnh báo.
+  IntColumn get projectId => integer()
+      .nullable()
+      .references(Projects, #id, onDelete: KeyAction.setNull)();
+
+  /// Gắn thẳng vào Lĩnh vực, không qua Dự án nào — FR-50.
+  IntColumn get areaId =>
+      integer().nullable().references(Areas, #id, onDelete: KeyAction.setNull)();
+
   TextColumn get title => text().withLength(min: 1, max: 200)();
   TextColumn get bodyMarkdown => text().withDefault(const Constant(''))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   TextColumn get searchText => text().withDefault(const Constant(''))();
+
+  /// AD-18: gắn vào Dự án, **hoặc** Lĩnh vực, **hoặc** không gắn gì — nhiều
+  /// nhất một cái. Viết thành ràng buộc thật ở tầng bảng chứ không chỉ là quy
+  /// ước, vì quy ước thì mã nào cũng lách được.
+  @override
+  List<String> get customConstraints =>
+      const ['CHECK (project_id IS NULL OR area_id IS NULL)'];
 }
 
 @DataClassName('LinkRow')
 class Links extends Table {
   IntColumn get id => integer().autoIncrement()();
-  IntColumn get projectId =>
-      integer().references(Projects, #id, onDelete: KeyAction.cascade)();
+
+  /// AD-18 — xem ghi chú ở [Notes.projectId].
+  IntColumn get projectId => integer()
+      .nullable()
+      .references(Projects, #id, onDelete: KeyAction.setNull)();
+
+  IntColumn get areaId =>
+      integer().nullable().references(Areas, #id, onDelete: KeyAction.setNull)();
+
   TextColumn get label => text().withLength(min: 1, max: 200)();
   TextColumn get url => text().withLength(min: 1, max: 2000)();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   TextColumn get searchText => text().withDefault(const Constant(''))();
+
+  @override
+  List<String> get customConstraints =>
+      const ['CHECK (project_id IS NULL OR area_id IS NULL)'];
 }
 
 /// Bảng chỉ ghi thêm. Nguồn duy nhất của "ngày hoạt động gần nhất" (FR-13)

@@ -15,23 +15,41 @@ class DriftNoteRepository implements NoteRepository {
   final AppDatabase _db;
   final DateTime Function() _now;
 
+  Stream<List<Note>> _watch(Expression<bool> Function($NotesTable n) filter) =>
+      (_db.select(_db.notes)
+            ..where(filter)
+            ..orderBy([(n) => OrderingTerm.desc(n.updatedAt)]))
+          .watch()
+          .map((rows) => rows.map((r) => r.toModel()).toList());
+
   @override
-  Stream<List<Note>> watchByProject(int projectId) => (_db.select(_db.notes)
-        ..where((n) => n.projectId.equals(projectId))
-        ..orderBy([(n) => OrderingTerm.desc(n.updatedAt)]))
-      .watch()
-      .map((rows) => rows.map((r) => r.toModel()).toList());
+  Stream<List<Note>> watchByProject(int projectId) =>
+      _watch((n) => n.projectId.equals(projectId));
+
+  @override
+  Stream<List<Note>> watchByArea(int areaId) =>
+      _watch((n) => n.areaId.equals(areaId));
+
+  @override
+  Stream<List<Note>> watchUnattached() =>
+      _watch((n) => n.projectId.isNull() & n.areaId.isNull());
+
+  @override
+  Stream<List<Note>> watchAll() => _watch((n) => const Constant(true));
 
   @override
   Future<Note> create({
-    required int projectId,
+    int? projectId,
+    int? areaId,
     required String title,
     String bodyMarkdown = '',
   }) async {
+    assert(projectId == null || areaId == null, 'AD-18');
     final now = _now().toUtc();
     final id = await _db.into(_db.notes).insert(
           NotesCompanion.insert(
-            projectId: projectId,
+            projectId: Value(projectId),
+            areaId: Value(areaId),
             title: title,
             bodyMarkdown: Value(bodyMarkdown),
             createdAt: now,
@@ -42,10 +60,28 @@ class DriftNoteRepository implements NoteRepository {
     return Note(
       id: id,
       projectId: projectId,
+      areaId: areaId,
       title: title,
       bodyMarkdown: bodyMarkdown,
       createdAt: now,
       updatedAt: now,
+    );
+  }
+
+  @override
+  Future<void> move(int id, {int? projectId, int? areaId}) async {
+    assert(projectId == null || areaId == null, 'AD-18');
+    final row =
+        await (_db.select(_db.notes)..where((n) => n.id.equals(id))).getSingleOrNull();
+    if (row == null) return;
+    await (_db.update(_db.notes)..where((n) => n.id.equals(id))).write(
+      NotesCompanion(
+        projectId: Value(projectId),
+        areaId: Value(areaId),
+        updatedAt: Value(_now().toUtc()),
+        // Dẫn xuất, phải sinh lại sau mỗi lần đụng vào bản ghi — AD-12.
+        searchText: Value(buildSearchText([row.title, row.bodyMarkdown])),
+      ),
     );
   }
 
@@ -72,38 +108,96 @@ class DriftLinkRepository implements LinkRepository {
 
   final AppDatabase _db;
 
+  Stream<List<Link>> _watch(Expression<bool> Function($LinksTable l) filter) =>
+      (_db.select(_db.links)
+            ..where(filter)
+            ..orderBy([
+              (l) => OrderingTerm(expression: l.sortOrder),
+              (l) => OrderingTerm(expression: l.id),
+            ]))
+          .watch()
+          .map((rows) => rows.map((r) => r.toModel()).toList());
+
   @override
-  Stream<List<Link>> watchByProject(int projectId) => (_db.select(_db.links)
-        ..where((l) => l.projectId.equals(projectId))
-        ..orderBy([
-          (l) => OrderingTerm(expression: l.sortOrder),
-          (l) => OrderingTerm(expression: l.id),
-        ]))
-      .watch()
-      .map((rows) => rows.map((r) => r.toModel()).toList());
+  Stream<List<Link>> watchByProject(int projectId) =>
+      _watch((l) => l.projectId.equals(projectId));
+
+  @override
+  Stream<List<Link>> watchByArea(int areaId) =>
+      _watch((l) => l.areaId.equals(areaId));
+
+  @override
+  Stream<List<Link>> watchUnattached() =>
+      _watch((l) => l.projectId.isNull() & l.areaId.isNull());
+
+  @override
+  Stream<List<Link>> watchAll() => _watch((l) => const Constant(true));
+
+  /// Thứ tự kéo thả là **cục bộ theo chỗ gắn**, nên số kế tiếp phải đếm trong
+  /// đúng nhóm đó — kho chung tính là một nhóm riêng.
+  Future<int> _nextSortOrder(int? projectId, int? areaId) async {
+    final where = projectId != null
+        ? 'project_id = ?'
+        : areaId != null
+            ? 'area_id = ?'
+            : 'project_id IS NULL AND area_id IS NULL';
+    final row = await _db.customSelect(
+      'SELECT COALESCE(MAX(sort_order), -1) AS m FROM links WHERE $where',
+      variables: [
+        if (projectId != null) Variable<int>(projectId),
+        if (projectId == null && areaId != null) Variable<int>(areaId),
+      ],
+      readsFrom: {_db.links},
+    ).getSingle();
+    return row.read<int>('m') + 1;
+  }
 
   @override
   Future<Link> create({
-    required int projectId,
+    int? projectId,
+    int? areaId,
     required String label,
     required String url,
   }) async {
-    final row = await _db.customSelect(
-      'SELECT COALESCE(MAX(sort_order), -1) AS m FROM links WHERE project_id = ?',
-      variables: [Variable<int>(projectId)],
-      readsFrom: {_db.links},
-    ).getSingle();
-    final next = row.read<int>('m') + 1;
+    assert(projectId == null || areaId == null, 'AD-18');
+    final next = await _nextSortOrder(projectId, areaId);
     final id = await _db.into(_db.links).insert(
           LinksCompanion.insert(
-            projectId: projectId,
+            projectId: Value(projectId),
+            areaId: Value(areaId),
             label: label,
             url: url,
             sortOrder: Value(next),
             searchText: Value(buildSearchText([label, url])),
           ),
         );
-    return Link(id: id, projectId: projectId, label: label, url: url, sortOrder: next);
+    return Link(
+      id: id,
+      projectId: projectId,
+      areaId: areaId,
+      label: label,
+      url: url,
+      sortOrder: next,
+    );
+  }
+
+  @override
+  Future<void> move(int id, {int? projectId, int? areaId}) async {
+    assert(projectId == null || areaId == null, 'AD-18');
+    await _db.transaction(() async {
+      final row = await (_db.select(_db.links)..where((l) => l.id.equals(id)))
+          .getSingleOrNull();
+      if (row == null) return;
+      await (_db.update(_db.links)..where((l) => l.id.equals(id))).write(
+        LinksCompanion(
+          projectId: Value(projectId),
+          areaId: Value(areaId),
+          // Xếp cuối nhóm mới; giữ số cũ sẽ đụng thứ tự của nhóm đích.
+          sortOrder: Value(await _nextSortOrder(projectId, areaId)),
+          searchText: Value(buildSearchText([row.label, row.url])),
+        ),
+      );
+    });
   }
 
   @override

@@ -99,11 +99,25 @@ abstract final class S {
   static const sortName = 'Tên';
   static const sortDueDate = 'Hạn chót';
 
-  /// FR-7: hộp xác nhận phải nêu rõ những gì sẽ mất theo.
-  static String projectDeleteConfirm(int actions, int notes, int links) =>
-      'Xoá dự án này sẽ xoá theo $actions hành động, $notes ghi chú và '
-      '$links liên kết. Mục tiêu đã nối không bị xoá.\n\n'
-      'Nếu chỉ muốn dừng lại, hãy chuyển trạng thái sang "Bỏ".';
+  /// FR-7 và FR-50: hộp xác nhận phải nêu rõ cái gì mất và cái gì chỉ chuyển đi.
+  ///
+  /// Hai vế tách bạch có chủ ý. Hành động **mất thật**; Ghi chú và Liên kết
+  /// **không mất** mà chuyển sang Lĩnh vực — nói gộp là làm người dùng ngại
+  /// xoá một Dự án cũ chỉ vì tưởng sẽ mất bài học đã ghi trong đó.
+  static String projectDeleteConfirm(
+      int actions, int notes, int links, String areaName) {
+    final moved = <String>[
+      if (notes > 0) '$notes ghi chú',
+      if (links > 0) '$links liên kết',
+    ].join(' và ');
+    return [
+      'Xoá dự án này sẽ xoá theo $actions hành động.',
+      if (moved.isNotEmpty)
+        '$moved sẽ chuyển sang lĩnh vực "$areaName", không bị xoá.',
+      '',
+      'Nếu chỉ muốn dừng lại, hãy chuyển trạng thái sang "Bỏ".',
+    ].join('\n');
+  }
   static const projectDeleteTitle = 'Xoá dự án?';
 
   // Hành động
@@ -131,6 +145,18 @@ abstract final class S {
   static const linkInvalid = 'Địa chỉ không hợp lệ';
   static const linkCopied = 'Đã sao chép địa chỉ';
   static const linkCopy = 'Sao chép địa chỉ';
+
+  // Tư liệu — FR-50. "Tư liệu" là nhãn nhóm gộp Ghi chú và Liên kết ở giao
+  // diện, KHÔNG phải một thực thể; không có lớp `Resource` nào — AD-20.
+  static const resources = 'Tư liệu';
+  static const resourcesAll = 'Tất cả';
+  static const resourcesUnattached = 'Chưa xếp chỗ';
+  static const resourcesEmpty = 'Chưa có tư liệu nào.';
+  static const resourcesFromProject = 'Thuộc dự án';
+  static const resourcesFromArea = 'Thuộc lĩnh vực';
+  static const resourcesLoose = 'Chưa gắn vào đâu';
+  static String resourcesCount(int notes, int links) =>
+      '$notes ghi chú · $links liên kết';
 
   static const searchNoResult = 'Không tìm thấy kết quả nào.';
 

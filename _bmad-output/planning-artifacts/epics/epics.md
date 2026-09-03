@@ -504,11 +504,17 @@ thứ đã nguội đi mà không phải nói dối rằng chúng đã `Bỏ`.
 
 **Nghiệm thu:**
 - `notes.project_id` và `links.project_id` nullable, `onDelete: setNull`; thêm `area_id` nullable; ràng buộc nhiều-nhất-một — AD-18.
-- Migration điền `area_id` cho mọi Ghi chú và Liên kết đang có, lấy từ Lĩnh vực của Dự án cha.
+- Migration **để trống** `area_id`: bản ghi nào còn `project_id` thì đã có chỗ thuộc về, và điền thêm sẽ phạm CHECK của AD-18. `area_id` chỉ ghi lúc xoá Dự án cha.
+- **Test v4 → v5**: Ghi chú và Liên kết cũ giữ nguyên `project_id`, `area_id` là `null`, nội dung và `createdAt` không đổi.
+- **Test ràng buộc thật**: chèn một Ghi chú có cả `project_id` lẫn `area_id` phải bị cơ sở dữ liệu từ chối, không chỉ bị quy ước trong mã ngăn.
 - **Test: tạo Dự án có 2 Ghi chú và 1 Liên kết, xoá Dự án, cả ba còn nguyên và đã gắn vào Lĩnh vực cũ.**
 - Hộp xác nhận xoá Dự án nói đúng số lượng sẽ chuyển đi.
 - Màn hình *Tư liệu* với bộ lọc theo Lĩnh vực và *chưa gắn*.
 - `searchText` sinh lại sau mỗi lần chuyển chỗ.
+- **`backupFormatVersion` lên 4 ngay ở story này**, không đợi Story 8.6: định dạng
+  v3 không có chỗ ghi `areaId`, nên một Ghi chú đã chuyển sang Lĩnh vực mà xuất ra
+  file v3 là **mất chỗ gắn** — đúng kiểu mất im lặng mà FR-50 sinh ra để chặn.
+  `projectId` rời khỏi danh sách trường bắt buộc; file v1…v3 vẫn nhập được vì luôn có nó.
 
 ### Story 8.5: Lưu trữ — FR-51
 
@@ -523,7 +529,9 @@ thứ đã nguội đi mà không phải nói dối rằng chúng đã `Bỏ`.
 ### Story 8.6: Sao lưu phiên bản 4 và đọc lại file cũ
 
 **Nghiệm thu:**
-- `backupFormatVersion` 3 → 4; khoá mới `areas`, `standard`, `reviewCadenceDays`, `areaId`, `archivedAt`.
+- `backupFormatVersion` 4 → 5. Phần `areaId` của Ghi chú và Liên kết đã làm ở
+  Story 8.4; story này thêm khoá `areas` (đổi tên từ `topics`), `standard`,
+  `reviewCadenceDays`, `archivedAt`.
 - Đọc được file v1, v2, v3: khoá `topics` nạp vào `areas`, `archivedAt` thiếu thì để null, `areaId` của Ghi chú suy từ Dự án cha.
 - File v5 trở lên bị **từ chối**, không cố đọc.
 - **Test: xuất → xoá sạch → nhập, so khớp toàn bộ kể cả `createdAt`, `sortOrder`, `archivedAt`.**

@@ -61,18 +61,29 @@ class ProjectDetailScreen extends ConsumerWidget {
     );
   }
 
-  /// FR-7: hộp xác nhận nêu rõ số bản ghi sẽ mất theo và gợi ý trạng thái `Bỏ`.
+  /// FR-7 và FR-50: hộp xác nhận nêu rõ Hành động sẽ mất, còn Ghi chú và Liên
+  /// kết chỉ chuyển sang Lĩnh vực nào.
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final actions = ref.read(projectActionsProvider(projectId)).value ?? const [];
     final notes = ref.read(projectNotesProvider(projectId)).value ?? const [];
     final links = ref.read(projectLinksProvider(projectId)).value ?? const [];
 
+    final project = ref.read(projectProvider(projectId)).value;
+    final areas = ref.read(areasProvider).value ?? const [];
+    final areaName = areas
+            .where((a) => a.id == project?.areaId)
+            .map((a) => a.name)
+            .firstOrNull ??
+        '';
+
+    if (!context.mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text(S.projectDeleteTitle),
         content: Text(
-          S.projectDeleteConfirm(actions.length, notes.length, links.length),
+          S.projectDeleteConfirm(
+              actions.length, notes.length, links.length, areaName),
         ),
         actions: [
           TextButton(

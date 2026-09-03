@@ -79,6 +79,12 @@ class DriftAreaRepository implements AreaRepository {
 
       await (_db.update(_db.projects)..where((p) => p.areaId.equals(id)))
           .write(ProjectsCompanion(areaId: Value(fallback.id)));
+      // Ghi chú và Liên kết gắn thẳng vào Lĩnh vực này đi cùng đường với Dự
+      // án: về `Khác`, không rơi vào kho chung và càng không bị xoá — FR-50.
+      await (_db.update(_db.notes)..where((n) => n.areaId.equals(id)))
+          .write(NotesCompanion(areaId: Value(fallback.id)));
+      await (_db.update(_db.links)..where((l) => l.areaId.equals(id)))
+          .write(LinksCompanion(areaId: Value(fallback.id)));
       await (_db.delete(_db.areas)..where((t) => t.id.equals(id))).go();
     });
   }

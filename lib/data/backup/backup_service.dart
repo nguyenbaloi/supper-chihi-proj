@@ -80,6 +80,7 @@ class BackupService {
             {
               'id': r.id,
               'projectId': r.projectId,
+              'areaId': r.areaId,
               'title': r.title,
               'bodyMarkdown': r.bodyMarkdown,
               'createdAt': isoOrNull(r.createdAt),
@@ -91,6 +92,7 @@ class BackupService {
             {
               'id': r.id,
               'projectId': r.projectId,
+              'areaId': r.areaId,
               'label': r.label,
               'url': r.url,
               'sortOrder': r.sortOrder,
@@ -272,7 +274,10 @@ class BackupService {
         case 'notes':
           await _db.into(_db.notes).insert(NotesCompanion.insert(
                 id: Value(readInt(r, 'id')),
-                projectId: readInt(r, 'projectId'),
+                // File v1…v3 luôn có `projectId` và không có `areaId`; v4 có
+                // thể thiếu một trong hai, nhưng không bao giờ có cả hai.
+                projectId: Value(readIntOrNull(r, 'projectId')),
+                areaId: Value(readIntOrNull(r, 'areaId')),
                 title: readString(r, 'title'),
                 bodyMarkdown: Value(readString(r, 'bodyMarkdown')),
                 createdAt: readDate(r, 'createdAt'),
@@ -283,7 +288,8 @@ class BackupService {
         case 'links':
           await _db.into(_db.links).insert(LinksCompanion.insert(
                 id: Value(readInt(r, 'id')),
-                projectId: readInt(r, 'projectId'),
+                projectId: Value(readIntOrNull(r, 'projectId')),
+                areaId: Value(readIntOrNull(r, 'areaId')),
                 label: readString(r, 'label'),
                 url: readString(r, 'url'),
                 sortOrder: Value(readInt(r, 'sortOrder')),

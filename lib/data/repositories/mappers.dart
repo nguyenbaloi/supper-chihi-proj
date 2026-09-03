@@ -59,6 +59,7 @@ extension NoteMapper on NoteRow {
   Note toModel() => Note(
         id: id,
         projectId: projectId,
+        areaId: areaId,
         title: title,
         bodyMarkdown: bodyMarkdown,
         createdAt: createdAt,
@@ -70,6 +71,7 @@ extension LinkMapper on LinkRow {
   Link toModel() => Link(
         id: id,
         projectId: projectId,
+        areaId: areaId,
         label: label,
         url: url,
         sortOrder: sortOrder,
