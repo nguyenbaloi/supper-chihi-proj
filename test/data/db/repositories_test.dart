@@ -148,6 +148,77 @@ void main() {
     });
   });
 
+  group('Chi tiết Hành động — nhập hạn, sửa hạn, sửa ưu tiên', () {
+    test('tạo kèm hạn và độ ưu tiên, không phải mặc định', () async {
+      final p = await projects.create(name: 'Dự án');
+      final due = DateTime.utc(2026, 9, 20);
+      final a = await actions.create(
+        projectId: p.id,
+        title: 'Gọi thợ',
+        priority: Priority.high,
+        dueDate: due,
+      );
+
+      final row = await actions.watchById(a.id).first;
+      expect(row!.priority, Priority.high);
+      expect(row.dueDate, due);
+    });
+
+    test('sửa hạn và độ ưu tiên rồi đọc lại đúng, updatedAt đổi theo', () async {
+      final p = await projects.create(name: 'Dự án');
+      final a = await actions.create(projectId: p.id, title: 'Gọi thợ');
+
+      now = DateTime.utc(2026, 9, 1, 8);
+      await actions.update(a.copyWith(
+        priority: Priority.low,
+        dueDate: DateTime.utc(2026, 9, 30),
+      ));
+
+      final row = (await actions.watchById(a.id).first)!;
+      expect(row.priority, Priority.low);
+      expect(row.dueDate, DateTime.utc(2026, 9, 30));
+      expect(row.updatedAt, DateTime.utc(2026, 9, 1, 8));
+      expect(row.createdAt, a.createdAt, reason: 'AD-5: createdAt không đổi');
+    });
+
+    test('bỏ hạn thì về null, không giữ lại hạn cũ', () async {
+      final p = await projects.create(name: 'Dự án');
+      final a = await actions.create(
+        projectId: p.id,
+        title: 'Gọi thợ',
+        dueDate: DateTime.utc(2026, 9, 20),
+      );
+
+      await actions.update(a.copyWith(clearDueDate: true));
+
+      expect((await actions.watchById(a.id).first)!.dueDate, isNull);
+    });
+
+    test('xoá rồi thì trả null, để màn hình chi tiết tự đóng', () async {
+      final p = await projects.create(name: 'Dự án');
+      final a = await actions.create(projectId: p.id, title: 'Gọi thợ');
+
+      await actions.delete(a.id);
+
+      expect(await actions.watchById(a.id).first, isNull);
+    });
+
+    test('đổi trạng thái ở màn chi tiết vẫn ghi startedAt một lần', () async {
+      final p = await projects.create(name: 'Dự án');
+      final a = await actions.create(projectId: p.id, title: 'Gọi thợ');
+
+      now = DateTime.utc(2026, 9, 2);
+      await actions.changeStatus(a.id, ActionStatus.doing);
+      now = DateTime.utc(2026, 9, 3);
+      await actions.changeStatus(a.id, ActionStatus.done);
+      await actions.changeStatus(a.id, ActionStatus.doing);
+
+      final row = (await actions.watchById(a.id).first)!;
+      expect(row.startedAt, DateTime.utc(2026, 9, 2));
+      expect(row.completedAt, isNull);
+    });
+  });
+
   group('Story 2.1 — xoá Dự án (FR-7)', () {
     // FR-50, AD-18. Trước v5 test này khẳng định điều ngược lại: Ghi chú và
     // Liên kết bị xoá theo. Đó chính là lỗi mất dữ liệu Story 8.4 vá.

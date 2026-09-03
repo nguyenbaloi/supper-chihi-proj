@@ -135,8 +135,7 @@ class _ReviewDetailScreenState extends ConsumerState<ReviewDetailScreen> {
                     decoration: const InputDecoration(
                       hintText: S.reviewItemNew,
                       isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
+                          ),
                     onSubmitted: (_) => _addItem(),
                   ),
                 ),
@@ -232,7 +231,7 @@ class _ItemTile extends ConsumerWidget {
                 autofocus: true,
                 minLines: 2,
                 maxLines: 6,
-                decoration: const InputDecoration(border: OutlineInputBorder()),
+                decoration: const InputDecoration(),
               ),
               actions: [
                 TextButton(

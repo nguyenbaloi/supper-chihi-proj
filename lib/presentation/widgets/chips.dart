@@ -66,19 +66,23 @@ class PriorityChip extends StatelessWidget {
   final Priority priority;
 
   @override
-  Widget build(BuildContext context) => _Pill(
-        label: S.priority(priority),
-        color: switch (priority) {
-          Priority.high => const Color(0xFFC62828),
-          Priority.medium => const Color(0xFF6A1B9A),
-          Priority.low => const Color(0xFF546E7A),
-        },
-        icon: switch (priority) {
-          Priority.high => Icons.keyboard_double_arrow_up,
-          Priority.medium => Icons.drag_handle,
-          Priority.low => Icons.keyboard_double_arrow_down,
-        },
-      );
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = switch (priority) {
+      Priority.high => isDark ? const Color(0xFFFF5252) : const Color(0xFFC62828),
+      Priority.medium => isDark ? const Color(0xFFFFB74D) : const Color(0xFFE65100),
+      Priority.low => isDark ? const Color(0xFF90A4AE) : const Color(0xFF546E7A),
+    };
+    return _Pill(
+      label: S.priority(priority),
+      color: color,
+      icon: switch (priority) {
+        Priority.high => Icons.keyboard_double_arrow_up,
+        Priority.medium => Icons.drag_handle,
+        Priority.low => Icons.keyboard_double_arrow_down,
+      },
+    );
+  }
 }
 
 class AreaChip extends StatelessWidget {
@@ -100,26 +104,28 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
+        color: color.withValues(alpha: isDark ? 0.20 : 0.11),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 13, color: color),
+            Icon(icon, size: 12, color: color),
             const SizedBox(width: 3),
           ],
           Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(color: color, fontWeight: FontWeight.w600),
+            // `height: 1.1` giữ viên thuốc thấp; thang chữ chung để 1.3 cho
+            // dấu tiếng Việt, nhưng ở đây chữ chỉ một dòng và không có dấu bị
+            // cắt vì viền cách chữ đủ xa.
+            style: theme.textTheme.labelSmall
+                ?.copyWith(color: color, height: 1.1, letterSpacing: 0.2),
           ),
         ],
       ),

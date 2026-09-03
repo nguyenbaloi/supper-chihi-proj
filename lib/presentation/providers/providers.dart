@@ -119,6 +119,11 @@ final projectActionsProvider = StreamProvider.family<List<ProjectAction>, int>(
   (ref, projectId) => ref.watch(actionRepositoryProvider).watchByProject(projectId),
 );
 
+/// Một Hành động duy nhất — màn hình chi tiết Hành động (FR-14, FR-16).
+final actionProvider = StreamProvider.family<ProjectAction?, int>(
+  (ref, id) => ref.watch(actionRepositoryProvider).watchById(id),
+);
+
 final projectNotesProvider = StreamProvider.family<List<Note>, int>(
   (ref, projectId) => ref.watch(noteRepositoryProvider).watchByProject(projectId),
 );

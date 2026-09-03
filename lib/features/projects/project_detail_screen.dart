@@ -4,10 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/format/vn_format.dart';
 import '../../core/l10n/strings.dart';
 import '../../domain/models/enums.dart';
+import '../../domain/models/project.dart';
 import '../../domain/models/project_action.dart';
 import '../../domain/rules/completion.dart';
 import '../../presentation/providers/providers.dart';
+import '../../presentation/theme/app_theme.dart';
 import '../../presentation/widgets/chips.dart';
+import '../../presentation/widgets/layout.dart';
+import '../actions/action_edit_sheet.dart';
 import '../actions/action_tile.dart';
 import '../notes/project_notes_tab.dart';
 import '../reviews/project_reviews_tab.dart';
@@ -44,7 +48,7 @@ class ProjectDetailScreen extends ConsumerWidget {
           ],
           bottom: const TabBar(
             tabs: [
-              Tab(text: S.tabToday),
+              Tab(text: S.actionsTab),
               Tab(text: S.reviews),
               Tab(text: S.projectNotes),
             ],
@@ -113,6 +117,14 @@ class _ActionsTabState extends ConsumerState<_ActionsTab> {
   final _focus = FocusNode();
   bool _showClosed = false;
 
+  /// Hạn và độ ưu tiên của lần thêm kế tiếp — FR-14.
+  ///
+  /// Hai giá trị này **giữ nguyên** sau mỗi lần thêm, để gõ một loạt việc
+  /// cùng hạn cùng mức ưu tiên chỉ phải chọn một lần. Chúng luôn hiện ngay
+  /// dưới ô nhập nên không có gì bị đặt hộ sau lưng người dùng.
+  Priority _newPriority = Priority.medium;
+  DateTime? _newDueDate;
+
   @override
   void dispose() {
     _controller.dispose();
@@ -125,10 +137,24 @@ class _ActionsTabState extends ConsumerState<_ActionsTab> {
     final title = _controller.text.trim();
     if (title.isEmpty) return;
     _controller.clear();
-    await ref
-        .read(actionRepositoryProvider)
-        .create(projectId: widget.projectId, title: title);
+    await ref.read(actionRepositoryProvider).create(
+          projectId: widget.projectId,
+          title: title,
+          priority: _newPriority,
+          dueDate: _newDueDate,
+        );
     _focus.requestFocus();
+  }
+
+  Future<void> _pickNewDueDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _newDueDate ?? now,
+      firstDate: DateTime(now.year - 5),
+      lastDate: DateTime(now.year + 20),
+    );
+    if (picked != null) setState(() => _newDueDate = picked);
   }
 
   @override
@@ -138,94 +164,110 @@ class _ActionsTabState extends ConsumerState<_ActionsTab> {
         ref.watch(projectActionsProvider(widget.projectId)).value ?? const [];
     final theme = Theme.of(context);
 
-    final open = actions.where((a) => a.status.isOpen).toList();
-    final closed = actions.where((a) => !a.status.isOpen).toList();
-    final tally = tallyCompletion(actions.map((a) => a.status));
+    final open = actions.where((a) => a.status.isOpen).toList()
+      ..sort((a, b) {
+        final p = a.priority.sortRank.compareTo(b.priority.sortRank);
+        if (p != 0) return p;
+        return a.sortOrder.compareTo(b.sortOrder);
+      });
+    final closed = actions.where((a) => !a.status.isOpen).toList()
+      ..sort((a, b) {
+        final p = a.priority.sortRank.compareTo(b.priority.sortRank);
+        if (p != 0) return p;
+        return a.sortOrder.compareTo(b.sortOrder);
+      });
 
     return Column(
       children: [
-        if (project != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (project.description.isNotEmpty) ...[
-                  Text(project.description, style: theme.textTheme.bodyMedium),
-                  const SizedBox(height: 10),
-                ],
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    StatusChip.project(project.status),
-                    PriorityChip(project.priority),
-                    if (project.dueDate != null)
-                      Text('${S.projectDueDate}: ${VnFormat.date(project.dueDate!)}',
-                          style: theme.textTheme.bodySmall),
-                    Text(
-                      tally.isEmpty
-                          ? VnFormat.emptyValue
-                          : '${tally.doneCount}/${tally.countedTotal} · ${VnFormat.percent(tally.ratio, fractionDigits: 0)}',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      for (final s in ProjectStatus.values)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: ChoiceChip(
-                            label: Text(S.projectStatus(s)),
-                            selected: project.status == s,
-                            onSelected: (_) => ref
-                                .read(projectRepositoryProvider)
-                                .changeStatus(widget.projectId, s),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        const Divider(height: 16),
+        if (project != null) _ProjectHeader(project: project),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focus,
-                  textCapitalization: TextCapitalization.sentences,
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    hintText: S.actionNew,
-                    isDense: true,
-                    border: OutlineInputBorder(),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focus,
+                      textCapitalization: TextCapitalization.sentences,
+                      textInputAction: TextInputAction.done,
+                      style: theme.textTheme.bodyLarge,
+                      decoration: const InputDecoration(
+                        hintText: S.actionNew,
+                        prefixIcon: Icon(Icons.add, size: 20),
+                      ),
+                      onSubmitted: (_) => _add(),
+                    ),
                   ),
-                  onSubmitted: (_) => _add(),
-                ),
+                  const SizedBox(width: AppSpacing.sm),
+                  IconButton.filled(
+                    tooltip: S.add,
+                    icon: const Icon(Icons.arrow_upward, size: 20),
+                    style: IconButton.styleFrom(
+                      minimumSize: const Size(46, 46),
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                    ),
+                    onPressed: _add,
+                  ),
+                ],
               ),
-              IconButton(
-                tooltip: S.add,
-                icon: const Icon(Icons.add_circle),
-                onPressed: _add,
+              const SizedBox(height: AppSpacing.sm),
+              Wrap(
+                spacing: AppSpacing.sm,
+                runSpacing: AppSpacing.sm,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  ActionPrioritySelector(
+                    value: _newPriority,
+                    onChanged: (p) => setState(() => _newPriority = p),
+                  ),
+                  InputChip(
+                    avatar: const Icon(Icons.event_outlined, size: 18),
+                    label: Text(_newDueDate == null
+                        ? S.actionDueDate
+                        : VnFormat.date(_newDueDate!)),
+                    onPressed: _pickNewDueDate,
+                    onDeleted: _newDueDate == null
+                        ? null
+                        : () => setState(() => _newDueDate = null),
+                  ),
+                  // Lối vào ô nhập đầy đủ — nơi duy nhất thêm được Ghi chú
+                  // ngay lúc tạo việc.
+                  ActionChip(
+                    avatar: const Icon(Icons.notes_outlined, size: 16),
+                    label: const Text(S.actionNote),
+                    onPressed: () => showActionEditSheet(
+                      context,
+                      projectId: widget.projectId,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         ),
+        const SizedBox(height: AppSpacing.md),
         Expanded(
           child: actions.isEmpty
-              ? Center(child: Text(S.actionEmpty, style: theme.textTheme.bodyMedium))
-              : ReorderableListView(
-                  padding: const EdgeInsets.only(top: 8, bottom: 40),
+              ? const EmptyState(
+                  icon: Icons.checklist_rtl_outlined,
+                  title: S.actionEmpty,
+                  message: S.actionEmptyHint,
+                )
+              : Container(
+                  margin: const EdgeInsets.fromLTRB(AppSpacing.gutter, 0,
+                      AppSpacing.gutter, AppSpacing.md),
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    border: Border.all(color: theme.colorScheme.outlineVariant),
+                  ),
+                  child: ReorderableListView(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                   buildDefaultDragHandles: true,
                   onReorder: (oldIndex, newIndex) async {
                     if (newIndex > oldIndex) newIndex -= 1;
@@ -241,12 +283,35 @@ class _ActionsTabState extends ConsumerState<_ActionsTab> {
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            ListTile(
-                              title: Text('${S.actionClosedGroup} (${closed.length})'),
-                              trailing: Icon(_showClosed
-                                  ? Icons.expand_less
-                                  : Icons.expand_more),
-                              onTap: () => setState(() => _showClosed = !_showClosed),
+                            const Divider(height: 1),
+                            InkWell(
+                              onTap: () =>
+                                  setState(() => _showClosed = !_showClosed),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.gutter,
+                                    vertical: AppSpacing.md),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${S.actionClosedGroup} · ${closed.length}',
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                                color:
+                                                    theme.colorScheme.outline),
+                                      ),
+                                    ),
+                                    Icon(
+                                      _showClosed
+                                          ? Icons.expand_less
+                                          : Icons.expand_more,
+                                      size: 20,
+                                      color: theme.colorScheme.outline,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                             if (_showClosed)
                               for (final a in closed)
@@ -266,8 +331,98 @@ class _ActionsTabState extends ConsumerState<_ActionsTab> {
                       ),
                   ],
                 ),
+              ),
         ),
       ],
+    );
+  }
+}
+
+/// Đầu màn hình Dự án: mô tả, tiến độ, nhãn, và hàng đổi trạng thái.
+///
+/// Gom vào một thẻ để tách hẳn khỏi danh sách việc bên dưới — trước đây bốn
+/// thứ này trôi trên nền chung và trông như phần đầu của danh sách.
+class _ProjectHeader extends ConsumerWidget {
+  const _ProjectHeader({required this.project});
+
+  final Project project;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final actions =
+        ref.watch(projectActionsProvider(project.id)).value ?? const [];
+    final tally = tallyCompletion(actions.map((a) => a.status));
+
+    return SectionCard(
+      margin: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.md,
+          AppSpacing.gutter, AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (project.description.isNotEmpty) ...[
+            Text(
+              project.description,
+              style: theme.textTheme.bodyMedium,
+              maxLines: 4,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          ProgressRow(
+            ratio: tally.isEmpty
+                ? null
+                : tally.doneCount / tally.countedTotal,
+            label: tally.isEmpty
+                ? VnFormat.emptyValue
+                : '${tally.doneCount}/${tally.countedTotal} · '
+                    '${VnFormat.percent(tally.ratio, fractionDigits: 0)}',
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              StatusChip.project(project.status),
+              PriorityChip(project.priority),
+              if (project.dueDate != null)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.event_outlined,
+                        size: 13, color: theme.colorScheme.outline),
+                    const SizedBox(width: 3),
+                    Text(VnFormat.date(project.dueDate!),
+                        style: theme.textTheme.bodySmall),
+                  ],
+                ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+            child: Divider(height: 1),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final s in ProjectStatus.values)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ChoiceChip(
+                      label: Text(S.projectStatus(s)),
+                      selected: project.status == s,
+                      onSelected: (_) => ref
+                          .read(projectRepositoryProvider)
+                          .changeStatus(project.id, s),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -284,6 +439,7 @@ class _ActionMenu extends ConsumerWidget {
           ? Icon(Icons.push_pin, color: Theme.of(context).colorScheme.primary)
           : const Icon(Icons.more_vert),
       itemBuilder: (_) => [
+        const PopupMenuItem(value: 'edit', child: Text(S.actionEdit)),
         PopupMenuItem(
           value: 'pin',
           child: Row(
@@ -309,6 +465,10 @@ class _ActionMenu extends ConsumerWidget {
       onSelected: (value) async {
         final repo = ref.read(actionRepositoryProvider);
         final messenger = ScaffoldMessenger.of(context);
+        if (value == 'edit') {
+          await showActionEditSheet(context, existing: action);
+          return;
+        }
         if (value == 'pin') {
           await repo.setPinned(action.id, !action.pinned);
           return;

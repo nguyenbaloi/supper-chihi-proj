@@ -126,7 +126,7 @@ class ProjectNotesTab extends ConsumerWidget {
                 controller: title,
                 autofocus: true,
                 decoration: const InputDecoration(
-                    labelText: S.noteTitle, border: OutlineInputBorder()),
+                    labelText: S.noteTitle),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -134,7 +134,7 @@ class ProjectNotesTab extends ConsumerWidget {
                 minLines: 6,
                 maxLines: 14,
                 decoration: const InputDecoration(
-                    labelText: S.noteBody, border: OutlineInputBorder()),
+                    labelText: S.noteBody),
               ),
               const SizedBox(height: 16),
               FilledButton(

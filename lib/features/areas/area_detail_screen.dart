@@ -6,6 +6,8 @@ import '../../core/l10n/strings.dart';
 import '../../domain/models/area.dart';
 import '../../domain/rules/cadence.dart';
 import '../../presentation/providers/providers.dart';
+import '../../presentation/theme/app_theme.dart';
+import '../../presentation/widgets/layout.dart';
 import '../notes/markdown_view.dart';
 import '../reviews/review_detail_screen.dart';
 import '../reviews/review_edit_sheet.dart';
@@ -62,82 +64,86 @@ class AreaDetailScreen extends ConsumerWidget {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 80),
+        padding: const EdgeInsets.only(bottom: AppSpacing.xl * 2),
         children: [
           // FR-47 — mức cần giữ. Rỗng thì không chiếm chỗ, chỉ còn lời mời ghi.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(S.areaStandard,
-                style: theme.textTheme.labelLarge?.copyWith(color: color)),
+          SectionHeader(
+            title: S.areaStandard,
+            color: color,
+            padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.lg,
+                AppSpacing.gutter, AppSpacing.sm),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+          SectionCard(
             child: area.standard.isEmpty
                 ? Text(S.areaStandardEmpty, style: theme.textTheme.bodySmall)
                 : MarkdownView(area.standard),
           ),
-          const Divider(height: 32),
 
           // FR-48 — nhịp. Không đặt thì nói thẳng là không nhắc, và **không
           // hiện ngày nào cả**: bịa ra một cái hạn người dùng chưa từng đặt là
           // đúng thứ nguyên tắc này cấm.
-          ListTile(
-            title: const Text(S.areaCadence),
-            subtitle: Text(area.reviewCadenceDays == null
-                ? S.areaCadenceNoneHint
-                : S.areaCadenceEvery(area.reviewCadenceDays!)),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => showAreaEditSheet(context, ref, area),
+          SectionHeader(title: S.areaCadence, color: color),
+          GroupedCard(
+            dividerIndent: AppSpacing.gutter,
+            children: [
+              ListTile(
+                title: Text(area.reviewCadenceDays == null
+                    ? S.areaCadenceNone
+                    : S.areaCadenceEvery(area.reviewCadenceDays!)),
+                subtitle: area.reviewCadenceDays == null
+                    ? const Text(S.areaCadenceNoneHint)
+                    : null,
+                trailing: const Icon(Icons.chevron_right, size: 20),
+                onTap: () => showAreaEditSheet(context, ref, area),
+              ),
+              if (next != null)
+                ListTile(
+                  leading: const Icon(Icons.event_repeat_outlined),
+                  title: const Text(S.areaNextReview),
+                  subtitle: Text(VnFormat.date(next)),
+                  trailing: _DueBadge(daysLeft: daysLeft!),
+                ),
+            ],
           ),
-          if (next != null)
-            ListTile(
-              leading: const Icon(Icons.event_repeat_outlined),
-              title: const Text(S.areaNextReview),
-              subtitle: Text(VnFormat.date(next)),
-              trailing: _DueBadge(daysLeft: daysLeft!),
-            ),
-          const Divider(height: 32),
 
           // FR-49 — Đợt đánh giá của Lĩnh vực. Tách hẳn với Đợt của Dự án.
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(S.reviews,
-                      style:
-                          theme.textTheme.labelLarge?.copyWith(color: color)),
-                ),
-                TextButton.icon(
-                  onPressed: () =>
-                      showReviewEditSheet(context, areaId: areaId),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text(S.areaReviewNew),
-                ),
-              ],
+          SectionHeader(
+            title: S.reviews,
+            color: color,
+            trailing: TextButton.icon(
+              onPressed: () => showReviewEditSheet(context, areaId: areaId),
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text(S.areaReviewNew),
             ),
           ),
           if (reviews.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child:
-                  Text(S.areaReviewsEmpty, style: theme.textTheme.bodySmall),
-            ),
-          for (final s in reviews)
-            ListTile(
-              leading: const Icon(Icons.history_outlined),
-              title: Text(s.review.title.isEmpty
-                  ? VnFormat.date(s.review.date)
-                  : s.review.title),
-              subtitle: Text(s.itemCount == 0
-                  ? VnFormat.date(s.review.date)
-                  : '${VnFormat.date(s.review.date)} · ${s.metCount}/${s.itemCount}'),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) =>
-                      ReviewDetailScreen(reviewId: s.review.id, areaId: areaId),
-                ),
-              ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(
+                  AppSpacing.gutter, 0, AppSpacing.gutter, AppSpacing.md),
+              child: DottedHint(
+                  text: S.areaReviewsEmpty, icon: Icons.history_outlined),
+            )
+          else
+            GroupedCard(
+              children: [
+                for (final s in reviews)
+                  ListTile(
+                    leading: const Icon(Icons.history_outlined),
+                    title: Text(s.review.title.isEmpty
+                        ? VnFormat.date(s.review.date)
+                        : s.review.title),
+                    subtitle: Text(s.itemCount == 0
+                        ? VnFormat.date(s.review.date)
+                        : '${VnFormat.date(s.review.date)} · ${s.metCount}/${s.itemCount}'),
+                    trailing: const Icon(Icons.chevron_right, size: 20),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ReviewDetailScreen(
+                            reviewId: s.review.id, areaId: areaId),
+                      ),
+                    ),
+                  ),
+              ],
             ),
         ],
       ),

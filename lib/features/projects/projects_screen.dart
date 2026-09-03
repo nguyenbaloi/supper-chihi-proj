@@ -10,8 +10,10 @@ import '../../domain/rules/completion.dart';
 import '../../domain/rules/day.dart';
 import '../../domain/rules/stale.dart';
 import '../../presentation/providers/providers.dart';
-import '../areas/area_detail_screen.dart';
+import '../../presentation/theme/app_theme.dart';
 import '../../presentation/widgets/chips.dart';
+import '../../presentation/widgets/layout.dart';
+import '../areas/area_detail_screen.dart';
 import 'project_detail_screen.dart';
 import 'project_edit_sheet.dart';
 
@@ -33,7 +35,6 @@ class ProjectsScreen extends ConsumerWidget {
       body: Column(
         children: [
           _FilterBar(filter: filter),
-          const Divider(height: 1),
           Expanded(
             child: summaries.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -70,12 +71,12 @@ class _GroupedList extends StatelessWidget {
     final ordered = areas.where((t) => byArea.containsKey(t.id)).toList();
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 88),
+      padding: const EdgeInsets.only(bottom: 96),
       children: [
         for (final area in ordered) ...[
           _AreaHeader(area: area, projects: byArea[area.id]!),
           for (final s in byArea[area.id]!) _ProjectCard(summary: s),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.sm),
         ],
       ],
     );
@@ -103,32 +104,22 @@ class _AreaHeader extends StatelessWidget {
           builder: (_) => AreaDetailScreen(areaId: area.id),
         ),
       ),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(10),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.gutter, AppSpacing.xl, AppSpacing.gutter, AppSpacing.sm),
         child: Row(
           children: [
             Container(
-              width: 4,
-              height: 22,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(2),
-              ),
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
-                area.name,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: color,
-                ),
+                area.name.toUpperCase(),
+                style: theme.textTheme.labelSmall
+                    ?.copyWith(color: color, letterSpacing: 0.9),
               ),
             ),
             Text(
@@ -137,7 +128,8 @@ class _AreaHeader extends StatelessWidget {
                   : S.projectCountWithTally(projects.length, done, total),
               style: theme.textTheme.bodySmall,
             ),
-            const Icon(Icons.chevron_right, size: 18),
+            Icon(Icons.chevron_right,
+                size: 16, color: theme.colorScheme.outline),
           ],
         ),
       ),
@@ -185,92 +177,76 @@ class _ProjectCard extends ConsumerWidget {
         )
         .length;
 
-    return Card(
-      margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => ProjectDetailScreen(projectId: p.id),
-          ),
+    return SectionCard(
+      margin: const EdgeInsets.fromLTRB(
+          AppSpacing.gutter, 0, AppSpacing.gutter, AppSpacing.sm),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.lg, AppSpacing.md, AppSpacing.lg),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => ProjectDetailScreen(projectId: p.id),
         ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
-          child: Column(
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      p.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  PriorityChip(p.priority),
-                ],
+              Expanded(
+                child: Text(
+                  p.name,
+                  style: theme.textTheme.titleMedium,
+                ),
               ),
-              const SizedBox(height: 8),
-              // Thanh tiến độ đọc nhanh hơn con số, nhưng con số vẫn phải có.
-              Row(
-                children: [
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: tally.isEmpty
-                            ? 0
-                            : tally.doneCount / tally.countedTotal,
-                        minHeight: 6,
-                        backgroundColor:
-                            theme.colorScheme.surfaceContainerHighest,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    tally.isEmpty
-                        ? VnFormat.emptyValue
-                        : '${tally.doneCount}/${tally.countedTotal}',
-                    style: theme.textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  StatusChip.project(p.status),
-                  if (overdue > 0)
-                    _Badge(
-                      label: S.overdueCount(overdue),
-                      color: theme.colorScheme.error,
-                      icon: Icons.error_outline,
-                    ),
-                  if (highOpen > 0)
-                    _Badge(
-                      label: S.highPriorityOpen(highOpen),
-                      color: const Color(0xFFC62828),
-                      icon: Icons.keyboard_double_arrow_up,
-                    ),
-                  Text(
-                    VnFormat.daysAgo(idle),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: stale
-                          ? theme.colorScheme.error
-                          : theme.colorScheme.outline,
-                      fontWeight: stale ? FontWeight.w600 : null,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: AppSpacing.sm),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: PriorityChip(p.priority),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: AppSpacing.md),
+          // Thanh tiến độ đọc nhanh hơn con số, nhưng con số vẫn phải có.
+          ProgressRow(
+            ratio: tally.isEmpty
+                ? null
+                : tally.doneCount / tally.countedTotal,
+            label: tally.isEmpty
+                ? VnFormat.emptyValue
+                : '${tally.doneCount}/${tally.countedTotal}',
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              StatusChip.project(p.status),
+              if (overdue > 0)
+                _Badge(
+                  label: S.overdueCount(overdue),
+                  color: theme.colorScheme.error,
+                  icon: Icons.error_outline,
+                ),
+              if (highOpen > 0)
+                _Badge(
+                  label: S.highPriorityOpen(highOpen),
+                  color: const Color(0xFFC62828),
+                  icon: Icons.keyboard_double_arrow_up,
+                ),
+              Text(
+                VnFormat.daysAgo(idle),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: stale
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.outline,
+                  fontWeight: stale ? FontWeight.w600 : null,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -376,14 +352,9 @@ class _EmptyProjects extends StatelessWidget {
   const _EmptyProjects();
 
   @override
-  Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Text(
-        S.projectEmptyList,
-        style: Theme.of(context).textTheme.bodyLarge,
-        textAlign: TextAlign.center,
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => const EmptyState(
+        icon: Icons.folder_open_outlined,
+        title: S.projectEmptyList,
+        message: S.projectEmptyHint,
+      );
 }

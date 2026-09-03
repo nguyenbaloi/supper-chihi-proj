@@ -10,10 +10,10 @@ import '../../domain/repositories/repositories.dart';
 import '../result/result.dart';
 
 abstract final class S {
-  static const appTitle = 'Chichi Projects';
+  static const appTitle = "Projs'Chi";
 
   // Điều hướng
-  static const tabToday = 'Hôm nay';
+  static const tabToday = 'Làm ngay';
   static const tabProjects = 'Dự án';
   static const tabStats = 'Thống kê';
   static const settings = 'Cài đặt';
@@ -87,6 +87,7 @@ abstract final class S {
   static const projectNoDueDate = 'Không đặt hạn';
   static const projectNameRequired = 'Tên dự án không được để trống';
   static const projectEmptyList = 'Chưa có dự án nào.';
+  static const projectEmptyHint = 'Bấm nút + để tạo dự án đầu tiên.';
   static const projectHistory = 'Lịch sử trạng thái';
   static const projectNotes = 'Ghi chú';
   static const projectLinks = 'Liên kết';
@@ -121,17 +122,41 @@ abstract final class S {
   static const projectDeleteTitle = 'Xoá dự án?';
 
   // Hành động
+  static const actionsTab = 'Hành động';
   static const actionNew = 'Thêm hành động';
   static const actionTitle = 'Tên hành động';
   static const actionNote = 'Ghi chú';
   static const actionTitleRequired = 'Tên hành động không được để trống';
   static const actionEmpty = 'Chưa có hành động nào.';
+  static const actionEmptyHint = 'Gõ vào ô phía trên để thêm việc đầu tiên.';
   static const actionClosedGroup = 'Đã xong và đã bỏ';
   static const actionMoveTo = 'Chuyển sang dự án khác';
   static const actionDeleted = 'Đã xoá hành động';
 
   static String actionDoingFor(int days) =>
       days <= 0 ? 'bắt đầu hôm nay' : 'đang làm $days ngày';
+
+  // Chi tiết một Hành động — FR-14, FR-16, AD-5.
+  static const actionDetail = 'Chi tiết hành động';
+  static const actionEdit = 'Sửa hành động';
+  static const actionDueDate = 'Hạn hoàn thành';
+  static const actionNoDueDate = 'Không đặt hạn';
+  static const actionStatusLabel = 'Trạng thái';
+  static const actionProject = 'Thuộc dự án';
+  static const actionNoteEmpty = 'Chưa ghi chú gì.';
+  static const actionGone = 'Hành động này không còn nữa.';
+  static const actionDeleteTitle = 'Xoá hành động?';
+  static const actionDeleteConfirm =
+      'Hành động này sẽ bị xoá. Nếu chỉ muốn dừng lại, hãy chuyển trạng thái '
+      'sang "Bỏ".';
+
+  /// AD-5: bốn mốc dưới đây do ứng dụng ghi, không có ô nhập nào.
+  static const actionTimeline = 'Mốc thời gian';
+  static const actionTimelineHint = 'Do ứng dụng tự ghi.';
+  static const actionCreatedAt = 'Tạo lúc';
+  static const actionUpdatedAt = 'Sửa lần cuối';
+  static const actionStartedAt = 'Bắt đầu làm';
+  static const actionCompletedAt = 'Đánh dấu xong';
 
   // Ghi chú và liên kết
   static const noteNew = 'Ghi chú mới';

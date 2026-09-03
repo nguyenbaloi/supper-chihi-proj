@@ -121,6 +121,10 @@ abstract interface class ProjectRepository {
 
 abstract interface class ActionRepository {
   Stream<List<ProjectAction>> watchByProject(int projectId);
+
+  /// Một Hành động duy nhất — nguồn của màn hình chi tiết. Trả `null` khi
+  /// bản ghi đã bị xoá, để màn hình tự đóng thay vì kẹt ở vòng quay chờ.
+  Stream<ProjectAction?> watchById(int id);
   Future<ProjectAction> create({
     required int projectId,
     required String title,

@@ -6,6 +6,8 @@ import '../../core/l10n/strings.dart';
 import '../../domain/models/project_action.dart';
 import '../../domain/rules/stats.dart';
 import '../../presentation/providers/providers.dart';
+import '../../presentation/theme/app_theme.dart';
+import '../../presentation/widgets/layout.dart';
 
 /// Thống kê đầu việc theo hạn — FR-44.
 ///
@@ -20,15 +22,11 @@ class StatsScreen extends ConsumerWidget {
     final now = ref.watch(nowProvider)();
     final actions = ref.watch(allActionsProvider).value ?? const [];
     final summaries = ref.watch(allProjectSummariesProvider).value ?? const [];
-    final theme = Theme.of(context);
 
     if (actions.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(S.statsEmpty,
-              style: theme.textTheme.bodyLarge, textAlign: TextAlign.center),
-        ),
+      return const EmptyState(
+        icon: Icons.insert_chart_outlined,
+        title: S.statsEmpty,
       );
     }
 
@@ -46,41 +44,58 @@ class StatsScreen extends ConsumerWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: _BigNumber(
-                  label: S.statsCompletionRatio,
-                  value: VnFormat.percent(overall.completionRatio, fractionDigits: 0),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.lg,
+              AppSpacing.gutter, AppSpacing.xs),
+          // `IntrinsicHeight` để hai thẻ cao bằng nhau dù một thẻ có dòng chú
+          // thích: `CrossAxisAlignment.stretch` trong Row nằm trong ListView
+          // sẽ kéo chiều cao ra vô hạn và làm hỏng cả màn hình.
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _BigNumber(
+                    label: S.statsCompletionRatio,
+                    value: VnFormat.percent(overall.completionRatio,
+                        fractionDigits: 0),
+                  ),
                 ),
-              ),
-              Expanded(
-                child: _BigNumber(
-                  label: S.statsOnTimeRatio,
-                  value: VnFormat.percent(overall.onTimeRatio, fractionDigits: 0),
-                  hint: overall.finishedWithDueDate == 0
-                      ? S.statsOutcomeNoDueDate
-                      : S.finishedWithDueDate(overall.finishedWithDueDate),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: _BigNumber(
+                    label: S.statsOnTimeRatio,
+                    value: VnFormat.percent(overall.onTimeRatio,
+                        fractionDigits: 0),
+                    hint: overall.finishedWithDueDate == 0
+                        ? S.statsOutcomeNoDueDate
+                        : S.finishedWithDueDate(overall.finishedWithDueDate),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-        const Divider(height: 8),
-        _Section(title: S.statsByOutcome),
-        _OutcomeBars(stats: overall),
-        const Divider(height: 24),
-        _Section(title: S.statsByArea),
-        for (final entry in byArea.entries)
-          _AreaRow(
-            name: entry.key,
-            colorValue: areaColor[entry.key] ?? 0xFF90A4AE,
-            stats: computeStats(entry.value, now),
-          ),
+        const SectionHeader(title: S.statsByOutcome),
+        SectionCard(
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+          child: _OutcomeBars(stats: overall),
+        ),
+        const SectionHeader(title: S.statsByArea),
+        GroupedCard(
+          dividerIndent: 48,
+          children: [
+            for (final entry in byArea.entries)
+              _AreaRow(
+                name: entry.key,
+                colorValue: areaColor[entry.key] ?? 0xFF90A4AE,
+                stats: computeStats(entry.value, now),
+              ),
+          ],
+        ),
       ],
     );
   }
@@ -96,34 +111,22 @@ class _BigNumber extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: theme.textTheme.bodySmall),
-        Text(value, style: theme.textTheme.headlineMedium),
-        if (hint != null)
-          Text(hint!,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.outline)),
-      ],
+    return SectionCard(
+      margin: EdgeInsets.zero,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label.toUpperCase(),
+              style: theme.textTheme.labelSmall?.copyWith(letterSpacing: 0.9)),
+          const SizedBox(height: AppSpacing.xs),
+          Text(value, style: theme.textTheme.displaySmall),
+          if (hint != null)
+            Text(hint!, style: theme.textTheme.bodySmall, maxLines: 2),
+        ],
+      ),
     );
   }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-        child: Text(title,
-            style: Theme.of(context)
-                .textTheme
-                .titleSmall
-                ?.copyWith(color: Theme.of(context).colorScheme.primary)),
-      );
 }
 
 /// Thanh ngang cho từng loại kết quả. Mỗi loại luôn kèm **nhãn chữ và con số**,
@@ -152,11 +155,11 @@ class _OutcomeBars extends StatelessWidget {
         for (final o in _order)
           if (stats[o] > 0)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+              padding: const EdgeInsets.symmetric(vertical: 5),
               child: Row(
                 children: [
                   SizedBox(
-                    width: 150,
+                    width: 132,
                     child: Text(_label(o), style: theme.textTheme.bodySmall),
                   ),
                   Expanded(
@@ -164,8 +167,9 @@ class _OutcomeBars extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
                         value: max == 0 ? 0 : stats[o] / max,
-                        minHeight: 12,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                        minHeight: 10,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
                         valueColor: AlwaysStoppedAnimation(_color(theme, o)),
                       ),
                     ),

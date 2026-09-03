@@ -1,7 +1,7 @@
 name: personal_projects
 description: "Ứng dụng quản lý dự án và mục tiêu cá nhân"
 publish_to: 'none'
-version: 0.1.0+1
+version: 1.2.0+1
 
 environment:
   sdk: ^3.10.9

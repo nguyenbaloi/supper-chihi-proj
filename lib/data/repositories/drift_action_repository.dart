@@ -26,6 +26,12 @@ class DriftActionRepository implements ActionRepository {
           .map((rows) => rows.map((r) => r.toModel()).toList());
 
   @override
+  Stream<ProjectAction?> watchById(int id) =>
+      (_db.select(_db.actions)..where((a) => a.id.equals(id)))
+          .watchSingleOrNull()
+          .map((row) => row?.toModel());
+
+  @override
   Future<ProjectAction> create({
     required int projectId,
     required String title,

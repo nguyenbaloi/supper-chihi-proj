@@ -105,7 +105,6 @@ class _ProjectEditSheetState extends ConsumerState<_ProjectEditSheet> {
               decoration: InputDecoration(
                 labelText: S.projectName,
                 errorText: _error,
-                border: const OutlineInputBorder(),
               ),
               onSubmitted: (_) => _submit(),
             ),
@@ -117,7 +116,6 @@ class _ProjectEditSheetState extends ConsumerState<_ProjectEditSheet> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: S.projectDescription,
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -125,7 +123,6 @@ class _ProjectEditSheetState extends ConsumerState<_ProjectEditSheet> {
               initialValue: _areaId,
               decoration: const InputDecoration(
                 labelText: S.projectArea,
-                border: OutlineInputBorder(),
               ),
               items: [
                 for (final t in areas)

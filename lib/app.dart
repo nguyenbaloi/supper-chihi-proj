@@ -12,6 +12,7 @@ import 'features/search/search_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/today/today_screen.dart';
 import 'presentation/providers/providers.dart';
+import 'presentation/theme/app_theme.dart';
 
 class PersonalProjectsApp extends ConsumerWidget {
   const PersonalProjectsApp({super.key});
@@ -24,8 +25,8 @@ class PersonalProjectsApp extends ConsumerWidget {
     return MaterialApp(
       title: S.appTitle,
       debugShowCheckedModeBanner: false,
-      theme: _theme(Brightness.light),
-      darkTheme: _theme(Brightness.dark),
+      theme: buildAppTheme(Brightness.light),
+      darkTheme: buildAppTheme(Brightness.dark),
       themeMode: switch (themeMode) {
         AppThemeMode.system => ThemeMode.system,
         AppThemeMode.light => ThemeMode.light,
@@ -41,19 +42,6 @@ class PersonalProjectsApp extends ConsumerWidget {
       home: const _Root(),
     );
   }
-
-  ThemeData _theme(Brightness brightness) {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF3F6FB5),
-      brightness: brightness,
-    );
-    return ThemeData(
-      colorScheme: scheme,
-      useMaterial3: true,
-      visualDensity: VisualDensity.standard,
-      listTileTheme: const ListTileThemeData(minVerticalPadding: 10),
-    );
-  }
 }
 
 /// Quyết định màn hình đầu: chưa nạp hạt giống thì mời nạp (FR-2, FR-4).
@@ -62,6 +50,39 @@ class _Root extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<_Root> createState() => _RootState();
+}
+
+/// Nút trên thanh tiêu đề: đặt trong một ô tròn nhạt để tách khỏi nền, thay
+/// vì icon trơ nổi giữa khoảng trắng.
+class _AppBarAction extends StatelessWidget {
+  const _AppBarAction({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.xs),
+      child: IconButton(
+        tooltip: tooltip,
+        icon: Icon(icon, size: 21),
+        style: IconButton.styleFrom(
+          backgroundColor: theme.colorScheme.surfaceContainerLowest,
+          foregroundColor: theme.colorScheme.onSurface,
+          side: BorderSide(color: theme.colorScheme.outlineVariant),
+          shape: const CircleBorder(),
+        ),
+        onPressed: onPressed,
+      ),
+    );
+  }
 }
 
 class _RootState extends ConsumerState<_Root> {
@@ -125,22 +146,23 @@ class _HomeShellState extends State<HomeShell> {
           // nghĩ về nội dung; không chiếm một ô trên thanh dưới, vốn chỉ dành
           // cho bốn màn hình chính.
           if (_index == 1)
-            IconButton(
+            _AppBarAction(
               tooltip: S.resources,
-              icon: const Icon(Icons.folder_outlined),
+              icon: Icons.folder_outlined,
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const ResourcesScreen()),
               ),
             ),
           // Cài đặt đã xuống thanh dưới nên chỉ còn tìm kiếm ở đây.
           if (_index != 3)
-            IconButton(
+            _AppBarAction(
               tooltip: S.search,
-              icon: const Icon(Icons.search),
+              icon: Icons.search,
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const SearchScreen()),
               ),
             ),
+          const SizedBox(width: AppSpacing.sm),
         ],
       ),
       body: IndexedStack(index: _index, children: _screens),

@@ -10,6 +10,7 @@ import '../money/scaled_value.dart';
 abstract final class VnFormat {
   static final DateFormat _date = DateFormat('dd/MM/yyyy', 'vi_VN');
   static final DateFormat _dateTime = DateFormat('dd/MM/yyyy HH:mm', 'vi_VN');
+  static final DateFormat _weekday = DateFormat('EEEE', 'vi_VN');
 
   /// `1000000000` → `1.000.000.000 ₫`
   static String currency(int amountDong) => '${groupDigits(amountDong.toString())} ₫';
@@ -50,6 +51,19 @@ abstract final class VnFormat {
 
   /// `2026-08-28` → `28/08/2026`
   static String date(DateTime value) => _date.format(value.toLocal());
+
+  /// `2026-09-03` → `Thứ năm, 03/09/2026` — dòng ngày ở đầu màn hình Hôm nay.
+  ///
+  /// Tên thứ lấy từ dữ liệu locale `vi_VN`, không viết tay, để không phải
+  /// bảo trì một bảng bảy phần tử.
+  static String weekdayDate(DateTime value) {
+    final local = value.toLocal();
+    final weekday = _weekday.format(local);
+    final capitalised = weekday.isEmpty
+        ? weekday
+        : weekday[0].toUpperCase() + weekday.substring(1);
+    return '$capitalised, ${_date.format(local)}';
+  }
 
   static String dateTime(DateTime value) => _dateTime.format(value.toLocal());
 

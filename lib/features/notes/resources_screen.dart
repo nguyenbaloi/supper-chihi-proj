@@ -6,6 +6,8 @@ import '../../core/l10n/strings.dart';
 import '../../domain/models/area.dart';
 import '../../domain/models/note.dart';
 import '../../presentation/providers/providers.dart';
+import '../../presentation/theme/app_theme.dart';
+import '../../presentation/widgets/layout.dart';
 import 'markdown_view.dart';
 
 /// Kho Tư liệu — FR-50.
@@ -49,7 +51,6 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
 
     final notes = allNotes.where(keepNote).toList();
     final links = allLinks.where(keepLink).toList();
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -85,45 +86,64 @@ class _ResourcesScreenState extends ConsumerState<ResourcesScreen> {
         ),
       ),
       body: notes.isEmpty && links.isEmpty
-          ? Center(
-              child: Text(S.resourcesEmpty, style: theme.textTheme.bodyMedium))
+          ? const EmptyState(
+              icon: Icons.folder_open_outlined, title: S.resourcesEmpty)
           : ListView(
-              padding: const EdgeInsets.only(bottom: 40),
+              padding: const EdgeInsets.only(bottom: AppSpacing.xl),
               children: [
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Text(
-                    S.resourcesCount(notes.length, links.length),
-                    style: theme.textTheme.bodySmall,
+                if (links.isNotEmpty) ...[
+                  SectionHeader(
+                    title: S.projectLinks,
+                    subtitle: S.resourcesCount(notes.length, links.length),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.gutter,
+                        AppSpacing.lg, AppSpacing.gutter, AppSpacing.sm),
                   ),
-                ),
-                for (final l in links)
-                  ListTile(
-                    leading: const Icon(Icons.link),
-                    title: Text(l.label),
-                    subtitle: _Origin(
-                      projectId: l.projectId,
-                      areaId: l.areaId,
-                      areas: areas,
-                    ),
-                    // AD-6: mở ra trình duyệt của hệ điều hành.
-                    onTap: () => launchUrl(Uri.parse(l.url),
-                        mode: LaunchMode.externalApplication),
+                  GroupedCard(
+                    children: [
+                      for (final l in links)
+                        ListTile(
+                          leading: const Icon(Icons.link),
+                          title: Text(l.label),
+                          subtitle: _Origin(
+                            projectId: l.projectId,
+                            areaId: l.areaId,
+                            areas: areas,
+                          ),
+                          // AD-6: mở ra trình duyệt của hệ điều hành.
+                          onTap: () => launchUrl(Uri.parse(l.url),
+                              mode: LaunchMode.externalApplication),
+                        ),
+                    ],
                   ),
-                if (links.isNotEmpty && notes.isNotEmpty)
-                  const Divider(height: 24),
-                for (final n in notes)
-                  ListTile(
-                    leading: const Icon(Icons.description_outlined),
-                    title: Text(n.title),
-                    subtitle: _Origin(
-                      projectId: n.projectId,
-                      areaId: n.areaId,
-                      areas: areas,
-                    ),
-                    onTap: () => _preview(context, n),
+                ],
+                if (notes.isNotEmpty) ...[
+                  SectionHeader(
+                    title: S.projectNotes,
+                    subtitle: links.isEmpty
+                        ? S.resourcesCount(notes.length, links.length)
+                        : null,
+                    padding: EdgeInsets.fromLTRB(
+                        AppSpacing.gutter,
+                        links.isEmpty ? AppSpacing.lg : AppSpacing.sm,
+                        AppSpacing.gutter,
+                        AppSpacing.sm),
                   ),
+                  GroupedCard(
+                    children: [
+                      for (final n in notes)
+                        ListTile(
+                          leading: const Icon(Icons.description_outlined),
+                          title: Text(n.title),
+                          subtitle: _Origin(
+                            projectId: n.projectId,
+                            areaId: n.areaId,
+                            areas: areas,
+                          ),
+                          onTap: () => _preview(context, n),
+                        ),
+                    ],
+                  ),
+                ],
               ],
             ),
     );

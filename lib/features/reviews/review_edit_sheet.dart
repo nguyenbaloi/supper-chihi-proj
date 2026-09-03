@@ -156,7 +156,6 @@ class _ReviewEditSheetState extends ConsumerState<_ReviewEditSheet> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: '${S.reviewTitle} (${S.optional})',
-                border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -196,7 +195,6 @@ class _ReviewEditSheetState extends ConsumerState<_ReviewEditSheet> {
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: S.reviewSummary,
-                border: OutlineInputBorder(),
               ),
             ),
             if (_prefillLabels.isNotEmpty) ...[
