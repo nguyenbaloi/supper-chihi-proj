@@ -30,9 +30,18 @@ class OverviewScreen extends ConsumerWidget {
         if (view.fetchedAt != null) view.fetchedAt!,
     ]..sort();
 
+    final themeMode = ref.watch(themeModeProvider);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(S.appTitle),
+        actions: [
+          IconButton(
+            icon: Icon(_themeIcon(themeMode)),
+            tooltip: S.themeTitle,
+            onPressed: () => _showThemeDialog(context, ref, themeMode),
+          ),
+        ],
         bottom: state.isRefreshing
             ? const PreferredSize(
                 preferredSize: Size.fromHeight(2),
@@ -73,6 +82,60 @@ class OverviewScreen extends ConsumerWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  IconData _themeIcon(ThemeMode mode) => switch (mode) {
+        ThemeMode.light => Icons.light_mode_outlined,
+        ThemeMode.dark => Icons.dark_mode_outlined,
+        ThemeMode.system => Icons.brightness_auto_outlined,
+      };
+
+  void _showThemeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeMode current,
+  ) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => SimpleDialog(
+        title: const Text(S.themeTitle),
+        children: [
+          RadioListTile<ThemeMode>(
+            value: ThemeMode.system,
+            groupValue: current,
+            title: const Text(S.themeSystem),
+            onChanged: (mode) {
+              if (mode != null) {
+                ref.read(themeModeProvider.notifier).setThemeMode(mode);
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+          RadioListTile<ThemeMode>(
+            value: ThemeMode.light,
+            groupValue: current,
+            title: const Text(S.themeLight),
+            onChanged: (mode) {
+              if (mode != null) {
+                ref.read(themeModeProvider.notifier).setThemeMode(mode);
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+          RadioListTile<ThemeMode>(
+            value: ThemeMode.dark,
+            groupValue: current,
+            title: const Text(S.themeDark),
+            onChanged: (mode) {
+              if (mode != null) {
+                ref.read(themeModeProvider.notifier).setThemeMode(mode);
+                Navigator.of(context).pop();
+              }
+            },
+          ),
+        ],
       ),
     );
   }

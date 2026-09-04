@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/candle.dart';
@@ -84,6 +84,22 @@ class CandleStore {
       _prefs.setInt(
         _lastSeenKey(symbol),
         weekOpenTime.toUtc().millisecondsSinceEpoch,
+      );
+
+  static const String _themeModeKey = 'themeMode';
+
+  ThemeMode loadThemeMode() {
+    final name = _prefs.getString(_themeModeKey);
+    return switch (name) {
+      'light' => ThemeMode.light,
+      'dark' => ThemeMode.dark,
+      _ => ThemeMode.system,
+    };
+  }
+
+  Future<void> saveThemeMode(ThemeMode mode) => _prefs.setString(
+        _themeModeKey,
+        mode.name,
       );
 }
 

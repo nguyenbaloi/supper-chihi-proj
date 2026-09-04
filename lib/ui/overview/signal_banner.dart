@@ -29,22 +29,30 @@ class SignalBanner extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Material(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(12),
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: color.withValues(alpha: 0.6)),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: color.withValues(alpha: 0.5), width: 1.2),
             ),
             child: Row(
               children: [
-                Icon(
-                  isOversold ? Icons.trending_down : Icons.trending_up,
-                  color: color,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isOversold ? Icons.trending_down : Icons.trending_up,
+                    color: color,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -56,23 +64,29 @@ class SignalBanner extends StatelessWidget {
                         '${isOversold ? S.signalOversoldTitle : S.signalOverboughtTitle}',
                         style: theme.textTheme.titleSmall?.copyWith(
                           color: color,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         '${S.rsiWeekly} ${formatRsi(signal.rsiValue)} · '
                         '${S.weekOf(formatWeekRange(signal.weekOpenTime))}',
-                        style: theme.textTheme.bodySmall,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 Text(
                   S.tapToView,
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: theme.hintColor),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.hintColor,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                const Icon(Icons.chevron_right, size: 18),
+                const SizedBox(width: 2),
+                Icon(Icons.chevron_right, size: 18, color: theme.hintColor),
               ],
             ),
           ),

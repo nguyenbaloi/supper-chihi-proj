@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/binance_source.dart';
@@ -21,6 +22,34 @@ MarketRepository buildRepository(CandleStore store) => MarketRepository(
         MarketSymbol.vnindex: [SsiSource(), VndirectSource()],
       },
     );
+
+/// Kho chứa nến và cấu hình.
+final candleStoreProvider = Provider<CandleStore>((ref) {
+  throw UnimplementedError('candleStoreProvider chưa được override');
+});
+
+/// Cấu hình chế độ giao diện (Hệ thống / Sáng / Tối).
+final themeModeProvider =
+    NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
+
+class ThemeModeNotifier extends Notifier<ThemeMode> {
+  @override
+  ThemeMode build() {
+    try {
+      final store = ref.watch(candleStoreProvider);
+      return store.loadThemeMode();
+    } catch (_) {
+      return ThemeMode.system;
+    }
+  }
+
+  void setThemeMode(ThemeMode mode) {
+    state = mode;
+    try {
+      ref.read(candleStoreProvider).saveThemeMode(mode);
+    } catch (_) {}
+  }
+}
 
 /// Chỉ số tab đang mở. Giữ ở đây để chuyển tab qua lại không dựng lại màn hình.
 final selectedTabProvider = NotifierProvider<SelectedTab, int>(SelectedTab.new);

@@ -227,7 +227,16 @@ class _CandleReadout extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-      color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+      decoration: BoxDecoration(
+        color: theme.brightness == Brightness.dark
+            ? const Color(0xFF111827)
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+        border: Border(
+          bottom: BorderSide(
+            color: theme.dividerColor.withValues(alpha: 0.3),
+          ),
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -235,21 +244,34 @@ class _CandleReadout extends StatelessWidget {
             children: [
               Text(
                 S.weekOf(formatWeekRange(candle.openTime)),
-                style: theme.textTheme.labelMedium,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               if (!candle.isClosed) ...[
                 const SizedBox(width: 8),
-                Text(
-                  '· ${S.runningWeek}',
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: theme.hintColor),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: theme.hintColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    S.runningWeek,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.hintColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Wrap(
             spacing: 14,
+            runSpacing: 4,
             children: [
               _field(theme, S.chartOpen, formatPrice(candle.open, view.symbol)),
               _field(theme, S.chartHigh, formatPrice(candle.high, view.symbol)),

@@ -138,7 +138,7 @@ class RsiPainter extends CustomPainter {
       path,
       Paint()
         ..color = lineColor
-        ..strokeWidth = 1.6
+        ..strokeWidth = 2.0
         ..style = PaintingStyle.stroke
         ..strokeJoin = StrokeJoin.round,
     );
@@ -160,8 +160,17 @@ class RsiPainter extends CustomPainter {
             : RsiStatus.overbought,
         brightness,
       );
+      final center =
+          scale.pointAt(geometry.xOf(signal.candleIndex), signal.rsiValue);
+      // Vòng ngoài mờ nhạt làm nổi bật điểm tín hiệu
       canvas.drawCircle(
-        scale.pointAt(geometry.xOf(signal.candleIndex), signal.rsiValue),
+        center,
+        6.0,
+        Paint()..color = color.withValues(alpha: 0.35),
+      );
+      // Điểm tâm đậm
+      canvas.drawCircle(
+        center,
         3.5,
         Paint()..color = color,
       );

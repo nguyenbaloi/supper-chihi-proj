@@ -35,16 +35,17 @@ class SymbolCard extends StatelessWidget {
     final candle = view.latestCandle;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Column(
@@ -52,13 +53,19 @@ class SymbolCard extends StatelessWidget {
                       children: [
                         Text(
                           view.symbol.label,
-                          style: theme.textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w700),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
                         ),
+                        const SizedBox(height: 4),
                         if (candle != null)
                           Text(
                             formatPrice(candle.close, view.symbol),
-                            style: theme.textTheme.headlineSmall,
+                            style: theme.textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.5,
+                            ),
                           ),
                       ],
                     ),
@@ -66,48 +73,66 @@ class SymbolCard extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(S.rsiWeekly, style: theme.textTheme.labelSmall),
+                      Text(
+                        S.rsiWeekly,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.hintColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
                       Text(
                         rsi == null ? '—' : formatRsi(rsi),
                         style: theme.textTheme.headlineMedium?.copyWith(
                           color: statusColor,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Row(
                 children: [
                   _StatusChip(status: status, color: statusColor),
                   if (view.isProvisional && rsi != null) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Tooltip(
                       message: S.provisionalHint,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.hourglass_empty,
-                            size: 14,
-                            color: theme.hintColor,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            S.provisional,
-                            style: theme.textTheme.labelSmall
-                                ?.copyWith(color: theme.hintColor),
-                          ),
-                        ],
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: theme.hintColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.hourglass_empty,
+                              size: 13,
+                              color: theme.hintColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              S.provisional,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.hintColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ],
               ),
               if (view.staleness == Staleness.stale) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 _StaleNote(view: view),
               ],
             ],
@@ -134,18 +159,32 @@ class _StatusChip extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
+        color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 1.2),
       ),
-      child: Text(
-        label,
-        style: Theme.of(context)
-            .textTheme
-            .labelMedium
-            ?.copyWith(color: color, fontWeight: FontWeight.w600),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
       ),
     );
   }

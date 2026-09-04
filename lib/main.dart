@@ -17,6 +17,7 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [
+        candleStoreProvider.overrideWithValue(store),
         marketRepositoryProvider.overrideWithValue(buildRepository(store)),
       ],
       child: const RsiAlertApp(),
@@ -24,15 +25,20 @@ Future<void> main() async {
   );
 }
 
-class RsiAlertApp extends StatelessWidget {
+class RsiAlertApp extends ConsumerWidget {
   const RsiAlertApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: S.appTitle,
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(Brightness.light),
-        darkTheme: buildTheme(Brightness.dark),
-        home: const HomeShell(),
-      );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
+    return MaterialApp(
+      title: S.appTitle,
+      debugShowCheckedModeBanner: false,
+      themeMode: themeMode,
+      theme: buildTheme(Brightness.light),
+      darkTheme: buildTheme(Brightness.dark),
+      home: const HomeShell(),
+    );
+  }
 }

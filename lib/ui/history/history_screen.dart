@@ -109,9 +109,18 @@ class _SignalTile extends StatelessWidget {
 
     return ListTile(
       onTap: onTap,
-      leading: Icon(
-        isOversold ? Icons.trending_down : Icons.trending_up,
-        color: color,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.16),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          isOversold ? Icons.trending_down : Icons.trending_up,
+          color: color,
+          size: 20,
+        ),
       ),
       title: Row(
         children: [

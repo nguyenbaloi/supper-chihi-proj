@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rsi_alert/data/candle_store.dart';
 import 'package:rsi_alert/data/market_data_source.dart';
@@ -117,6 +118,14 @@ void main() {
 
       expect(store.loadLastSeenSignal(MarketSymbol.btc), week);
       expect(store.loadLastSeenSignal(MarketSymbol.vnindex), isNull);
+    });
+
+    test('cấu hình ThemeMode lưu và tải chính xác', () async {
+      expect(store.loadThemeMode(), ThemeMode.system);
+      await store.saveThemeMode(ThemeMode.dark);
+      expect(store.loadThemeMode(), ThemeMode.dark);
+      await store.saveThemeMode(ThemeMode.light);
+      expect(store.loadThemeMode(), ThemeMode.light);
     });
   });
 

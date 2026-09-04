@@ -12,11 +12,14 @@ class StatusColors {
   static Color of(RsiStatus status, Brightness brightness) {
     final dark = brightness == Brightness.dark;
     return switch (status) {
-      RsiStatus.oversold => dark ? const Color(0xFF4FC3F7) : const Color(0xFF0277BD),
-      RsiStatus.overbought => dark ? const Color(0xFFFF8A65) : const Color(0xFFD84315),
-      RsiStatus.neutral => dark ? const Color(0xFF9E9E9E) : const Color(0xFF616161),
+      RsiStatus.oversold =>
+        dark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+      RsiStatus.overbought =>
+        dark ? const Color(0xFFFB923C) : const Color(0xFFEA580C),
+      RsiStatus.neutral =>
+        dark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
       RsiStatus.insufficientData =>
-        dark ? const Color(0xFF757575) : const Color(0xFF9E9E9E),
+        dark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
     };
   }
 }
@@ -26,16 +29,58 @@ class CandleColors {
   const CandleColors._();
 
   static Color up(Brightness brightness) => brightness == Brightness.dark
-      ? const Color(0xFF4CAF50)
-      : const Color(0xFF2E7D32);
+      ? const Color(0xFF22C55E)
+      : const Color(0xFF16A34A);
 
   static Color down(Brightness brightness) => brightness == Brightness.dark
-      ? const Color(0xFFEF5350)
-      : const Color(0xFFC62828);
+      ? const Color(0xFFEF4444)
+      : const Color(0xFFDC2626);
 }
 
-ThemeData buildTheme(Brightness brightness) => ThemeData(
-      brightness: brightness,
-      colorSchemeSeed: const Color(0xFF1565C0),
-      useMaterial3: true,
-    );
+ThemeData buildTheme(Brightness brightness) {
+  final isDark = brightness == Brightness.dark;
+  final colorScheme = ColorScheme.fromSeed(
+    seedColor: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F172A),
+    brightness: brightness,
+    surface: isDark ? const Color(0xFF0B0F17) : const Color(0xFFF8FAFC),
+  );
+
+  return ThemeData(
+    brightness: brightness,
+    colorScheme: colorScheme,
+    useMaterial3: true,
+    scaffoldBackgroundColor:
+        isDark ? const Color(0xFF0B0F17) : const Color(0xFFF8FAFC),
+    appBarTheme: AppBarTheme(
+      centerTitle: false,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      backgroundColor:
+          isDark ? const Color(0xFF0B0F17) : const Color(0xFFF8FAFC),
+      titleTextStyle: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        color: isDark ? Colors.white : const Color(0xFF0F172A),
+      ),
+    ),
+    cardTheme: CardThemeData(
+      elevation: isDark ? 0 : 2,
+      shadowColor: isDark ? Colors.black45 : Colors.black.withValues(alpha: 0.05),
+      color: isDark ? const Color(0xFF161E2E) : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isDark ? const Color(0xFF26334D) : const Color(0xFFE2E8F0),
+          width: 1,
+        ),
+      ),
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      elevation: 0,
+      backgroundColor: isDark ? const Color(0xFF111827) : Colors.white,
+      indicatorColor: isDark
+          ? const Color(0xFF38BDF8).withValues(alpha: 0.2)
+          : const Color(0xFF0F172A).withValues(alpha: 0.12),
+    ),
+  );
+}

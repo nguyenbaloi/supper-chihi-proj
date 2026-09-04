@@ -6,7 +6,7 @@ class S {
   const S._();
 
   // Điều hướng
-  static const appTitle = 'RSI Alert';
+  static const appTitle = 'Chichi RSI';
   static const tabOverview = 'Tổng quan';
   static const tabChart = 'Biểu đồ';
   static const tabHistory = 'Lịch sử';
@@ -16,6 +16,12 @@ class S {
   static const statusNeutral = 'Trung tính';
   static const statusOverbought = 'Quá mua';
   static const statusInsufficient = 'Chưa đủ dữ liệu';
+
+  // Cấu hình giao diện
+  static const themeTitle = 'Chế độ giao diện';
+  static const themeSystem = 'Theo hệ thống';
+  static const themeLight = 'Sáng';
+  static const themeDark = 'Tối';
 
   // Thẻ Mã
   static const rsiWeekly = 'RSI tuần';
