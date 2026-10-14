@@ -128,7 +128,16 @@ abstract final class S {
   static const actionNote = 'Ghi chú';
   static const actionTitleRequired = 'Tên hành động không được để trống';
   static const actionEmpty = 'Chưa có hành động nào.';
-  static const actionEmptyHint = 'Gõ vào ô phía trên để thêm việc đầu tiên.';
+  static const actionEmptyHint = 'Bấm "Thêm hành động" phía trên để thêm việc đầu tiên.';
+  static const actionTitleHint = 'Việc cụ thể cần làm — viết dài bao nhiêu cũng được';
+  static const actionSaveAndNext = 'Lưu và thêm tiếp';
+  static const actionAddedToast = 'Đã thêm — gõ tiếp hành động kế';
+  static const actionFilterStatus = 'Trạng thái';
+  static const actionFilterPriority = 'Ưu tiên';
+  static const actionFilterClear = 'Bỏ lọc';
+  static const actionFilterEmpty = 'Không có hành động nào khớp bộ lọc.';
+  static const actionFilterReorderHint =
+      'Đang lọc — bỏ lọc để kéo thả sắp xếp lại.';
   static const actionClosedGroup = 'Đã xong và đã bỏ';
   static const actionMoveTo = 'Chuyển sang dự án khác';
   static const actionDeleted = 'Đã xoá hành động';

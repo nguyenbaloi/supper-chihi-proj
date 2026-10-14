@@ -49,6 +49,7 @@ extension ActionMapper on ActionRow {
         priority: Priority.fromWire(priority),
         pinned: pinned,
         pinnedAt: pinnedAt,
+        pinnedOrder: pinnedOrder,
         dueDate: dueDate,
         sortOrder: sortOrder,
         createdAt: createdAt,

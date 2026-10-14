@@ -22,6 +22,9 @@ import '../actions/action_tile.dart';
 /// **Cần chú ý** là phần ứng dụng chủ động nhắc: quá hạn, sắp đến hạn, ưu tiên
 /// cao mà chưa bắt đầu. Nó nằm dưới, và nó là *thông tin*, không phải danh sách
 /// việc phải làm.
+///
+/// Khối trên xếp theo độ ưu tiên, cùng mức thì việc ghim sau cùng lên trên.
+/// Khối dưới xếp theo mức nghiêm trọng.
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
 
@@ -197,6 +200,7 @@ class _Row extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final subtitle = [
       if (project != null) project!.project.name,
       if (note != null) note!,
@@ -211,8 +215,8 @@ class _Row extends ConsumerWidget {
         icon: Icon(action.pinned ? Icons.push_pin : Icons.push_pin_outlined,
             size: 20),
         color: action.pinned
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.outline,
+            ? theme.colorScheme.primary
+            : theme.colorScheme.outline,
         onPressed: () => ref
             .read(actionRepositoryProvider)
             .setPinned(action.id, !action.pinned),

@@ -102,7 +102,7 @@ class ActionTile extends ConsumerWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w700,
                       decoration:
                           isDone ? TextDecoration.lineThrough : null,
                       decorationColor: theme.colorScheme.outline,

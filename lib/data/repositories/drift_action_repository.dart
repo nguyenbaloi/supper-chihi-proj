@@ -120,7 +120,9 @@ class DriftActionRepository implements ActionRepository {
       if (!next.isOpen && row.pinned) {
         await (_db.update(_db.actions)..where((a) => a.id.equals(actionId)))
             .write(const ActionsCompanion(
-                pinned: Value(false), pinnedAt: Value(null)));
+                pinned: Value(false),
+                pinnedAt: Value(null),
+                pinnedOrder: Value(0)));
       }
       await _db.into(_db.statusEvents).insert(
             StatusEventsCompanion.insert(
@@ -185,6 +187,7 @@ class DriftActionRepository implements ActionRepository {
             priority: Value(action.priority.wire),
             pinned: Value(action.pinned),
             pinnedAt: Value(action.pinnedAt),
+            pinnedOrder: Value(action.pinnedOrder),
             dueDate: Value(action.dueDate),
             sortOrder: Value(action.sortOrder),
             createdAt: action.createdAt,
@@ -205,20 +208,30 @@ class DriftActionRepository implements ActionRepository {
       ActionsCompanion(
         pinned: Value(pinned),
         pinnedAt: pinned ? Value(_now().toUtc()) : const Value(null),
+        pinnedOrder: const Value(0),
         updatedAt: Value(_now().toUtc()),
       ),
     );
   }
 
+  /// Ưu tiên cao lên trên; cùng mức thì việc ghim sau cùng lên trên.
+  ///
+  /// Xếp ở Dart theo [Priority.sortRank] thay vì `ORDER BY priority`: cột lưu
+  /// chuỗi, xếp chữ cái sẽ ra `high · low · medium`, và chuỗi lạ phải về mức
+  /// mặc định như mọi chỗ đọc khác.
   @override
   Stream<List<ProjectAction>> watchPinned() => (_db.select(_db.actions)
-        ..where((a) => a.pinned.equals(true))
-        ..orderBy([
-          (a) => OrderingTerm(expression: a.pinnedAt),
-          (a) => OrderingTerm(expression: a.id),
-        ]))
+        ..where((a) => a.pinned.equals(true)))
       .watch()
-      .map((rows) => rows.map((r) => r.toModel()).toList());
+      .map((rows) => rows.map((r) => r.toModel()).toList()
+        ..sort((a, b) {
+          final byPriority = a.priority.sortRank.compareTo(b.priority.sortRank);
+          if (byPriority != 0) return byPriority;
+          final aAt = a.pinnedAt, bAt = b.pinnedAt;
+          if (aAt != null && bAt != null && aAt != bAt) return bAt.compareTo(aAt);
+          if ((aAt == null) != (bAt == null)) return aAt == null ? 1 : -1;
+          return b.id.compareTo(a.id);
+        }));
 
   @override
   Stream<List<ProjectAction>> watchAllOpen() => (_db.select(_db.actions)

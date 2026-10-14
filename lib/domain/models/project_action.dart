@@ -21,6 +21,7 @@ final class ProjectAction {
     required this.sortOrder,
     this.pinned = false,
     this.pinnedAt,
+    this.pinnedOrder = 0,
     required this.createdAt,
     required this.updatedAt,
     this.dueDate,
@@ -43,6 +44,11 @@ final class ProjectAction {
   /// Thời điểm ghim, dùng để xếp thứ tự màn hình Hôm nay.
   final DateTime? pinnedAt;
 
+  /// Chỗ người dùng **tự đẩy** việc này tới trong danh sách Làm ngay — nhỏ
+  /// hơn thì nằm trên, `0` là chưa can thiệp. Không phải dấu thời gian, nên
+  /// xếp lại thoải mái mà không làm sai [pinnedAt].
+  final int pinnedOrder;
+
   /// Hạn chót là **ngày**, không có giờ — FR-17.
   final DateTime? dueDate;
 
@@ -63,6 +69,7 @@ final class ProjectAction {
     bool? pinned,
     DateTime? pinnedAt,
     bool clearPinnedAt = false,
+    int? pinnedOrder,
     int? sortOrder,
     DateTime? updatedAt,
     DateTime? dueDate,
@@ -80,6 +87,7 @@ final class ProjectAction {
         priority: priority ?? this.priority,
         pinned: pinned ?? this.pinned,
         pinnedAt: clearPinnedAt ? null : (pinnedAt ?? this.pinnedAt),
+        pinnedOrder: pinnedOrder ?? this.pinnedOrder,
         sortOrder: sortOrder ?? this.sortOrder,
         createdAt: createdAt,
         updatedAt: updatedAt ?? this.updatedAt,

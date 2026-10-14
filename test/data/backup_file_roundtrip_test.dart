@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_projects/data/backup/backup_codec.dart';
 import 'package:personal_projects/data/backup/backup_service.dart';
 import 'package:personal_projects/data/db/database.dart';
+import 'package:personal_projects/data/repositories/drift_action_repository.dart';
 import 'package:personal_projects/data/repositories/drift_content_repositories.dart';
 import 'package:personal_projects/data/seed/seeder.dart';
 
@@ -73,6 +74,38 @@ void main() {
         .firstWhere((l) => l.label == 'Tham khảo');
     expect(link.areaId, area.id);
     expect(link.projectId, isNull);
+  });
+
+  // Danh sách Làm ngay xếp theo ưu tiên rồi thời điểm ghim, nên cả hai phải
+  // qua được file y như nội dung việc — mất một trong hai thì khôi phục xong
+  // danh sách tự xáo lại, mất im lặng.
+  test('thứ tự danh sách Làm ngay đi qua file nguyên vẹn',
+      () async {
+    final oldPhone = await freshDb();
+    DateTime clock() => DateTime.utc(2026, 9, 11);
+    await Seeder(oldPhone, clock: clock).applyProjectSeed();
+
+    final actions = DriftActionRepository(oldPhone, clock: clock);
+    final all = await actions.watchAll().first;
+    final ba = all.take(3).toList();
+    for (final a in ba) {
+      await actions.setPinned(a.id, true);
+    }
+    final truoc = (await actions.watchPinned().first).map((a) => a.title).toList();
+
+    final file = File('${tempDir.path}/pinned.json');
+    await file.writeAsString(
+        await BackupService(oldPhone, clock: clock).exportJson());
+
+    final newPhone = await freshDb();
+    final result = await BackupService(newPhone, clock: clock)
+        .import(await file.readAsString());
+    expect(result.isOk, isTrue);
+
+    final sau = await DriftActionRepository(newPhone, clock: clock)
+        .watchPinned()
+        .first;
+    expect(sau.map((a) => a.title).toList(), truoc);
   });
 
   test('chuyển máy: máy cũ xuất ra file, máy mới nhập vào, khớp từng chữ',

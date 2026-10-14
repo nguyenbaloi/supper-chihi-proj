@@ -144,7 +144,8 @@ abstract interface class ActionRepository {
   /// Ghim hoặc bỏ ghim khỏi danh sách "làm ngay" của màn hình Hôm nay — FR-42.
   Future<void> setPinned(int actionId, bool pinned);
 
-  /// Mọi Hành động đang ghim, xếp theo thời điểm ghim.
+  /// Mọi Hành động đang ghim: ưu tiên cao lên trên, cùng mức thì việc ghim
+  /// sau cùng lên trên.
   Stream<List<ProjectAction>> watchPinned();
 
   /// Mọi Hành động còn mở — nguồn của khối cảnh báo và của thống kê.

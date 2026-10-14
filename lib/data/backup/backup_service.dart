@@ -70,6 +70,7 @@ class BackupService {
               'priority': r.priority,
               'pinned': r.pinned,
               'pinnedAt': isoOrNull(r.pinnedAt),
+              'pinnedOrder': r.pinnedOrder,
               'dueDate': isoOrNull(r.dueDate),
               'sortOrder': r.sortOrder,
               'createdAt': isoOrNull(r.createdAt),
@@ -271,6 +272,9 @@ class BackupService {
                 priority: Value(readString(r, 'priority', fallback: 'medium')),
                 pinned: Value(readBool(r, 'pinned')),
                 pinnedAt: Value(readDateOrNull(r, 'pinnedAt')),
+                // File v1…v5 chưa có trường này. `0` là mặc định đúng nghĩa:
+                // chưa đẩy việc nào lên, danh sách rơi về thứ tự ghim.
+                pinnedOrder: Value(readInt(r, 'pinnedOrder')),
                 dueDate: Value(readDateOrNull(r, 'dueDate')),
                 sortOrder: Value(readInt(r, 'sortOrder')),
                 createdAt: readDate(r, 'createdAt'),

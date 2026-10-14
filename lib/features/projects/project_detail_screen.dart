@@ -113,48 +113,23 @@ class _ActionsTab extends ConsumerStatefulWidget {
 }
 
 class _ActionsTabState extends ConsumerState<_ActionsTab> {
-  final _controller = TextEditingController();
-  final _focus = FocusNode();
   bool _showClosed = false;
 
-  /// Hạn và độ ưu tiên của lần thêm kế tiếp — FR-14.
-  ///
-  /// Hai giá trị này **giữ nguyên** sau mỗi lần thêm, để gõ một loạt việc
-  /// cùng hạn cùng mức ưu tiên chỉ phải chọn một lần. Chúng luôn hiện ngay
-  /// dưới ô nhập nên không có gì bị đặt hộ sau lưng người dùng.
-  Priority _newPriority = Priority.medium;
-  DateTime? _newDueDate;
+  /// Bộ lọc danh sách. Tập rỗng nghĩa là không lọc theo tiêu chí đó.
+  Set<ActionStatus> _statusFilter = {};
+  Set<Priority> _priorityFilter = {};
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focus.dispose();
-    super.dispose();
-  }
+  bool get _filtering =>
+      _statusFilter.isNotEmpty || _priorityFilter.isNotEmpty;
 
-  /// FR-14: sau khi thêm, ô nhập giữ tiêu điểm để gõ tiếp Hành động kế.
-  Future<void> _add() async {
-    final title = _controller.text.trim();
-    if (title.isEmpty) return;
-    _controller.clear();
-    await ref.read(actionRepositoryProvider).create(
-          projectId: widget.projectId,
-          title: title,
-          priority: _newPriority,
-          dueDate: _newDueDate,
-        );
-    _focus.requestFocus();
-  }
+  bool _matches(ProjectAction a) =>
+      (_statusFilter.isEmpty || _statusFilter.contains(a.status)) &&
+      (_priorityFilter.isEmpty || _priorityFilter.contains(a.priority));
 
-  Future<void> _pickNewDueDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _newDueDate ?? now,
-      firstDate: DateTime(now.year - 5),
-      lastDate: DateTime(now.year + 20),
-    );
-    if (picked != null) setState(() => _newDueDate = picked);
+  int _byPriorityThenOrder(ProjectAction a, ProjectAction b) {
+    final p = a.priority.sortRank.compareTo(b.priority.sortRank);
+    if (p != 0) return p;
+    return a.sortOrder.compareTo(b.sortOrder);
   }
 
   @override
@@ -164,175 +139,258 @@ class _ActionsTabState extends ConsumerState<_ActionsTab> {
         ref.watch(projectActionsProvider(widget.projectId)).value ?? const [];
     final theme = Theme.of(context);
 
-    final open = actions.where((a) => a.status.isOpen).toList()
-      ..sort((a, b) {
-        final p = a.priority.sortRank.compareTo(b.priority.sortRank);
-        if (p != 0) return p;
-        return a.sortOrder.compareTo(b.sortOrder);
-      });
-    final closed = actions.where((a) => !a.status.isOpen).toList()
-      ..sort((a, b) {
-        final p = a.priority.sortRank.compareTo(b.priority.sortRank);
-        if (p != 0) return p;
-        return a.sortOrder.compareTo(b.sortOrder);
-      });
+    final visible = actions.where(_matches);
+    final open = visible.where((a) => a.status.isOpen).toList()
+      ..sort(_byPriorityThenOrder);
+    final closed = visible.where((a) => !a.status.isOpen).toList()
+      ..sort(_byPriorityThenOrder);
+    // Lọc theo Xong hoặc Bỏ mà nhóm đóng vẫn gấp thì như không thấy gì.
+    final showClosed =
+        _showClosed || _statusFilter.any((s) => !s.isOpen);
 
-    return Column(
-      children: [
-        if (project != null) _ProjectHeader(project: project),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focus,
-                      textCapitalization: TextCapitalization.sentences,
-                      textInputAction: TextInputAction.done,
-                      style: theme.textTheme.bodyLarge,
-                      decoration: const InputDecoration(
-                        hintText: S.actionNew,
-                        prefixIcon: Icon(Icons.add, size: 20),
-                      ),
-                      onSubmitted: (_) => _add(),
+    // Cả tab là **một** vùng cuộn: thẻ đầu Dự án và nút thêm việc cuộn đi
+    // cùng danh sách. Trước đây chúng chiếm chỗ cố định phía trên nên danh
+    // sách việc chỉ còn một khe hẹp để cuộn.
+    return CustomScrollView(
+      slivers: [
+        if (project != null)
+          SliverToBoxAdapter(child: _ProjectHeader(project: project)),
+        SliverToBoxAdapter(child: _addButton(theme)),
+        if (actions.isNotEmpty)
+          SliverToBoxAdapter(child: _filters(theme, actions)),
+        const SliverToBoxAdapter(child: SizedBox(height: AppSpacing.md)),
+        if (actions.isEmpty)
+          const SliverFillRemaining(
+            hasScrollBody: false,
+            child: EmptyState(
+              icon: Icons.checklist_rtl_outlined,
+              title: S.actionEmpty,
+              message: S.actionEmptyHint,
+            ),
+          )
+        else if (open.isEmpty && closed.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.gutter),
+              child: Text(
+                S.actionFilterEmpty,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: theme.colorScheme.outline),
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter, 0, AppSpacing.gutter, AppSpacing.md),
+            sliver: DecoratedSliver(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              sliver: SliverMainAxisGroup(
+                slivers: [
+                  // Đang lọc thì danh sách chỉ là một phần, kéo thả trên đó
+                  // sẽ làm sai thứ tự của những việc đang bị ẩn.
+                  if (_filtering)
+                    SliverList.builder(
+                      itemCount: open.length,
+                      itemBuilder: (context, index) {
+                        final a = open[index];
+                        return ActionTile(
+                          key: ValueKey(a.id),
+                          action: a,
+                          showPriority: true,
+                          trailing: _ActionMenu(action: a),
+                        );
+                      },
+                    )
+                  else
+                    SliverReorderableList(
+                      itemCount: open.length,
+                      onReorder: (oldIndex, newIndex) async {
+                        if (newIndex > oldIndex) newIndex -= 1;
+                        final ids = open.map((a) => a.id).toList();
+                        final moved = ids.removeAt(oldIndex);
+                        ids.insert(newIndex, moved);
+                        await ref.read(actionRepositoryProvider).reorder(
+                            widget.projectId,
+                            [...ids, ...closed.map((a) => a.id)]);
+                      },
+                      // Giữ nguyên cách kéo của bản trước trên điện thoại:
+                      // nhấn giữ một dòng rồi kéo. Không đặt tay cầm kéo
+                      // riêng vì kéo dọc tức thì sẽ cướp mất cử chỉ cuộn.
+                      itemBuilder: (context, index) {
+                        final a = open[index];
+                        return ReorderableDelayedDragStartListener(
+                          key: ValueKey(a.id),
+                          index: index,
+                          child: ActionTile(
+                            action: a,
+                            showPriority: true,
+                            trailing: _ActionMenu(action: a),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.sm),
-                  IconButton.filled(
-                    tooltip: S.add,
-                    icon: const Icon(Icons.arrow_upward, size: 20),
-                    style: IconButton.styleFrom(
-                      minimumSize: const Size(46, 46),
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: theme.colorScheme.onPrimary,
-                    ),
-                    onPressed: _add,
-                  ),
+                  SliverToBoxAdapter(
+                      child: _closedGroup(theme, closed, showClosed)),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  ActionPrioritySelector(
-                    value: _newPriority,
-                    onChanged: (p) => setState(() => _newPriority = p),
-                  ),
-                  InputChip(
-                    avatar: const Icon(Icons.event_outlined, size: 18),
-                    label: Text(_newDueDate == null
-                        ? S.actionDueDate
-                        : VnFormat.date(_newDueDate!)),
-                    onPressed: _pickNewDueDate,
-                    onDeleted: _newDueDate == null
-                        ? null
-                        : () => setState(() => _newDueDate = null),
-                  ),
-                  // Lối vào ô nhập đầy đủ — nơi duy nhất thêm được Ghi chú
-                  // ngay lúc tạo việc.
-                  ActionChip(
-                    avatar: const Icon(Icons.notes_outlined, size: 16),
-                    label: const Text(S.actionNote),
-                    onPressed: () => showActionEditSheet(
-                      context,
-                      projectId: widget.projectId,
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Lối vào màn hình nhập Hành động — FR-14. Trông như một ô nhập để người
+  /// dùng nhận ra ngay chỗ thêm việc, nhưng chạm vào thì mở màn hình riêng
+  /// với ô lớn tự xuống dòng.
+  Widget _addButton(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+      child: Material(
+        color: theme.colorScheme.surfaceContainerLowest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          side: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          onTap: () => showActionForm(context, projectId: widget.projectId),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: 14),
+            child: Row(
+              children: [
+                Icon(Icons.add_circle, color: theme.colorScheme.primary),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Text(
+                    S.actionNew,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                Icon(Icons.chevron_right, color: theme.colorScheme.outline),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: AppSpacing.md),
-        Expanded(
-          child: actions.isEmpty
-              ? const EmptyState(
-                  icon: Icons.checklist_rtl_outlined,
-                  title: S.actionEmpty,
-                  message: S.actionEmptyHint,
-                )
-              : Container(
-                  margin: const EdgeInsets.fromLTRB(AppSpacing.gutter, 0,
-                      AppSpacing.gutter, AppSpacing.md),
-                  clipBehavior: Clip.antiAlias,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerLowest,
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    border: Border.all(color: theme.colorScheme.outlineVariant),
-                  ),
-                  child: ReorderableListView(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  buildDefaultDragHandles: true,
-                  onReorder: (oldIndex, newIndex) async {
-                    if (newIndex > oldIndex) newIndex -= 1;
-                    final ids = open.map((a) => a.id).toList();
-                    final moved = ids.removeAt(oldIndex);
-                    ids.insert(newIndex, moved);
-                    await ref
-                        .read(actionRepositoryProvider)
-                        .reorder(widget.projectId, [...ids, ...closed.map((a) => a.id)]);
-                  },
-                  footer: closed.isEmpty
-                      ? null
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Divider(height: 1),
-                            InkWell(
-                              onTap: () =>
-                                  setState(() => _showClosed = !_showClosed),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.gutter,
-                                    vertical: AppSpacing.md),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        '${S.actionClosedGroup} · ${closed.length}',
-                                        style: theme.textTheme.labelMedium
-                                            ?.copyWith(
-                                                color:
-                                                    theme.colorScheme.outline),
-                                      ),
-                                    ),
-                                    Icon(
-                                      _showClosed
-                                          ? Icons.expand_less
-                                          : Icons.expand_more,
-                                      size: 20,
-                                      color: theme.colorScheme.outline,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            if (_showClosed)
-                              for (final a in closed)
-                                ActionTile(
-                                  action: a,
-                                  trailing: _ActionMenu(action: a),
-                                ),
-                          ],
-                        ),
-                  children: [
-                    for (final a in open)
-                      ActionTile(
-                        key: ValueKey(a.id),
-                        action: a,
-                        showPriority: true,
-                        trailing: _ActionMenu(action: a),
-                      ),
-                  ],
+      ),
+    );
+  }
+
+  /// Hai hàng chip lọc theo trạng thái và độ ưu tiên, mỗi chip kèm số việc.
+  Widget _filters(ThemeData theme, List<ProjectAction> actions) {
+    Widget row(String label, List<Widget> chips) => Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.sm),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 72,
+                  child: Text(label,
+                      style: theme.textTheme.labelMedium
+                          ?.copyWith(color: theme.colorScheme.outline)),
                 ),
-              ),
+                for (final c in chips)
+                  Padding(padding: const EdgeInsets.only(right: 6), child: c),
+              ],
+            ),
+          ),
+        );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppSpacing.sm),
+        row(S.actionFilterStatus, [
+          for (final s in ActionStatus.values)
+            FilterChip(
+              label: Text(
+                  '${S.actionStatus(s)} · ${actions.where((a) => a.status == s).length}'),
+              selected: _statusFilter.contains(s),
+              onSelected: (on) => setState(() => _statusFilter =
+                  on ? {..._statusFilter, s} : ({..._statusFilter}..remove(s))),
+            ),
+        ]),
+        row(S.actionFilterPriority, [
+          for (final p in Priority.values)
+            FilterChip(
+              label: Text(
+                  '${S.priority(p)} · ${actions.where((a) => a.priority == p).length}'),
+              selected: _priorityFilter.contains(p),
+              onSelected: (on) => setState(() => _priorityFilter = on
+                  ? {..._priorityFilter, p}
+                  : ({..._priorityFilter}..remove(p))),
+            ),
+          if (_filtering)
+            ActionChip(
+              avatar: const Icon(Icons.filter_alt_off_outlined, size: 16),
+              label: const Text(S.actionFilterClear),
+              onPressed: () => setState(() {
+                _statusFilter = {};
+                _priorityFilter = {};
+              }),
+            ),
+        ]),
+        if (_filtering)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter, AppSpacing.sm, AppSpacing.gutter, 0),
+            child: Text(
+              S.actionFilterReorderHint,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.outline),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Nhóm việc đã đóng, gấp lại ở cuối danh sách.
+  Widget _closedGroup(
+      ThemeData theme, List<ProjectAction> closed, bool showClosed) {
+    if (closed.isEmpty) return const SizedBox(height: AppSpacing.sm);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Divider(height: 1),
+        InkWell(
+          onTap: () => setState(() => _showClosed = !_showClosed),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.gutter, vertical: AppSpacing.md),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${S.actionClosedGroup} · ${closed.length}',
+                    style: theme.textTheme.labelMedium
+                        ?.copyWith(color: theme.colorScheme.outline),
+                  ),
+                ),
+                Icon(
+                  showClosed ? Icons.expand_less : Icons.expand_more,
+                  size: 20,
+                  color: theme.colorScheme.outline,
+                ),
+              ],
+            ),
+          ),
         ),
+        if (showClosed)
+          for (final a in closed)
+            ActionTile(action: a, trailing: _ActionMenu(action: a)),
+        const SizedBox(height: AppSpacing.sm),
       ],
     );
   }
@@ -466,7 +524,7 @@ class _ActionMenu extends ConsumerWidget {
         final repo = ref.read(actionRepositoryProvider);
         final messenger = ScaffoldMessenger.of(context);
         if (value == 'edit') {
-          await showActionEditSheet(context, existing: action);
+          await showActionForm(context, existing: action);
           return;
         }
         if (value == 'pin') {

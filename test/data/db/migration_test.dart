@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:drift_dev/api/migrations_native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:personal_projects/data/db/database.dart';
+import 'package:personal_projects/data/repositories/drift_action_repository.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 import 'generated/schema.dart';
@@ -112,7 +113,7 @@ const List<String> _schemaV1 = [
 ];
 
 void main() {
-  test('v1 → v6: qua đủ năm bước nâng cấp, dữ liệu người dùng còn nguyên',
+  test('v1 → v7: qua đủ sáu bước nâng cấp, dữ liệu người dùng còn nguyên',
       () async {
     final raw = sqlite.sqlite3.openInMemory();
     for (final stmt in _schemaV1) {
@@ -148,8 +149,8 @@ void main() {
     // Chạm vào cơ sở dữ liệu để buộc drift chạy migration.
     final projects = await db.select(db.projects).get();
 
-    expect(db.schemaVersion, 6);
-    expect(raw.select('PRAGMA user_version').first.values.first, 6);
+    expect(db.schemaVersion, 7);
+    expect(raw.select('PRAGMA user_version').first.values.first, 7);
 
     // Dữ liệu cũ nguyên vẹn.
     expect(projects.length, 1);
@@ -219,14 +220,14 @@ void main() {
   });
 
   // AD-10, bước 4: kiểm cấu trúc bằng helper sinh sẵn từ `drift_schemas/`.
-  // Test v1 → v6 ở trên chứng minh **dữ liệu** sống sót; test này chứng minh
-  // **cấu trúc** sau khi nâng cấp khớp từng cột với bản cài mới ở v6.
-  test('v3 → v6: cấu trúc sau nâng cấp khớp bản cài mới', () async {
+  // Test v1 → v7 ở trên chứng minh **dữ liệu** sống sót; test này chứng minh
+  // **cấu trúc** sau khi nâng cấp khớp từng cột với bản cài mới ở v7.
+  test('v3 → v7: cấu trúc sau nâng cấp khớp bản cài mới', () async {
     final verifier = SchemaVerifier(GeneratedHelper());
     final connection = await verifier.startAt(3);
     final db = AppDatabase(connection);
     addTearDown(db.close);
-    await verifier.migrateAndValidate(db, 6);
+    await verifier.migrateAndValidate(db, 7);
   });
 
   test('v3 → v6: Lĩnh vực và Dự án giữ nguyên giá trị', () async {
@@ -424,7 +425,47 @@ void main() {
     );
   });
 
-  test('cài mới ở v6 tạo đủ chín bảng', () async {
+  test('v6 → v7: việc đang ghim còn nguyên, pinned_order về 0',
+      () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(6);
+
+    schema.rawDatabase.execute(
+      "INSERT INTO areas (id, name, color_value, icon_key, sort_order, "
+      "standard, is_system_fallback, created_at) VALUES (1, 'Gia đình', 1, "
+      "'family', 0, '', 0, '2026-01-01T00:00:00.000Z')",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO projects (id, area_id, name, description, status, priority, "
+      "created_at, updated_at, search_text) VALUES (1, 1, 'Dạy Huy', '', "
+      "'active', 'high', '2026-08-01T00:00:00.000Z', "
+      "'2026-08-01T00:00:00.000Z', 'day huy')",
+    );
+    // Hai việc đã ghim, cách nhau một giờ.
+    for (final (id, title, at) in [
+      (1, 'Ghim trước', '2026-09-01T08:00:00.000Z'),
+      (2, 'Ghim sau', '2026-09-01T09:00:00.000Z'),
+    ]) {
+      schema.rawDatabase.execute(
+        "INSERT INTO actions (id, project_id, title, note, status, priority, "
+        "pinned, pinned_at, sort_order, created_at, updated_at, search_text) "
+        "VALUES ($id, 1, '$title', '', 'todo', 'medium', 1, '$at', 0, "
+        "'2026-08-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z', '')",
+      );
+    }
+
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    final repo = DriftActionRepository(db);
+
+    final pinned = await repo.watchPinned().first;
+    expect(pinned.map((a) => a.title).toList(), ['Ghim sau', 'Ghim trước'],
+        reason: 'cùng ưu tiên thì việc ghim sau cùng lên trên');
+    expect(pinned.every((a) => a.pinnedOrder == 0), isTrue,
+        reason: '0 nghĩa là chưa ai đẩy việc nào lên đầu');
+  });
+
+  test('cài mới ở v7 tạo đủ chín bảng', () async {
     final db = AppDatabase(NativeDatabase.memory());
     addTearDown(db.close);
     await db.select(db.projects).get();

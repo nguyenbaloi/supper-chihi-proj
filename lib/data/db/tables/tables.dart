@@ -79,6 +79,20 @@ class Actions extends Table {
   /// Thời điểm ghim, để xếp thứ tự trong danh sách Hôm nay.
   DateTimeColumn get pinnedAt => dateTime().nullable()();
 
+  /// Thứ tự người dùng **tự đẩy** trong danh sách Làm ngay — nhỏ hơn thì nằm
+  /// trên. `0` là chưa can thiệp, và đó là giá trị của mọi việc vừa ghim.
+  ///
+  /// Tách hẳn khỏi [pinnedAt] có chủ ý: `pinnedAt` là một **sự kiện có thật**
+  /// ("bạn ghim lúc 9h"), sửa nó để xếp lại danh sách là ghi một điều không
+  /// xảy ra vào cơ sở dữ liệu — và nó còn đi thẳng vào file sao lưu. Cột này
+  /// mang đúng nghĩa "chỗ tôi muốn nó nằm", nên xếp lại bao nhiêu lần cũng
+  /// không làm hỏng dữ liệu nào khác.
+  ///
+  /// Cũng không dùng lại [sortOrder]: cột đó là thứ tự **trong một Dự án**
+  /// (FR-18), gộp hai thứ tự vào một cột thì kéo thả ở màn Dự án sẽ lặng lẽ
+  /// xáo lại màn Hôm nay.
+  IntColumn get pinnedOrder => integer().withDefault(const Constant(0))();
+
   /// Thứ tự kéo thả — FR-18.
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();

@@ -64,7 +64,7 @@ class ActionDetailScreen extends ConsumerWidget {
           IconButton(
             tooltip: S.edit,
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () => showActionEditSheet(context, existing: action),
+            onPressed: () => showActionForm(context, existing: action),
           ),
           IconButton(
             tooltip: S.delete,

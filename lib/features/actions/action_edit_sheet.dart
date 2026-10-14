@@ -9,54 +9,65 @@ import '../../presentation/providers/providers.dart';
 
 /// FR-14: nhập một Hành động là nhập **cả ba** thứ — tên, hạn và độ ưu tiên.
 ///
+/// Mở thành **màn hình riêng** chứ không phải sheet: tên việc thường dài, cần
+/// một ô lớn tự xuống dòng để đọc lại được toàn bộ trước khi lưu.
+///
 /// Trường bắt buộc duy nhất vẫn là tên; hạn để trống thì Hành động không có
 /// hạn, đúng như trước. Không có ô nhập nào cho `createdAt`, `updatedAt`,
 /// `startedAt` hay `completedAt` — AD-5 giữ bốn mốc đó cho tầng dữ liệu.
-Future<int?> showActionEditSheet(
+Future<int?> showActionForm(
   BuildContext context, {
   int? projectId,
   ProjectAction? existing,
 }) {
   assert(projectId != null || existing != null, 'FR-14');
-  return showModalBottomSheet<int>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    builder: (_) => _ActionEditSheet(projectId: projectId, existing: existing),
+  return Navigator.of(context).push<int>(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => _ActionFormScreen(projectId: projectId, existing: existing),
+    ),
   );
 }
 
-class _ActionEditSheet extends ConsumerStatefulWidget {
-  const _ActionEditSheet({this.projectId, this.existing});
+class _ActionFormScreen extends ConsumerStatefulWidget {
+  const _ActionFormScreen({this.projectId, this.existing});
 
   final int? projectId;
   final ProjectAction? existing;
 
   @override
-  ConsumerState<_ActionEditSheet> createState() => _ActionEditSheetState();
+  ConsumerState<_ActionFormScreen> createState() => _ActionFormScreenState();
 }
 
-class _ActionEditSheetState extends ConsumerState<_ActionEditSheet> {
+class _ActionFormScreenState extends ConsumerState<_ActionFormScreen> {
   late final TextEditingController _title =
       TextEditingController(text: widget.existing?.title ?? '');
   late final TextEditingController _note =
       TextEditingController(text: widget.existing?.note ?? '');
+  final _titleFocus = FocusNode();
+
+  /// Hạn và độ ưu tiên **giữ nguyên** sau "Lưu và thêm tiếp", để gõ một loạt
+  /// việc cùng hạn cùng mức ưu tiên chỉ phải chọn một lần — FR-14.
   late Priority _priority = widget.existing?.priority ?? Priority.medium;
   late DateTime? _dueDate = widget.existing?.dueDate;
   String? _error;
   bool _busy = false;
 
+  bool get _isNew => widget.existing == null;
+
   @override
   void dispose() {
     _title.dispose();
     _note.dispose();
+    _titleFocus.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _submit({bool next = false}) async {
     final title = _title.text.trim();
     if (title.isEmpty) {
       setState(() => _error = S.actionTitleRequired);
+      _titleFocus.requestFocus();
       return;
     }
     setState(() {
@@ -65,7 +76,7 @@ class _ActionEditSheetState extends ConsumerState<_ActionEditSheet> {
     });
     final repo = ref.read(actionRepositoryProvider);
     final int id;
-    if (widget.existing == null) {
+    if (_isNew) {
       final created = await repo.create(
         projectId: widget.projectId!,
         title: title,
@@ -86,46 +97,73 @@ class _ActionEditSheetState extends ConsumerState<_ActionEditSheet> {
       );
       id = widget.existing!.id;
     }
-    if (mounted) Navigator.of(context).pop(id);
+    if (!mounted) return;
+    if (next) {
+      _title.clear();
+      _note.clear();
+      setState(() => _busy = false);
+      _titleFocus.requestFocus();
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+          content: Text(S.actionAddedToast),
+          duration: Duration(seconds: 2),
+        ));
+      return;
+    }
+    Navigator.of(context).pop(id);
   }
 
   @override
   Widget build(BuildContext context) {
-    final inset = MediaQuery.of(context).viewInsets.bottom;
+    final theme = Theme.of(context);
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 16 + inset),
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_isNew ? S.actionNew : S.actionEdit),
+        actions: [
+          TextButton(
+            onPressed: _busy ? null : _submit,
+            child: const Text(S.save),
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              widget.existing == null ? S.actionNew : S.actionEdit,
-              style: Theme.of(context).textTheme.titleLarge,
+            TextField(
+              controller: _title,
+              focusNode: _titleFocus,
+              autofocus: _isNew,
+              minLines: 4,
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+              textCapitalization: TextCapitalization.sentences,
+              style: theme.textTheme.titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                labelText: S.actionTitle,
+                hintText: S.actionTitleHint,
+                alignLabelWithHint: true,
+                errorText: _error,
+              ),
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: _title,
-              autofocus: widget.existing == null,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                labelText: S.actionTitle,
-                errorText: _error,
-              ),
-              onSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 12),
-            TextField(
               controller: _note,
-              maxLines: 4,
-              minLines: 1,
+              minLines: 3,
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
               textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 labelText: S.actionNote,
+                alignLabelWithHint: true,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            Text(S.actionPriority, style: theme.textTheme.labelLarge),
+            const SizedBox(height: 8),
             ActionPrioritySelector(
               value: _priority,
               onChanged: (p) => setState(() => _priority = p),
@@ -140,6 +178,13 @@ class _ActionEditSheetState extends ConsumerState<_ActionEditSheet> {
               onPressed: _busy ? null : _submit,
               child: const Text(S.save),
             ),
+            if (_isNew) ...[
+              const SizedBox(height: 8),
+              OutlinedButton(
+                onPressed: _busy ? null : () => _submit(next: true),
+                child: const Text(S.actionSaveAndNext),
+              ),
+            ],
           ],
         ),
       ),
@@ -147,7 +192,7 @@ class _ActionEditSheetState extends ConsumerState<_ActionEditSheet> {
   }
 }
 
-/// Ba mức ưu tiên, dùng chung cho sheet nhập và ô thêm nhanh của Dự án.
+/// Ba mức ưu tiên, dùng chung cho màn hình nhập và màn hình chi tiết Hành động.
 class ActionPrioritySelector extends StatelessWidget {
   const ActionPrioritySelector({
     super.key,

@@ -25,11 +25,15 @@ import '../../core/result/result.dart';
 ///   Cùng lý do với v4: schema thêm dữ liệu người dùng thì định dạng phải theo
 ///   ngay, nếu không xuất ra là mất.
 ///
-/// File v1…v4 vẫn nhập được. Trường thiếu nhận mặc định **đúng nghĩa**, không
+/// - **v6** thêm `actions.pinnedOrder` — thứ tự người dùng tự đẩy trong danh
+///   sách Làm ngay. Cùng lý do với v4 và v5: đây là sắp xếp do người dùng
+///   quyết, xuất ra mà bỏ quên thì khôi phục xong danh sách tự xáo lại.
+///
+/// File v1…v5 vẫn nhập được. Trường thiếu nhận mặc định **đúng nghĩa**, không
 /// phải giá trị bừa: `areaId` là `null`, `standard` là rỗng,
 /// `reviewCadenceDays` là `null` (tức không nhắc gì), `createdAt` lấy thời
-/// điểm nhập.
-const int backupFormatVersion = 5;
+/// điểm nhập, `pinnedOrder` là `0` (chưa đẩy việc nào lên đầu).
+const int backupFormatVersion = 6;
 
 /// Thứ tự chèn tôn trọng khoá ngoại. Xoá thì đi ngược danh sách này.
 ///

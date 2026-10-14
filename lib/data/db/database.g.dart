@@ -1404,6 +1404,18 @@ class $ActionsTable extends Actions with TableInfo<$ActionsTable, ActionRow> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _pinnedOrderMeta = const VerificationMeta(
+    'pinnedOrder',
+  );
+  @override
+  late final GeneratedColumn<int> pinnedOrder = GeneratedColumn<int>(
+    'pinned_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -1483,6 +1495,7 @@ class $ActionsTable extends Actions with TableInfo<$ActionsTable, ActionRow> {
     dueDate,
     pinned,
     pinnedAt,
+    pinnedOrder,
     sortOrder,
     createdAt,
     updatedAt,
@@ -1557,6 +1570,15 @@ class $ActionsTable extends Actions with TableInfo<$ActionsTable, ActionRow> {
       context.handle(
         _pinnedAtMeta,
         pinnedAt.isAcceptableOrUnknown(data['pinned_at']!, _pinnedAtMeta),
+      );
+    }
+    if (data.containsKey('pinned_order')) {
+      context.handle(
+        _pinnedOrderMeta,
+        pinnedOrder.isAcceptableOrUnknown(
+          data['pinned_order']!,
+          _pinnedOrderMeta,
+        ),
       );
     }
     if (data.containsKey('sort_order')) {
@@ -1647,6 +1669,10 @@ class $ActionsTable extends Actions with TableInfo<$ActionsTable, ActionRow> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}pinned_at'],
       ),
+      pinnedOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pinned_order'],
+      )!,
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
@@ -1701,6 +1727,20 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
   /// Thời điểm ghim, để xếp thứ tự trong danh sách Hôm nay.
   final DateTime? pinnedAt;
 
+  /// Thứ tự người dùng **tự đẩy** trong danh sách Làm ngay — nhỏ hơn thì nằm
+  /// trên. `0` là chưa can thiệp, và đó là giá trị của mọi việc vừa ghim.
+  ///
+  /// Tách hẳn khỏi [pinnedAt] có chủ ý: `pinnedAt` là một **sự kiện có thật**
+  /// ("bạn ghim lúc 9h"), sửa nó để xếp lại danh sách là ghi một điều không
+  /// xảy ra vào cơ sở dữ liệu — và nó còn đi thẳng vào file sao lưu. Cột này
+  /// mang đúng nghĩa "chỗ tôi muốn nó nằm", nên xếp lại bao nhiêu lần cũng
+  /// không làm hỏng dữ liệu nào khác.
+  ///
+  /// Cũng không dùng lại [sortOrder]: cột đó là thứ tự **trong một Dự án**
+  /// (FR-18), gộp hai thứ tự vào một cột thì kéo thả ở màn Dự án sẽ lặng lẽ
+  /// xáo lại màn Hôm nay.
+  final int pinnedOrder;
+
   /// Thứ tự kéo thả — FR-18.
   final int sortOrder;
   final DateTime createdAt;
@@ -1718,6 +1758,7 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
     this.dueDate,
     required this.pinned,
     this.pinnedAt,
+    required this.pinnedOrder,
     required this.sortOrder,
     required this.createdAt,
     required this.updatedAt,
@@ -1741,6 +1782,7 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
     if (!nullToAbsent || pinnedAt != null) {
       map['pinned_at'] = Variable<DateTime>(pinnedAt);
     }
+    map['pinned_order'] = Variable<int>(pinnedOrder);
     map['sort_order'] = Variable<int>(sortOrder);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -1769,6 +1811,7 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
       pinnedAt: pinnedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(pinnedAt),
+      pinnedOrder: Value(pinnedOrder),
       sortOrder: Value(sortOrder),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -1797,6 +1840,7 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
       dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
       pinned: serializer.fromJson<bool>(json['pinned']),
       pinnedAt: serializer.fromJson<DateTime?>(json['pinnedAt']),
+      pinnedOrder: serializer.fromJson<int>(json['pinnedOrder']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -1818,6 +1862,7 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
       'dueDate': serializer.toJson<DateTime?>(dueDate),
       'pinned': serializer.toJson<bool>(pinned),
       'pinnedAt': serializer.toJson<DateTime?>(pinnedAt),
+      'pinnedOrder': serializer.toJson<int>(pinnedOrder),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -1837,6 +1882,7 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
     Value<DateTime?> dueDate = const Value.absent(),
     bool? pinned,
     Value<DateTime?> pinnedAt = const Value.absent(),
+    int? pinnedOrder,
     int? sortOrder,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -1853,6 +1899,7 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
     dueDate: dueDate.present ? dueDate.value : this.dueDate,
     pinned: pinned ?? this.pinned,
     pinnedAt: pinnedAt.present ? pinnedAt.value : this.pinnedAt,
+    pinnedOrder: pinnedOrder ?? this.pinnedOrder,
     sortOrder: sortOrder ?? this.sortOrder,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -1871,6 +1918,9 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
       pinned: data.pinned.present ? data.pinned.value : this.pinned,
       pinnedAt: data.pinnedAt.present ? data.pinnedAt.value : this.pinnedAt,
+      pinnedOrder: data.pinnedOrder.present
+          ? data.pinnedOrder.value
+          : this.pinnedOrder,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -1896,6 +1946,7 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
           ..write('dueDate: $dueDate, ')
           ..write('pinned: $pinned, ')
           ..write('pinnedAt: $pinnedAt, ')
+          ..write('pinnedOrder: $pinnedOrder, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -1917,6 +1968,7 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
     dueDate,
     pinned,
     pinnedAt,
+    pinnedOrder,
     sortOrder,
     createdAt,
     updatedAt,
@@ -1937,6 +1989,7 @@ class ActionRow extends DataClass implements Insertable<ActionRow> {
           other.dueDate == this.dueDate &&
           other.pinned == this.pinned &&
           other.pinnedAt == this.pinnedAt &&
+          other.pinnedOrder == this.pinnedOrder &&
           other.sortOrder == this.sortOrder &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -1955,6 +2008,7 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
   final Value<DateTime?> dueDate;
   final Value<bool> pinned;
   final Value<DateTime?> pinnedAt;
+  final Value<int> pinnedOrder;
   final Value<int> sortOrder;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -1971,6 +2025,7 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
     this.dueDate = const Value.absent(),
     this.pinned = const Value.absent(),
     this.pinnedAt = const Value.absent(),
+    this.pinnedOrder = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -1988,6 +2043,7 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
     this.dueDate = const Value.absent(),
     this.pinned = const Value.absent(),
     this.pinnedAt = const Value.absent(),
+    this.pinnedOrder = const Value.absent(),
     this.sortOrder = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
@@ -2009,6 +2065,7 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
     Expression<DateTime>? dueDate,
     Expression<bool>? pinned,
     Expression<DateTime>? pinnedAt,
+    Expression<int>? pinnedOrder,
     Expression<int>? sortOrder,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -2026,6 +2083,7 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
       if (dueDate != null) 'due_date': dueDate,
       if (pinned != null) 'pinned': pinned,
       if (pinnedAt != null) 'pinned_at': pinnedAt,
+      if (pinnedOrder != null) 'pinned_order': pinnedOrder,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -2045,6 +2103,7 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
     Value<DateTime?>? dueDate,
     Value<bool>? pinned,
     Value<DateTime?>? pinnedAt,
+    Value<int>? pinnedOrder,
     Value<int>? sortOrder,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -2062,6 +2121,7 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
       dueDate: dueDate ?? this.dueDate,
       pinned: pinned ?? this.pinned,
       pinnedAt: pinnedAt ?? this.pinnedAt,
+      pinnedOrder: pinnedOrder ?? this.pinnedOrder,
       sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -2101,6 +2161,9 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
     if (pinnedAt.present) {
       map['pinned_at'] = Variable<DateTime>(pinnedAt.value);
     }
+    if (pinnedOrder.present) {
+      map['pinned_order'] = Variable<int>(pinnedOrder.value);
+    }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
@@ -2134,6 +2197,7 @@ class ActionsCompanion extends UpdateCompanion<ActionRow> {
           ..write('dueDate: $dueDate, ')
           ..write('pinned: $pinned, ')
           ..write('pinnedAt: $pinnedAt, ')
+          ..write('pinnedOrder: $pinnedOrder, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -6499,6 +6563,7 @@ typedef $$ActionsTableCreateCompanionBuilder =
       Value<DateTime?> dueDate,
       Value<bool> pinned,
       Value<DateTime?> pinnedAt,
+      Value<int> pinnedOrder,
       Value<int> sortOrder,
       required DateTime createdAt,
       required DateTime updatedAt,
@@ -6517,6 +6582,7 @@ typedef $$ActionsTableUpdateCompanionBuilder =
       Value<DateTime?> dueDate,
       Value<bool> pinned,
       Value<DateTime?> pinnedAt,
+      Value<int> pinnedOrder,
       Value<int> sortOrder,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
@@ -6593,6 +6659,11 @@ class $$ActionsTableFilterComposer
 
   ColumnFilters<DateTime> get pinnedAt => $composableBuilder(
     column: $table.pinnedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get pinnedOrder => $composableBuilder(
+    column: $table.pinnedOrder,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6699,6 +6770,11 @@ class $$ActionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get pinnedOrder => $composableBuilder(
+    column: $table.pinnedOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -6786,6 +6862,11 @@ class $$ActionsTableAnnotationComposer
   GeneratedColumn<DateTime> get pinnedAt =>
       $composableBuilder(column: $table.pinnedAt, builder: (column) => column);
 
+  GeneratedColumn<int> get pinnedOrder => $composableBuilder(
+    column: $table.pinnedOrder,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
 
@@ -6869,6 +6950,7 @@ class $$ActionsTableTableManager
                 Value<DateTime?> dueDate = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
                 Value<DateTime?> pinnedAt = const Value.absent(),
+                Value<int> pinnedOrder = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -6885,6 +6967,7 @@ class $$ActionsTableTableManager
                 dueDate: dueDate,
                 pinned: pinned,
                 pinnedAt: pinnedAt,
+                pinnedOrder: pinnedOrder,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -6903,6 +6986,7 @@ class $$ActionsTableTableManager
                 Value<DateTime?> dueDate = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
                 Value<DateTime?> pinnedAt = const Value.absent(),
+                Value<int> pinnedOrder = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
@@ -6919,6 +7003,7 @@ class $$ActionsTableTableManager
                 dueDate: dueDate,
                 pinned: pinned,
                 pinnedAt: pinnedAt,
+                pinnedOrder: pinnedOrder,
                 sortOrder: sortOrder,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

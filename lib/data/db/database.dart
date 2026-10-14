@@ -23,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'personal_projects'));
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -120,6 +120,16 @@ class AppDatabase extends _$AppDatabase {
             // và ràng buộc XOR của AD-19. Mọi Đợt đang có đều thuộc Dự án nên
             // vế XOR vẫn đúng ngay sau khi nâng cấp.
             await m.alterTable(TableMigration(reviews, newColumns: [reviews.areaId]));
+          }
+          if (from < 7) {
+            // v6 → v7: danh sách Làm ngay xếp lại được bằng tay — mỗi việc có
+            // một nút "đẩy lên đầu".
+            //
+            // Cột có mặc định `0` nên thêm thẳng được, và `0` chính là trạng
+            // thái "chưa ai đẩy gì cả". Mọi việc đang ghim vì thế giữ **đúng**
+            // thứ tự cũ sau khi nâng cấp: cùng `pinned_order = 0` thì câu
+            // truy vấn rơi về xếp theo `pinned_at` như trước.
+            await m.addColumn(actions, actions.pinnedOrder);
           }
         },
         beforeOpen: (details) async {

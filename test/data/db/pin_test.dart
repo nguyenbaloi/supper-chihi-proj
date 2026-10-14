@@ -46,18 +46,104 @@ void main() {
       expect(pinned, isEmpty);
     });
 
-    test('xếp theo thời điểm ghim, ghim trước lên trước', () async {
+    test('cùng độ ưu tiên: việc ghim sau cùng lên trên', () async {
       final p = await projects.create(name: 'Dự án');
       final a1 = await actions.create(projectId: p.id, title: 'Một');
       final a2 = await actions.create(projectId: p.id, title: 'Hai');
+      final a3 = await actions.create(projectId: p.id, title: 'Ba');
 
       now = DateTime.utc(2026, 8, 28, 15);
       await actions.setPinned(a2.id, true);
       now = DateTime.utc(2026, 8, 28, 16);
       await actions.setPinned(a1.id, true);
+      now = DateTime.utc(2026, 8, 28, 17);
+      await actions.setPinned(a3.id, true);
 
-      final pinned = await actions.watchPinned().first;
-      expect(pinned.map((a) => a.title).toList(), ['Hai', 'Một']);
+      expect((await actions.watchPinned().first).map((a) => a.title).toList(),
+          ['Ba', 'Một', 'Hai']);
+    });
+
+    test('ưu tiên cao lên trên trước, rồi mới xét thời điểm ghim', () async {
+      final p = await projects.create(name: 'Dự án');
+      final thapMoi = await actions.create(
+          projectId: p.id, title: 'Thấp, ghim mới', priority: Priority.low);
+      final caoCu = await actions.create(
+          projectId: p.id, title: 'Cao, ghim cũ', priority: Priority.high);
+      final tbMoi = await actions.create(
+          projectId: p.id, title: 'TB, ghim mới', priority: Priority.medium);
+      final caoMoi = await actions.create(
+          projectId: p.id, title: 'Cao, ghim mới', priority: Priority.high);
+      final tbCu = await actions.create(
+          projectId: p.id, title: 'TB, ghim cũ', priority: Priority.medium);
+
+      for (final a in [caoCu, tbCu, thapMoi, tbMoi, caoMoi]) {
+        now = now.add(const Duration(hours: 1));
+        await actions.setPinned(a.id, true);
+      }
+
+      expect((await actions.watchPinned().first).map((a) => a.title).toList(), [
+        'Cao, ghim mới',
+        'Cao, ghim cũ',
+        'TB, ghim mới',
+        'TB, ghim cũ',
+        'Thấp, ghim mới',
+      ], reason: 'xếp chữ cái sẽ ra high · low · medium — phải theo mức thật');
+    });
+
+    test('đổi độ ưu tiên thì việc đã ghim tự đổi chỗ', () async {
+      final p = await projects.create(name: 'Dự án');
+      final a1 = await actions.create(projectId: p.id, title: 'Một');
+      final a2 = await actions.create(projectId: p.id, title: 'Hai');
+      now = DateTime.utc(2026, 8, 28, 15);
+      await actions.setPinned(a1.id, true);
+      now = DateTime.utc(2026, 8, 28, 16);
+      await actions.setPinned(a2.id, true);
+      expect((await actions.watchPinned().first).map((a) => a.title).toList(),
+          ['Hai', 'Một']);
+
+      final mot = (await actions.watchPinned().first)
+          .firstWhere((a) => a.id == a1.id);
+      await actions.update(mot.copyWith(priority: Priority.high));
+
+      expect((await actions.watchPinned().first).map((a) => a.title).toList(),
+          ['Một', 'Hai']);
+    });
+
+    test('bỏ ghim rồi ghim lại thì tính là ghim mới nhất', () async {
+      final p = await projects.create(name: 'Dự án');
+      final a1 = await actions.create(projectId: p.id, title: 'Một');
+      final a2 = await actions.create(projectId: p.id, title: 'Hai');
+      now = DateTime.utc(2026, 8, 28, 15);
+      await actions.setPinned(a1.id, true);
+      now = DateTime.utc(2026, 8, 28, 16);
+      await actions.setPinned(a2.id, true);
+
+      await actions.setPinned(a1.id, false);
+      now = DateTime.utc(2026, 8, 28, 18);
+      await actions.setPinned(a1.id, true);
+
+      expect((await actions.watchPinned().first).map((a) => a.title).toList(),
+          ['Một', 'Hai']);
+    });
+
+    test('hoàn tác xoá giữ nguyên thời điểm ghim', () async {
+      final p = await projects.create(name: 'Dự án');
+      final a1 = await actions.create(projectId: p.id, title: 'Một');
+      final a2 = await actions.create(projectId: p.id, title: 'Hai');
+      now = DateTime.utc(2026, 8, 28, 15);
+      await actions.setPinned(a1.id, true);
+      now = DateTime.utc(2026, 8, 28, 16);
+      await actions.setPinned(a2.id, true);
+      final saved =
+          (await actions.watchPinned().first).firstWhere((a) => a.id == a1.id);
+
+      now = DateTime.utc(2026, 8, 28, 20);
+      await actions.delete(a1.id);
+      await actions.restore(saved);
+
+      expect((await actions.watchPinned().first).map((a) => a.title).toList(),
+          ['Hai', 'Một'],
+          reason: 'hoàn tác không phải là ghim lại');
     });
 
     test('đánh dấu Xong thì tự rời danh sách Làm ngay', () async {

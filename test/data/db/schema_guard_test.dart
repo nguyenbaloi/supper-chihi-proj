@@ -95,6 +95,14 @@ void main() {
 
   test('mở cơ sở dữ liệu rỗng rồi đọc lại thành công', () async {
     expect(await db.select(db.projects).get(), isEmpty);
-    expect(db.schemaVersion, 6);
+    expect(db.schemaVersion, 7);
+  });
+
+  // Thứ tự trong danh sách Làm ngay và thứ tự kéo thả trong một Dự án là hai
+  // chuyện khác nhau (FR-18 với FR-42). Gộp vào một cột thì kéo thả ở màn Dự
+  // án sẽ lặng lẽ xáo lại màn Hôm nay.
+  test('actions có hai cột thứ tự tách bạch', () {
+    final names = db.actions.$columns.map((c) => c.name).toSet();
+    expect(names.containsAll({'sort_order', 'pinned_order'}), isTrue);
   });
 }
