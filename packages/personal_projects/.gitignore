@@ -1,0 +1,72 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# FVM
+.fvm/
+!.fvmrc
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+*.iml
+
+# Gỡ loại trừ của ~/.gitignore_global cho những file BẮT BUỘC phải nằm trong repo.
+#
+# Gitignore toàn cục trên máy này loại `project.pbxproj`, `Podfile`,
+# `Podfile.lock`, `pubspec.lock` và `*.json`. Với một app Flutter thì mất chúng
+# nghĩa là clone về không dựng được: mất `IPHONEOS_DEPLOYMENT_TARGET = 14.0`
+# (AD-16), mất `platform :ios, '14.0'`, mất toàn bộ phiên bản đã ghim của
+# AD-13, mất danh mục icon và mất ảnh chụp schema drift.
+!ios/Runner.xcodeproj/project.pbxproj
+!ios/Runner.xcodeproj/project.xcworkspace/contents.xcworkspacedata
+!ios/Podfile
+!ios/Podfile.lock
+!pubspec.lock
+!ios/Runner/Assets.xcassets/**/Contents.json
+!drift_schemas/*.json
+!android/app/src/main/res/**/*.json

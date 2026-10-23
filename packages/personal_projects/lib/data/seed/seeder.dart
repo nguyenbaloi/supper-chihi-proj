@@ -1,0 +1,156 @@
+import 'package:drift/drift.dart';
+
+import '../../domain/models/enums.dart';
+import '../../domain/rules/day.dart';
+import '../../domain/rules/slugify.dart';
+import '../db/database.dart';
+import 'seed_data.dart';
+
+/// Nạp dữ liệu hạt giống — FR-1, FR-2, FR-3, FR-4.
+///
+/// Chạy lại **không nhân đôi** bản ghi: đối chiếu theo tên Lĩnh vực và tên Dự án.
+class Seeder {
+  Seeder(this._db, {DateTime Function()? clock}) : _now = clock ?? DateTime.now;
+
+  final AppDatabase _db;
+  final DateTime Function() _now;
+
+  /// FR-1: sáu Lĩnh vực chuẩn. Gọi ở mỗi lần mở app — người dùng không bao giờ
+  /// gặp danh sách Lĩnh vực rỗng, kể cả sau khi xoá sạch dữ liệu.
+  Future<void> ensureAreas() async {
+    final now = _now().toUtc();
+    await _db.transaction(() async {
+      final existing = await _db.select(_db.areas).get();
+      final byName = {for (final t in existing) t.name: t};
+      for (var i = 0; i < seedAreas.length; i++) {
+        final seed = seedAreas[i];
+        if (byName.containsKey(seed.name)) continue;
+        await _db.into(_db.areas).insert(
+              AreasCompanion.insert(
+                name: seed.name,
+                colorValue: seed.colorValue,
+                iconKey: seed.iconKey,
+                sortOrder: Value(i),
+                createdAt: now,
+                isSystemFallback: Value(seed.isFallback),
+              ),
+            );
+      }
+    });
+  }
+
+  /// FR-2, FR-3: bảy Dự án cùng Hành động, Ghi chú, Liên kết, và hai Mục tiêu
+  /// đã nối sẵn vào Dự án.
+  ///
+  /// Chạy hai lần liên tiếp cho ra kết quả giống hệt chạy một lần.
+  Future<void> applyProjectSeed() async {
+    await ensureAreas();
+    await _db.transaction(() async {
+      final areas = await _db.select(_db.areas).get();
+      final areaIdByName = {for (final t in areas) t.name: t.id};
+      final areaIdByKey = <String, int>{
+        for (final s in seedAreas)
+          if (areaIdByName.containsKey(s.name)) s.key: areaIdByName[s.name]!,
+      };
+      final fallbackId = areaIdByKey['other'] ?? areas.first.id;
+
+      final existingProjects = await _db.select(_db.projects).get();
+      final projectIdByName = {for (final p in existingProjects) p.name: p.id};
+      final now = _now().toUtc();
+
+      for (final seed in seedProjects) {
+        if (projectIdByName.containsKey(seed.name)) continue;
+
+        final projectId = await _db.into(_db.projects).insert(
+              ProjectsCompanion.insert(
+                areaId: areaIdByKey[seed.areaKey] ?? fallbackId,
+                name: seed.name,
+                description: Value(seed.description),
+                status: ProjectStatus.active.wire,
+                priority: seed.priority.wire,
+                createdAt: now,
+                updatedAt: now,
+                startedAt: Value(now),
+                searchText: Value(buildSearchText([seed.name, seed.description])),
+              ),
+            );
+        projectIdByName[seed.name] = projectId;
+
+        for (var i = 0; i < seed.actions.length; i++) {
+          final a = seed.actions[i];
+          await _db.into(_db.actions).insert(
+                ActionsCompanion.insert(
+                  projectId: projectId,
+                  title: a.title,
+                  status: a.status.wire,
+                  priority: Value(a.priority.wire),
+                  sortOrder: Value(i),
+                  createdAt: now,
+                  updatedAt: now,
+                  // Hành động hạt giống mang sẵn trạng thái từ file gốc; dấu
+                  // thời gian tương ứng được ghi để AD-5 không bị hụt dữ liệu.
+                  startedAt: Value(a.status == ActionStatus.todo ? null : now),
+                  completedAt: Value(a.status == ActionStatus.done ? now : null),
+                  searchText: Value(buildSearchText([a.title])),
+                ),
+              );
+        }
+
+        for (final n in seed.notes) {
+          await _db.into(_db.notes).insert(
+                NotesCompanion.insert(
+                  projectId: Value(projectId),
+                  title: n.title,
+                  bodyMarkdown: Value(n.body),
+                  createdAt: now,
+                  updatedAt: now,
+                  searchText: Value(buildSearchText([n.title, n.body])),
+                ),
+              );
+        }
+
+        for (final r in seed.reviews) {
+          final reviewId = await _db.into(_db.reviews).insert(
+                ReviewsCompanion.insert(
+                  projectId: Value(projectId),
+                  date: startOfDay(r.date),
+                  title: Value(r.title),
+                  summaryMarkdown: Value(r.summary),
+                  nextReviewDate: Value(
+                      r.nextReviewDate == null ? null : startOfDay(r.nextReviewDate!)),
+                  createdAt: now,
+                  searchText: Value(buildSearchText([r.title, r.summary])),
+                ),
+              );
+          for (var i = 0; i < r.items.length; i++) {
+            final item = r.items[i];
+            await _db.into(_db.reviewItems).insert(
+                  ReviewItemsCompanion.insert(
+                    reviewId: reviewId,
+                    label: item.label,
+                    verdict: item.verdict.wire,
+                    note: Value(item.note),
+                    sortOrder: Value(i),
+                    searchText: Value(buildSearchText([item.label, item.note])),
+                  ),
+                );
+          }
+        }
+
+        for (var i = 0; i < seed.links.length; i++) {
+          final l = seed.links[i];
+          await _db.into(_db.links).insert(
+                LinksCompanion.insert(
+                  projectId: Value(projectId),
+                  label: l.label,
+                  url: l.url,
+                  sortOrder: Value(i),
+                  searchText: Value(buildSearchText([l.label, l.url])),
+                ),
+              );
+        }
+      }
+
+    });
+  }
+}

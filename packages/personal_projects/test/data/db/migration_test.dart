@@ -1,0 +1,474 @@
+import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
+import 'package:drift_dev/api/migrations_native.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:personal_projects/data/db/database.dart';
+import 'package:personal_projects/data/repositories/drift_action_repository.dart';
+import 'package:sqlite3/sqlite3.dart' as sqlite;
+
+import 'generated/schema.dart';
+
+/// AD-10: mỗi lần tăng `schemaVersion` phải có test dựng cơ sở dữ liệu bản cũ
+/// rồi nâng lên, chứng minh dữ liệu người dùng không mất.
+///
+/// Ở đây dựng bản v1 bằng SQL thô thay vì dùng helper sinh sẵn của drift, vì
+/// bản v1 chưa từng được dump trước khi lên v2. Cách này còn chặt hơn ở một
+/// điểm: nó kiểm chứng dữ liệu thật sống sót, không chỉ kiểm cấu trúc bảng.
+const List<String> _schemaV1 = [
+  '''CREATE TABLE topics (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    color_value INTEGER NOT NULL,
+    icon_key TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    is_system_fallback INTEGER NOT NULL DEFAULT 0
+  )''',
+  '''CREATE TABLE projects (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    topic_id INTEGER NOT NULL REFERENCES topics (id),
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL,
+    priority TEXT NOT NULL,
+    due_date TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    started_at TEXT,
+    completed_at TEXT,
+    search_text TEXT NOT NULL DEFAULT ''
+  )''',
+  '''CREATE TABLE actions (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL,
+    due_date TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    started_at TEXT,
+    completed_at TEXT,
+    search_text TEXT NOT NULL DEFAULT ''
+  )''',
+  '''CREATE TABLE goals (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    is_numeric INTEGER NOT NULL DEFAULT 1,
+    target_raw INTEGER,
+    decimals INTEGER NOT NULL DEFAULT 0,
+    unit TEXT NOT NULL DEFAULT 'VND',
+    due_date TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    search_text TEXT NOT NULL DEFAULT ''
+  )''',
+  '''CREATE TABLE goal_updates (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    goal_id INTEGER NOT NULL REFERENCES goals (id) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    value_raw INTEGER NOT NULL,
+    decimals INTEGER NOT NULL DEFAULT 0,
+    note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+  )''',
+  '''CREATE TABLE project_goals (
+    project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE,
+    goal_id INTEGER NOT NULL REFERENCES goals (id) ON DELETE CASCADE,
+    PRIMARY KEY (project_id, goal_id)
+  )''',
+  '''CREATE TABLE notes (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    body_markdown TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    search_text TEXT NOT NULL DEFAULT ''
+  )''',
+  '''CREATE TABLE links (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    project_id INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE,
+    label TEXT NOT NULL,
+    url TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    search_text TEXT NOT NULL DEFAULT ''
+  )''',
+  '''CREATE TABLE status_events (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    entity_type TEXT NOT NULL,
+    entity_id INTEGER NOT NULL,
+    from_status TEXT NOT NULL,
+    to_status TEXT NOT NULL,
+    at TEXT NOT NULL
+  )''',
+  '''CREATE TABLE app_settings (
+    id INTEGER NOT NULL DEFAULT 1,
+    stale_days INTEGER NOT NULL DEFAULT 21,
+    theme_mode TEXT NOT NULL DEFAULT 'system',
+    seed_applied INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (id)
+  )''',
+];
+
+void main() {
+  test('v1 → v7: qua đủ sáu bước nâng cấp, dữ liệu người dùng còn nguyên',
+      () async {
+    final raw = sqlite.sqlite3.openInMemory();
+    for (final stmt in _schemaV1) {
+      raw.execute(stmt);
+    }
+    raw.execute('PRAGMA user_version = 1');
+
+    // Dữ liệu người dùng có thật trước khi nâng cấp.
+    raw.execute(
+      "INSERT INTO topics (id, name, color_value, icon_key, sort_order, is_system_fallback) "
+      "VALUES (1, 'Gia đình', 1, 'family', 0, 0)",
+    );
+    raw.execute(
+      "INSERT INTO projects (id, topic_id, name, description, status, priority, "
+      "created_at, updated_at, search_text) "
+      "VALUES (1, 1, 'Dạy Huy', 'theo dõi tiến bộ', 'active', 'high', "
+      "'2026-05-15T00:00:00.000Z', '2026-05-15T00:00:00.000Z', 'day huy')",
+    );
+    raw.execute(
+      "INSERT INTO actions (id, project_id, title, status, created_at, updated_at) "
+      "VALUES (1, 1, 'Ngủ sớm trước 11 giờ đêm', 'doing', "
+      "'2026-05-15T00:00:00.000Z', '2026-05-15T00:00:00.000Z')",
+    );
+    raw.execute(
+      "INSERT INTO goals (id, name, is_numeric, target_raw, created_at, updated_at) "
+      "VALUES (1, 'Mục tiêu 1 tỷ', 1, 1000000000, "
+      "'2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z')",
+    );
+
+    final db = AppDatabase(NativeDatabase.opened(raw));
+    addTearDown(db.close);
+
+    // Chạm vào cơ sở dữ liệu để buộc drift chạy migration.
+    final projects = await db.select(db.projects).get();
+
+    expect(db.schemaVersion, 7);
+    expect(raw.select('PRAGMA user_version').first.values.first, 7);
+
+    // Dữ liệu cũ nguyên vẹn.
+    expect(projects.length, 1);
+    expect(projects.single.name, 'Dạy Huy');
+    expect((await db.select(db.actions).get()).single.title,
+        'Ngủ sớm trước 11 giờ đêm');
+    // v3 bỏ hẳn Mục tiêu theo quyết định 2026-08-28 — ba bảng phải biến mất.
+    for (final t in ['goals', 'goal_updates', 'project_goals']) {
+      final rows = raw.select(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name=?", [t]);
+      expect(rows, isEmpty, reason: 'bảng $t phải bị xoá ở v3');
+    }
+
+    // v4 đổi tên Chủ đề thành Lĩnh vực — FR-46. Tên cũ phải biến mất hẳn,
+    // và giá trị người dùng ghi từ thời v1 phải đi qua nguyên vẹn.
+    expect(
+      raw.select(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='topics'"),
+      isEmpty,
+      reason: 'bảng topics phải được đổi tên thành areas ở v4',
+    );
+    final area = (await db.select(db.areas).get()).single;
+    expect(area.name, 'Gia đình');
+    expect(area.iconKey, 'family');
+    expect(projects.single.areaId, area.id);
+    expect(
+      raw.select("SELECT name FROM pragma_table_info('projects')")
+          .map((r) => r.values.first),
+      contains('area_id'),
+    );
+    expect(
+      raw.select("SELECT name FROM pragma_table_info('projects')")
+          .map((r) => r.values.first),
+      isNot(contains('topic_id')),
+    );
+    // Khoá ngoại phải trỏ sang tên bảng mới, nếu không thì chèn Dự án sẽ chết
+    // khi bật lại PRAGMA foreign_keys.
+    expect(
+      raw.select("SELECT \"table\" FROM pragma_foreign_key_list('projects')")
+          .map((r) => r.values.first),
+      contains('areas'),
+    );
+
+    // Hành động cũ nhận giá trị mặc định cho ba cột mới của v3.
+    final action = (await db.select(db.actions).get()).single;
+    expect(action.priority, 'medium');
+    expect(action.pinned, isFalse);
+    expect(action.pinnedAt, isNull);
+
+    // Bảng mới đã tồn tại và dùng được.
+    expect(await db.select(db.reviews).get(), isEmpty);
+    final reviewId = await db.into(db.reviews).insert(
+          ReviewsCompanion.insert(
+            projectId: const Value(1),
+            date: DateTime.utc(2026, 8, 7),
+            createdAt: DateTime.utc(2026, 8, 7),
+          ),
+        );
+    await db.into(db.reviewItems).insert(
+          ReviewItemsCompanion.insert(
+            reviewId: reviewId,
+            label: 'Tăng cường thể chất vận động',
+            verdict: 'met',
+          ),
+        );
+    expect((await db.select(db.reviewItems).get()).single.verdict, 'met');
+  });
+
+  // AD-10, bước 4: kiểm cấu trúc bằng helper sinh sẵn từ `drift_schemas/`.
+  // Test v1 → v7 ở trên chứng minh **dữ liệu** sống sót; test này chứng minh
+  // **cấu trúc** sau khi nâng cấp khớp từng cột với bản cài mới ở v7.
+  test('v3 → v7: cấu trúc sau nâng cấp khớp bản cài mới', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final connection = await verifier.startAt(3);
+    final db = AppDatabase(connection);
+    addTearDown(db.close);
+    await verifier.migrateAndValidate(db, 7);
+  });
+
+  test('v3 → v6: Lĩnh vực và Dự án giữ nguyên giá trị', () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(3);
+
+    // Ghi dữ liệu thật bằng schema v3, đúng tên cột thời đó.
+    schema.rawDatabase.execute(
+      "INSERT INTO topics (id, name, color_value, icon_key, sort_order, "
+      "is_system_fallback) VALUES (2, 'Sức khoẻ', 7, 'health', 3, 0)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO projects (id, topic_id, name, description, status, priority, "
+      "created_at, updated_at, search_text) "
+      "VALUES (9, 2, 'Chạy bộ đều', '', 'active', 'medium', "
+      "'2026-06-01T00:00:00.000Z', '2026-06-01T00:00:00.000Z', 'chay bo deu')",
+    );
+
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    await db.select(db.projects).get();
+
+    final area = (await db.select(db.areas).get()).single;
+    expect(area.id, 2);
+    expect(area.name, 'Sức khoẻ');
+    expect(area.sortOrder, 3);
+
+    final project = (await db.select(db.projects).get()).single;
+    expect(project.areaId, 2);
+    expect(project.name, 'Chạy bộ đều');
+    expect(project.searchText, 'chay bo deu');
+
+    // Khoá ngoại phải dùng được thật, không chỉ đúng trên giấy: chèn một Dự án
+    // trỏ tới Lĩnh vực không tồn tại phải bị chặn.
+    await db.customStatement('PRAGMA foreign_keys = ON');
+    await expectLater(
+      db.into(db.projects).insert(ProjectsCompanion.insert(
+            areaId: 404,
+            name: 'Dự án mồ côi',
+            status: 'active',
+            priority: 'medium',
+            createdAt: DateTime.utc(2026, 6, 1),
+            updatedAt: DateTime.utc(2026, 6, 1),
+          )),
+      throwsA(isA<Exception>()),
+    );
+  });
+
+  test('v4 → v5: Ghi chú và Liên kết cũ giữ nguyên chỗ gắn, areaId để trống',
+      () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(4);
+
+    schema.rawDatabase.execute(
+      "INSERT INTO areas (id, name, color_value, icon_key, sort_order, "
+      "is_system_fallback) VALUES (3, 'Học tập', 9, 'study', 0, 0)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO projects (id, area_id, name, description, status, priority, "
+      "created_at, updated_at, search_text) "
+      "VALUES (5, 3, 'Học tiếng Anh', '', 'active', 'medium', "
+      "'2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z', 'hoc tieng anh')",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO notes (id, project_id, title, body_markdown, created_at, "
+      "updated_at, search_text) VALUES (1, 5, 'Cách học từ vựng', 'nội dung', "
+      "'2026-07-01T00:00:00.000Z', '2026-07-01T00:00:00.000Z', 'cach hoc tu vung')",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO links (id, project_id, label, url, sort_order, search_text) "
+      "VALUES (1, 5, 'Anki', 'https://apps.ankiweb.net', 0, 'anki')",
+    );
+
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+
+    final note = (await db.select(db.notes).get()).single;
+    expect(note.projectId, 5, reason: 'chỗ gắn cũ phải giữ nguyên');
+    expect(note.areaId, isNull,
+        reason: 'điền areaId khi projectId còn giá trị sẽ phạm CHECK của AD-18');
+    expect(note.bodyMarkdown, 'nội dung');
+    expect(note.createdAt, DateTime.utc(2026, 7, 1));
+
+    final link = (await db.select(db.links).get()).single;
+    expect(link.projectId, 5);
+    expect(link.areaId, isNull);
+    expect(link.url, 'https://apps.ankiweb.net');
+  });
+
+  test('chặn Ghi chú gắn vào cả Dự án lẫn Lĩnh vực — AD-18', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    await db.select(db.notes).get();
+    await db.into(db.areas).insert(AreasCompanion.insert(
+        name: 'Sức khoẻ',
+        colorValue: 1,
+        iconKey: 'health',
+        createdAt: DateTime.utc(2026)));
+    await db.into(db.projects).insert(ProjectsCompanion.insert(
+          areaId: 1,
+          name: 'Dự án',
+          status: 'active',
+          priority: 'medium',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ));
+
+    await expectLater(
+      db.into(db.notes).insert(NotesCompanion.insert(
+            projectId: const Value(1),
+            areaId: const Value(1),
+            title: 'Gắn hai chỗ',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          )),
+      throwsA(isA<Exception>()),
+      reason: 'ràng buộc phải nằm ở tầng bảng, không chỉ là quy ước',
+    );
+  });
+
+  test('v5 → v6: Lĩnh vực nhận mặc định đúng nghĩa, Đợt cũ vẫn thuộc Dự án',
+      () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(5);
+
+    schema.rawDatabase.execute(
+      "INSERT INTO areas (id, name, color_value, icon_key, sort_order, "
+      "is_system_fallback) VALUES (4, 'Tài chính', 2, 'finance', 1, 0)",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO projects (id, area_id, name, description, status, priority, "
+      "created_at, updated_at, search_text) "
+      "VALUES (7, 4, 'Trả hết nợ', '', 'active', 'high', "
+      "'2026-08-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z', 'tra het no')",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO reviews (id, project_id, date, title, summary_markdown, "
+      "created_at, search_text) VALUES (1, 7, '2026-08-15T00:00:00.000Z', "
+      "'Nửa tháng', '', '2026-08-15T00:00:00.000Z', 'nua thang')",
+    );
+
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+
+    final area = (await db.select(db.areas).get()).single;
+    expect(area.name, 'Tài chính');
+    expect(area.standard, '',
+        reason: 'không tự nghĩ hộ tiêu chuẩn cho người dùng');
+    expect(area.reviewCadenceDays, isNull,
+        reason: 'null nghĩa là không nhắc gì — FR-48, không phải "chưa cấu hình"');
+    expect(area.createdAt, isNotNull);
+
+    final review = (await db.select(db.reviews).get()).single;
+    expect(review.projectId, 7, reason: 'Đợt cũ vẫn thuộc đúng Dự án cũ');
+    expect(review.areaId, isNull);
+    expect(review.title, 'Nửa tháng');
+  });
+
+  test('chặn Đợt đánh giá mồ côi và Đợt thuộc hai chỗ — AD-19', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    await db.select(db.reviews).get();
+    await db.into(db.areas).insert(AreasCompanion.insert(
+        name: 'Sức khoẻ',
+        colorValue: 1,
+        iconKey: 'health',
+        createdAt: DateTime.utc(2026)));
+    await db.into(db.projects).insert(ProjectsCompanion.insert(
+          areaId: 1,
+          name: 'Dự án',
+          status: 'active',
+          priority: 'medium',
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ));
+
+    // Cả hai cùng null — Đợt mồ côi, không màn hình nào liệt kê được.
+    await expectLater(
+      db.into(db.reviews).insert(ReviewsCompanion.insert(
+            date: DateTime.utc(2026, 9),
+            createdAt: DateTime.utc(2026, 9),
+          )),
+      throwsA(isA<Exception>()),
+    );
+
+    // Cả hai cùng có giá trị — bị đếm hai lần trong thống kê.
+    await expectLater(
+      db.into(db.reviews).insert(ReviewsCompanion.insert(
+            projectId: const Value(1),
+            areaId: const Value(1),
+            date: DateTime.utc(2026, 9),
+            createdAt: DateTime.utc(2026, 9),
+          )),
+      throwsA(isA<Exception>()),
+    );
+  });
+
+  test('v6 → v7: việc đang ghim còn nguyên, pinned_order về 0',
+      () async {
+    final verifier = SchemaVerifier(GeneratedHelper());
+    final schema = await verifier.schemaAt(6);
+
+    schema.rawDatabase.execute(
+      "INSERT INTO areas (id, name, color_value, icon_key, sort_order, "
+      "standard, is_system_fallback, created_at) VALUES (1, 'Gia đình', 1, "
+      "'family', 0, '', 0, '2026-01-01T00:00:00.000Z')",
+    );
+    schema.rawDatabase.execute(
+      "INSERT INTO projects (id, area_id, name, description, status, priority, "
+      "created_at, updated_at, search_text) VALUES (1, 1, 'Dạy Huy', '', "
+      "'active', 'high', '2026-08-01T00:00:00.000Z', "
+      "'2026-08-01T00:00:00.000Z', 'day huy')",
+    );
+    // Hai việc đã ghim, cách nhau một giờ.
+    for (final (id, title, at) in [
+      (1, 'Ghim trước', '2026-09-01T08:00:00.000Z'),
+      (2, 'Ghim sau', '2026-09-01T09:00:00.000Z'),
+    ]) {
+      schema.rawDatabase.execute(
+        "INSERT INTO actions (id, project_id, title, note, status, priority, "
+        "pinned, pinned_at, sort_order, created_at, updated_at, search_text) "
+        "VALUES ($id, 1, '$title', '', 'todo', 'medium', 1, '$at', 0, "
+        "'2026-08-01T00:00:00.000Z', '2026-08-01T00:00:00.000Z', '')",
+      );
+    }
+
+    final db = AppDatabase(schema.newConnection());
+    addTearDown(db.close);
+    final repo = DriftActionRepository(db);
+
+    final pinned = await repo.watchPinned().first;
+    expect(pinned.map((a) => a.title).toList(), ['Ghim sau', 'Ghim trước'],
+        reason: 'cùng ưu tiên thì việc ghim sau cùng lên trên');
+    expect(pinned.every((a) => a.pinnedOrder == 0), isTrue,
+        reason: '0 nghĩa là chưa ai đẩy việc nào lên đầu');
+  });
+
+  test('cài mới ở v7 tạo đủ chín bảng', () async {
+    final db = AppDatabase(NativeDatabase.memory());
+    addTearDown(db.close);
+    await db.select(db.projects).get();
+    expect(db.allTables.length, 9);
+  });
+}

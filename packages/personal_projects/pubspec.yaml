@@ -1,0 +1,63 @@
+name: personal_projects
+description: "Ứng dụng quản lý dự án và mục tiêu cá nhân"
+publish_to: 'none'
+version: 1.2.0+1
+
+environment:
+  sdk: ^3.10.9
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Quản lý trạng thái.
+  # Không dùng riverpod codegen: riverpod_generator cần analyzer ^9/^12 còn
+  # drift_dev cần ^10/^13 — loại trừ nhau dưới Dart 3.10.9. Xem AD-2.
+  flutter_riverpod: ^3.3.2
+
+  # Cơ sở dữ liệu.
+  # Giữ ở drift_flutter 0.2.x có chủ đích: bản 0.3.x kéo theo sqlite3 3.x vốn
+  # dùng build hooks, mà build_runner không chạy được với build hooks
+  # ('dart compile' does not support build hooks). Xem AD-13.
+  drift: ^2.31.0
+  drift_flutter: ^0.2.8
+
+  # Số học chính xác cho giá trị Mục tiêu — bắt buộc, xem AD-4.
+  decimal: ^3.2.6
+
+  # Định dạng và biểu đồ
+  intl: 0.20.2          # bị ghim bởi flutter_localizations trong SDK
+  fl_chart: ^1.2.0
+
+  # Hạ tầng
+  meta: any             # bị SDK ghim
+  shared_preferences: ^2.5.5
+  path_provider: ^2.1.6
+  share_plus: ^13.3.0   # xuất sao lưu — FR-31
+  url_launcher: ^6.3.1  # mở Liên kết ngoài — FR-28, ngoại lệ duy nhất của AD-6
+  # Chọn file sao lưu để nhập — FR-32. Đã kiểm tra cả cây phụ thuộc không có
+  # thư mục hook/ và build_runner vẫn sinh mã drift được (AD-13).
+  file_picker: ^12.1.1
+
+# KHÔNG có package:http. Ứng dụng không gọi mạng — xem AD-6.
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.15.1
+  drift_dev: ^2.31.0
+  # Chỉ dùng trong test migration: dựng cơ sở dữ liệu bản cũ bằng SQL thô
+  # rồi để drift nâng cấp. Đã kiểm tra không có thư mục hook/ — AD-13.
+  sqlite3: ^2.9.4
+
+# path_provider_foundation 2.6.0 kéo theo objective_c vốn dùng build hooks,
+# mà build_runner không compile được builder khi có build hooks trong cây phụ
+# thuộc. Ghim 2.5.1. Gỡ override này khi build_runner hỗ trợ hooks. Xem AD-13.
+dependency_overrides:
+  path_provider_foundation: 2.5.1
+
+flutter:
+  uses-material-design: true
