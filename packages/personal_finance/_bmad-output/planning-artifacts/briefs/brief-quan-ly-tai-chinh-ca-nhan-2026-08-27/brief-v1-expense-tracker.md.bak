@@ -1,0 +1,111 @@
+---
+title: "Product Brief: Ứng dụng Quản lý Tài chính Cá nhân"
+status: draft
+created: 2026-08-27
+updated: 2026-08-27
+---
+
+# Product Brief: Ứng dụng Quản lý Tài chính Cá nhân
+
+## Tóm tắt điều hành
+
+Đây là một ứng dụng mobile (Flutter, Android + iOS) giúp một người — và những người trong gia đình họ — ghi lại tiền vào tiền ra hằng ngày, phân loại theo danh mục, và nhìn thấy ngay bức tranh chi tiêu của mình qua biểu đồ. Toàn bộ dữ liệu nằm trên máy, không tài khoản, không đăng nhập, không đồng bộ lên bất kỳ máy chủ nào.
+
+Vấn đề không nằm ở chỗ thiếu app quản lý chi tiêu — thị trường đã có Money Lover, Sổ Thu Chi MISA, Spendee. Vấn đề là **người ta bỏ dùng sau hai tuần**. Nguyên nhân gần như luôn là một trong hai: nhập một khoản chi mất quá nhiều thao tác nên dần dần lười, hoặc phải giao toàn bộ lịch sử chi tiêu của mình cho một tài khoản cloud mà mình không kiểm soát được. Ứng dụng này chọn đánh thẳng vào hai điểm đó và chấp nhận hy sinh mọi thứ khác.
+
+Chỉ số thành công không phải là số tính năng, mà là: sau 30 ngày, người dùng vẫn còn ghi chép. Mọi quyết định thiết kế trong tài liệu này đều phục vụ con số đó.
+
+## Vấn đề
+
+**Nỗi đau 1 — Nhập liệu là ma sát giết chết thói quen.**
+Một khoản chi thực tế xảy ra trong 10 giây: trả 35.000đ ly cà phê rồi đi tiếp. Nhưng để ghi lại nó, các app phổ biến bắt người dùng: mở app → chờ splash/quảng cáo → bấm nút "+" → chọn tab Chi → chọn ví → chọn danh mục qua danh sách dài → gõ số tiền → gõ ghi chú → chọn ngày → bấm Lưu. Bảy đến chín thao tác cho một hành động lẽ ra chỉ đáng hai. Người dùng không bỏ vì lười — họ bỏ vì cái giá của việc ghi chép cao hơn giá trị họ cảm nhận được tại thời điểm đó. Đến khi bỏ sót vài ngày, dữ liệu không còn đáng tin, và họ bỏ hẳn.
+
+**Nỗi đau 2 — Không ai muốn đưa sổ chi tiêu của mình cho người lạ giữ.**
+Lịch sử giao dịch cá nhân là dữ liệu nhạy cảm bậc nhất: nó lộ ra thu nhập, thói quen, sức khỏe, các mối quan hệ, thậm chí cả những khoản chi người ta không muốn ai biết. Các app hiện nay mặc định yêu cầu tạo tài khoản và đẩy dữ liệu lên cloud, thường kèm theo điều khoản cho phép phân tích dữ liệu để phục vụ quảng cáo. Với người dùng chỉ muốn quản lý tiền của mình, đây là một cái giá không cần thiết — họ không nhận được gì đổi lại, vì họ chỉ dùng trên một chiếc điện thoại.
+
+**Cách người dùng đang xoay xở hiện nay.** Ghi vào Notes hoặc Excel — linh hoạt và riêng tư, nhưng không có danh mục chuẩn, không tổng hợp được, và cực kỳ mệt trên điện thoại. Hoặc dùng app phổ biến rồi bỏ dở sau vài tuần. Hoặc phổ biến nhất: không ghi gì cả, và cuối tháng tự hỏi tiền đã đi đâu.
+
+**Cái giá của việc để nguyên hiện trạng.** Không có dữ liệu thì không có quyết định. Người dùng không biết mình đang tiêu quá tay ở đâu, không phát hiện được các khoản chi nhỏ lặp lại đang âm thầm ăn mòn thu nhập, và không có cơ sở để đặt mục tiêu tiết kiệm.
+
+## Giải pháp
+
+Một ứng dụng cố tình nhỏ, làm đúng ba việc và làm cho tốt:
+
+**1. Ghi giao dịch trong dưới 5 giây.** Mở app là vào thẳng màn hình nhập, con trỏ đã sẵn ở ô số tiền, bàn phím số đã bật. Gõ số tiền → chạm một danh mục trong lưới icon (không phải danh sách xổ) → xong. Ngày mặc định là hôm nay, ghi chú là tùy chọn, không bắt buộc bước nào khác. Các danh mục dùng nhiều nhất tự nổi lên đầu theo tần suất thực tế của chính người dùng.
+
+**2. Phân loại đủ dùng, không rối.** Một bộ danh mục tiếng Việt dựng sẵn hợp với đời sống Việt Nam (Ăn uống, Đi lại, Chợ/Siêu thị, Hóa đơn, Sức khỏe, Giáo dục, Giải trí, Mua sắm, Lương, Thưởng...), có icon và màu riêng để nhận diện bằng mắt. Người dùng sửa, thêm, ẩn được — nhưng không phải cấu hình gì trước khi bắt đầu dùng.
+
+**3. Phản hồi trực quan để giữ động lực.** Màn hình tổng quan cho thấy ngay: tháng này thu bao nhiêu, chi bao nhiêu, còn lại bao nhiêu; biểu đồ tròn tiền đi vào những danh mục nào; xu hướng vài tháng gần đây. Đây là phần "trả công" cho việc ghi chép — không có nó, người dùng chỉ thấy mình đang nhập liệu cho một cái hố đen.
+
+**Và một quyết định nền tảng: dữ liệu không rời khỏi máy.** Không tài khoản, không đăng nhập, không server. Cơ sở dữ liệu SQLite nằm trong vùng lưu trữ riêng của ứng dụng. Người dùng xuất được file CSV để tự sao lưu ở nơi họ chọn. Điều này vừa giải quyết trực tiếp nỗi đau 2, vừa loại bỏ toàn bộ chi phí vận hành và độ phức tạp của backend — đổi lại là chấp nhận giới hạn: dữ liệu không tự đồng bộ sang máy khác, và mất máy mà chưa sao lưu thì mất dữ liệu.
+
+## Điều làm nên khác biệt
+
+Sản phẩm này không cạnh tranh trên số lượng tính năng — nó sẽ thua mọi app thương mại ở tiêu chí đó, và đó là chủ ý.
+
+- **Tối giản là tính năng, không phải giai đoạn.** Các app thương mại buộc phải phình ra để giữ chân người dùng trả phí. Ứng dụng này không có áp lực đó, nên có thể giữ mãi ở mức nhỏ.
+- **Riêng tư theo kiến trúc, không theo lời hứa.** Không có server nghĩa là không có gì để rò rỉ, không có điều khoản dữ liệu để đọc, không cần tin ai cả. Đây là điều một app cloud về bản chất không thể đưa ra.
+- **Không quảng cáo, không tài khoản, không tường phí.** Mở app là dùng được ngay.
+- **Hợp ngữ cảnh Việt Nam.** Tiếng Việt, định dạng VND (35.000đ chứ không phải $35.00), danh mục hợp với chi tiêu thực tế trong nước.
+
+Nói thẳng: đây không phải một lợi thế cạnh tranh bền vững theo nghĩa thương mại — bất kỳ ai cũng làm được một app như thế này. Nhưng sản phẩm không nhắm tới thị phần, nên điều đó không quan trọng. Giá trị của nó là *vừa vặn* với một nhóm người dùng cụ thể.
+
+## Phục vụ ai
+
+**Người dùng chính — chủ nhân chiếc điện thoại.** Một người đi làm, có thu nhập ổn định, muốn biết tiền của mình đi đâu nhưng đã thử vài app và bỏ dở. Họ không cần phân tích tài chính chuyên sâu; họ cần một thói quen ghi chép nhẹ đến mức duy trì được. Với họ, thành công là: sau một tháng, mở app lên và thấy một bức tranh đầy đủ, không thủng lỗ chỗ.
+
+**Người dùng phụ — thành viên gia đình.** [GIẢ ĐỊNH] Vợ/chồng hoặc con cái cũng cài app trên máy riêng để tự theo dõi phần chi tiêu của mình. Vì dữ liệu chỉ nằm trên máy, mỗi người có sổ riêng biệt lập — không có chuyện xem chung một sổ trong bản đầu. *Cần xác nhận: bạn có muốn nhiều người dùng chung một sổ không? Nếu có, đây là thay đổi kiến trúc lớn (cần đồng bộ) và nên đưa vào roadmap v2 chứ không phải MVP.*
+
+## Tiêu chí thành công
+
+**Tín hiệu từ người dùng — quan trọng nhất:**
+- Sau 30 ngày kể từ lần cài đặt, người dùng vẫn ghi chép; số ngày có ít nhất một giao dịch đạt từ 20/30 ngày trở lên.
+- Thời gian trung bình từ lúc mở app đến lúc lưu xong một giao dịch: **dưới 5 giây**. Đây là chỉ số phải đo được, không phải cảm tính.
+- Tỷ lệ bỏ dở giữa chừng khi đang nhập một giao dịch: dưới 10%.
+
+**Chất lượng kỹ thuật:**
+- App khởi động nguội dưới 2 giây trên thiết bị tầm trung.
+- Không mất dữ liệu trong mọi tình huống: tắt app đột ngột, hết pin, cập nhật phiên bản.
+- [GIẢ ĐỊNH] Hoạt động mượt với ít nhất 10.000 giao dịch (~5 năm sử dụng với 5-6 giao dịch/ngày).
+
+**Không phải mục tiêu:** số lượt tải, doanh thu, số người dùng hoạt động — sản phẩm này không nhắm tới các chỉ số đó.
+
+## Phạm vi
+
+**Trong phạm vi bản đầu tiên (MVP):**
+- Ghi giao dịch thu và chi: số tiền, danh mục, ngày, ghi chú tùy chọn.
+- Bộ danh mục tiếng Việt dựng sẵn; thêm/sửa/xóa/ẩn danh mục; mỗi danh mục có icon và màu.
+- Danh sách giao dịch: xem theo tháng, tìm kiếm, lọc theo danh mục, sửa và xóa giao dịch.
+- Màn hình tổng quan: tổng thu / tổng chi / chênh lệch của tháng hiện tại.
+- Báo cáo: biểu đồ tròn chi tiêu theo danh mục, biểu đồ cột so sánh thu-chi theo tháng, chọn được khoảng thời gian.
+- Định dạng tiền VND và giao diện tiếng Việt toàn bộ.
+- Lưu trữ cục bộ bằng SQLite; xuất dữ liệu ra CSV để người dùng tự sao lưu.
+- Chế độ sáng và tối.
+
+**Rõ ràng nằm ngoài phạm vi bản đầu:**
+- Tài khoản người dùng, đăng nhập, đồng bộ đám mây, dùng chung sổ giữa nhiều người.
+- Nhiều ví / tài khoản ngân hàng và chuyển tiền giữa các ví.
+- Ngân sách, hạn mức chi tiêu và cảnh báo vượt hạn mức.
+- Giao dịch định kỳ tự động, nhắc nhở, thông báo đẩy.
+- Quét hóa đơn OCR, kết nối ngân hàng, nhập liệu bằng giọng nói.
+- Đa tiền tệ, đa ngôn ngữ.
+- Khoản vay, nợ, mục tiêu tiết kiệm, quản lý đầu tư.
+
+Ranh giới này được giữ chặt có lý do: mỗi tính năng thêm vào đều làm tăng số lựa chọn người dùng phải xử lý khi nhập một giao dịch — tức là đánh thẳng vào nỗi đau số 1. Ví và ngân sách là hai ứng viên hàng đầu cho v2, nhưng chỉ sau khi luồng nhập liệu đã được chứng minh là đủ nhanh.
+
+## Tầm nhìn
+
+**Ngay sau MVP (v1.1 – v1.2):** khóa app bằng vân tay/Face ID; ngân sách theo danh mục kèm cảnh báo; nhiều ví; giao dịch định kỳ cho các khoản cố định như tiền nhà, tiền mạng; widget trên màn hình chính để ghi giao dịch mà không cần mở app.
+
+**Xa hơn (1-2 năm):** đồng bộ giữa các thiết bị **theo cách không phá vỡ nguyên tắc riêng tư** — sao lưu mã hóa đầu-cuối vào iCloud/Google Drive của chính người dùng, hoặc đồng bộ trực tiếp giữa hai máy trong cùng mạng LAN. Không bao giờ là một server trung tâm do bên thứ ba vận hành. Ngoài ra: gợi ý danh mục thông minh dựa trên số tiền và thời điểm, chạy hoàn toàn trên máy.
+
+**Điều sẽ không thay đổi:** không quảng cáo, không bán dữ liệu, không bắt buộc tạo tài khoản. Nếu một ngày nào đó sản phẩm cần doanh thu, hình thức sẽ là trả tiền một lần cho các tính năng nâng cao — chứ không phải đánh đổi bằng dữ liệu của người dùng.
+
+---
+
+## Câu hỏi còn mở
+
+1. **Dùng chung sổ trong gia đình:** mỗi người một sổ riêng trên máy mình (như bản nháp này giả định), hay cần xem chung một sổ? Nếu cần xem chung, MVP buộc phải có cơ chế đồng bộ và toàn bộ kiến trúc offline-first sẽ phải xem lại.
+2. **Sao lưu:** xuất CSV thủ công đã đủ an tâm chưa, hay cần thêm sao lưu tự động vào iCloud/Google Drive ngay từ bản đầu?
+3. **Khóa ứng dụng:** dữ liệu tài chính trên máy — có cần vân tay/Face ID ngay ở MVP không? Bản nháp này đang xếp nó vào v1.1.
+4. **Thiết bị mục tiêu:** dòng máy và phiên bản Android/iOS thấp nhất cần hỗ trợ?

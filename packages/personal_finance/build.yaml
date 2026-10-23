@@ -1,0 +1,13 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Lưu DateTime dạng chuỗi ISO-8601 theo giờ UTC thay vì số giây epoch.
+          #
+          # Mặc định drift lưu số nguyên epoch rồi trả về DateTime mang cờ giờ
+          # địa phương. Cùng một thời điểm, nhưng cờ `isUtc` bị mất — nghĩa là
+          # ghi `DateTime.utc(...)` xuống rồi đọc lên không còn bằng chính nó.
+          # Với dữ liệu tài chính có mốc ngày quyết định thứ tự chuỗi tính toán
+          # (xem AD-4), mập mờ về múi giờ là thứ không chấp nhận được.
+          store_date_time_values_as_text: true

@@ -1,0 +1,65 @@
+name: personal_finance
+description: "Ứng dụng quản lý danh mục đầu tư cá nhân"
+publish_to: 'none'
+version: 1.2.0+1
+
+environment:
+  sdk: ^3.10.9
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Quản lý trạng thái.
+  # Không dùng riverpod codegen: riverpod_generator cần analyzer ^9/^12 còn
+  # drift_dev cần ^10/^13 — loại trừ nhau dưới Dart 3.10.9. Xem AD-2.
+  flutter_riverpod: ^3.3.2
+
+  # Cơ sở dữ liệu.
+  # Giữ ở drift_flutter 0.2.x có chủ đích: bản 0.3.x kéo theo sqlite3 3.x vốn
+  # dùng build hooks, mà build_runner không chạy được với build hooks
+  # ('dart compile' does not support build hooks). Không build_runner thì
+  # không sinh được code drift. Đã kiểm chứng. Xem AD-13.
+  drift: ^2.31.0
+  drift_flutter: ^0.2.8
+
+  # Truy cập SQLite thô — chỉ dùng để soi tệp sao lưu trước khi khôi phục
+  # (đọc `user_version` và danh sách bảng ở chế độ chỉ đọc). Không mở tệp lạ
+  # bằng AppDatabase: drift sẽ chạy migration lên tệp chưa được kiểm chứng.
+  # Ghim dưới 3.0.0 — nhánh 3.x dùng build hooks, xem AD-13.
+  sqlite3: ">=2.9.4 <3.0.0"
+
+  # Số học chính xác — bắt buộc, xem AD-3.
+  decimal: ^3.2.6
+
+  # Định dạng và biểu đồ
+  intl: 0.20.2          # bị ghim bởi flutter_localizations trong SDK
+  fl_chart: ^1.2.0
+
+  # Hạ tầng
+  meta: any             # bị SDK ghim ở 1.17.0
+  http: ^1.6.0
+  shared_preferences: ^2.5.5
+  path_provider: ^2.1.6
+  share_plus: ^13.3.0
+  file_picker: ^12.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.15.1
+  drift_dev: ^2.31.0
+
+# path_provider_foundation 2.6.0 kéo theo objective_c vốn dùng build hooks,
+# mà build_runner không compile được builder khi có build hooks trong cây phụ
+# thuộc ('dart compile' does not support build hooks). Ghim 2.5.1 — bản mới
+# nhất không dính objective_c. Gỡ override này khi build_runner hỗ trợ hooks.
+dependency_overrides:
+  path_provider_foundation: 2.5.1
+
+flutter:
+  uses-material-design: true
+  generate: true
