@@ -1,0 +1,37 @@
+name: rsi_alert
+description: "Theo dõi và cảnh báo RSI(14) khung tuần của Bitcoin và VNINDEX"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.9
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Quản lý trạng thái. KHÔNG dùng codegen — xem AD-8.
+  flutter_riverpod: ^3.3.2   # 3.4.x yêu cầu Dart >=3.12, ta ở 3.10.9
+
+  # Gọi ba nguồn dữ liệu thị trường. Đây là package duy nhất được phép ra mạng.
+  http: ^1.6.0
+
+  # Kho cục bộ: JSON phẳng, mỗi Mã một khoá — AD-9.
+  shared_preferences: ^2.5.5
+
+  # Định dạng ngày tuần theo giờ Asia/Ho_Chi_Minh — AD-3.
+  intl: ^0.20.3
+
+# KHÔNG có package biểu đồ. Hai khung phải chia chung một ChartViewport nên
+# biểu đồ được tự vẽ bằng CustomPainter — xem AD-7.
+# KHÔNG có flutter_localizations: app chỉ tiếng Việt, và nó sẽ ghim intl xuống
+# bản cũ hơn.
+# KHÔNG có analytics, crash reporting, quảng cáo — NFR-4.
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
