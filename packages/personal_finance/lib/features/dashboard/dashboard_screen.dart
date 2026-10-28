@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 
 import '../../core/format/vn_format.dart';
 import '../../core/l10n/generated/app_localizations.dart';
@@ -30,7 +31,10 @@ class DashboardScreen extends ConsumerWidget {
     final valuationAsync = ref.watch(portfolioValuationProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.navDashboard)),
+      appBar: AppBar(
+        leading: MiniAppScope.exitButtonOf(context),
+        title: Text(l10n.navDashboard),
+      ),
       body: valuationAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => EmptyState(

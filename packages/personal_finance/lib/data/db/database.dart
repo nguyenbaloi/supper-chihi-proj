@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 
 import '../../core/money/money.dart';
 import '../../domain/models/default_asset_classes.dart';
@@ -20,6 +21,11 @@ import 'tables/settings_table.dart';
 
 part 'database.g.dart';
 
+/// Tên cơ sở dữ liệu. Tệp thật là `$kDatabaseName.sqlite` trong thư mục
+/// riêng của ứng dụng — xem `backup_file.dart`, nơi sao lưu và khôi phục
+/// thao tác thẳng trên tệp đó.
+const kDatabaseName = 'personal_finance';
+
 /// Cơ sở dữ liệu cục bộ. Toàn bộ danh mục nằm ở đây và không rời khỏi máy.
 ///
 /// Không có cột nào lưu giá trị tổng hợp: giá trị Lớp tài sản, Tổng tài sản,
@@ -39,16 +45,21 @@ part 'database.g.dart';
     ActionNotesTable,
   ],
 )
-/// Tên cơ sở dữ liệu. Tệp thật là `$kDatabaseName.sqlite` trong thư mục tài
-/// liệu riêng của ứng dụng — xem `backup_file.dart`, nơi sao lưu và khôi phục
-/// thao tác thẳng trên tệp đó.
-const kDatabaseName = 'personal_finance';
-
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
-  /// Mở cơ sở dữ liệu thật, đặt trong thư mục riêng của ứng dụng.
-  AppDatabase.open() : super(driftDatabase(name: kDatabaseName));
+  /// Mở cơ sở dữ liệu thật, đặt trong thư mục riêng của ứng dụng — chỗ không
+  /// hiện trong app Tệp, xem [miniAppDatabaseFile].
+  AppDatabase.open()
+      : super(
+          driftDatabase(
+            name: kDatabaseName,
+            native: DriftNativeOptions(
+              databasePath: () async =>
+                  (await miniAppDatabaseFile(kDatabaseName)).path,
+            ),
+          ),
+        );
 
   @override
   int get schemaVersion => 3;

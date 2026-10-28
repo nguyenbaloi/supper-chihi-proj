@@ -1,6 +1,7 @@
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 
 import '../../core/format/vn_format.dart';
 import '../../core/l10n/generated/app_localizations.dart';
@@ -32,6 +33,7 @@ class TargetsScreen extends ConsumerWidget {
     if (valuation == null) {
       return Scaffold(
         appBar: AppBar(
+        leading: MiniAppScope.exitButtonOf(context),
         title: Text(l10n.targets),
         actions: [
           IconButton(
@@ -54,6 +56,7 @@ class TargetsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: MiniAppScope.exitButtonOf(context),
         title: Text(l10n.targets),
         actions: [
           IconButton(

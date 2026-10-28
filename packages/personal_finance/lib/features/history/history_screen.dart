@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 
 import '../../core/format/vn_date.dart';
 import '../../core/format/vn_format.dart';
@@ -53,7 +54,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final seriesAsync = ref.watch(snapshotSeriesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.history)),
+      appBar: AppBar(
+        leading: MiniAppScope.exitButtonOf(context),
+        title: Text(l10n.history),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _captureManual,
         icon: const Icon(Icons.bookmark_add_outlined),

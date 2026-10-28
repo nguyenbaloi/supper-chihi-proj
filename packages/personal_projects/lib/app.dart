@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 
 import 'core/l10n/strings.dart';
 import 'domain/models/enums.dart';
@@ -135,6 +136,7 @@ class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: MiniAppScope.exitButtonOf(context),
         title: Text(switch (_index) {
           0 => S.tabToday,
           1 => S.tabProjects,

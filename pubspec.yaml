@@ -1,0 +1,20 @@
+name: super_app_workspace
+description: "Gốc workspace — không phải ứng dụng. Gom mọi package để giải phụ thuộc chung một lần."
+publish_to: 'none'
+
+environment:
+  sdk: ^3.10.9
+
+workspace:
+  - apps/super_app
+  - packages/mini_app_core
+  - packages/personal_finance
+  - packages/personal_projects
+  - packages/rsi_alert
+
+# Trong workspace, dependency_overrides chỉ có hiệu lực ở gốc.
+# path_provider_foundation 2.6.0 kéo theo objective_c vốn dùng build hooks,
+# mà build_runner không compile được builder khi có build hooks trong cây phụ
+# thuộc ('dart compile' does not support build hooks). Ghim 2.5.1.
+dependency_overrides:
+  path_provider_foundation: 2.5.1

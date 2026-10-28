@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'app.dart';
+import 'finance_mini_app.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Không ghi đè databaseProvider ở đây nữa: cơ sở dữ liệu do
-  // `databaseHostProvider` mở, để khôi phục dữ liệu đóng và mở lại được tệp
-  // mà không cần dựng lại cây widget.
-  runApp(const ProviderScope(child: PersonalFinanceApp()));
+  const app = FinanceMiniApp();
+  final container = await app.createContainer();
+  runApp(UncontrolledProviderScope(container: container, child: app.buildApp()));
 }

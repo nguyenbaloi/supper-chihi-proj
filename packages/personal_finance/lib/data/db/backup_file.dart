@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'database.dart';
@@ -71,9 +71,36 @@ final class BackupRejected extends BackupCheck {
 }
 
 /// Tệp cơ sở dữ liệu đang được ứng dụng dùng.
-Future<File> liveDatabaseFile() async {
-  final dir = await getApplicationDocumentsDirectory();
-  return File('${dir.path}/$kDatabaseFileName');
+Future<File> liveDatabaseFile() => miniAppDatabaseFile(kDatabaseName);
+
+/// Tên tệp sao lưu hằng tuần — cố định để lần sau ghi đè lần trước.
+const kWeeklyBackupFileName = 'chichimonney-sao-luu-hang-tuan.sqlite';
+
+/// Bản sao lưu hằng tuần do super app gọi. Xem `BackupSource`.
+Future<bool> writeWeeklyBackup(File target) async =>
+    writeSnapshotBackup(source: await liveDatabaseFile(), target: target);
+
+/// Chụp [source] sang [target] bằng `VACUUM INTO` trên một kết nối riêng.
+///
+/// Khác [writeBackupCopy] ở chỗ không cần [AppDatabase] đang mở: bản hằng tuần
+/// chạy từ màn hình chính của super app, lúc mini app có thể chưa mở. SQLite
+/// tự đọc một ảnh nhất quán gồm cả phần còn trong `-wal`, kể cả khi mini app
+/// đang ghi dở, và tệp ra là một tệp đơn không kèm tệp phụ.
+///
+/// Trả về `false` khi chưa có cơ sở dữ liệu — mở bằng chế độ tạo mới ở đây sẽ
+/// sinh ra một tệp rỗng thiếu bảng.
+Future<bool> writeSnapshotBackup({
+  required File source,
+  required File target,
+}) async {
+  if (!await source.exists()) return false;
+  final raw = sqlite3.open(source.path, mode: OpenMode.readWrite);
+  try {
+    raw.execute('VACUUM INTO ?', [target.path]);
+  } finally {
+    raw.dispose();
+  }
+  return true;
 }
 
 /// Tên tệp sao lưu, mang ngày giờ để nhiều bản không đè lên nhau.

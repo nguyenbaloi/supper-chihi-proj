@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 
 import '../../core/format/vn_date.dart';
 import '../../core/l10n/generated/app_localizations.dart';
@@ -26,6 +27,7 @@ class DebtsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: MiniAppScope.exitButtonOf(context),
         title: Text(l10n.debtLedger),
         actions: [
           if (settled.isNotEmpty)

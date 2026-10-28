@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 
 import '../../app/providers.dart';
 import '../../app/symbol_view.dart';
@@ -40,6 +41,7 @@ class _DetailScreenState extends ConsumerState<DetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: MiniAppScope.exitButtonOf(context),
         title: Text(symbol.fullName),
         actions: [
           PopupMenuButton<MarketSymbol>(

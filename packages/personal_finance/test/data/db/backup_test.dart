@@ -200,4 +200,43 @@ void main() {
       expect(leftovers, isEmpty);
     });
   });
+
+  group('Sao lưu hằng tuần', () {
+    test('chụp được cả giao dịch còn trong WAL khi mini app đang mở', () async {
+      final source = File('${tmp.path}/$kDatabaseFileName');
+      final db = openOnFile(source);
+      await db.into(db.cashFlowsTable).insert(
+            CashFlowsTableCompanion.insert(
+              date: DateTime.utc(2026, 10, 28),
+              amount: const Money(32000000),
+            ),
+          );
+
+      // Cố ý không đóng db: super app chụp bản tuần trong lúc mini app vẫn
+      // giữ kết nối, giao dịch vừa ghi còn nằm trong `-wal`.
+      final target = File('${tmp.path}/hang-tuan.sqlite');
+      expect(await writeSnapshotBackup(source: source, target: target), isTrue);
+      await db.close();
+
+      // Phải khôi phục được bằng đúng cửa của nút Khôi phục.
+      final check = await inspectBackupFile(target, currentSchemaVersion: 3);
+      expect(check, isA<BackupAccepted>());
+      expect((check as BackupAccepted).schemaVersion, 3);
+      expect(File('${target.path}-wal').existsSync(), isFalse);
+
+      final restored = openOnFile(target);
+      addTearDown(restored.close);
+      final flows = await restored.select(restored.cashFlowsTable).get();
+      expect(flows.single.amount, const Money(32000000));
+    });
+
+    test('chưa có cơ sở dữ liệu thì không xuất và không tạo tệp rỗng', () async {
+      final source = File('${tmp.path}/$kDatabaseFileName');
+      final target = File('${tmp.path}/hang-tuan.sqlite');
+
+      expect(await writeSnapshotBackup(source: source, target: target), isFalse);
+      expect(source.existsSync(), isFalse);
+      expect(target.existsSync(), isFalse);
+    });
+  });
 }

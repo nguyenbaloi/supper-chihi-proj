@@ -1,0 +1,43 @@
+name: super_app
+description: "Projs'Chi — một ứng dụng chứa các mini app cá nhân."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.9
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^3.3.2
+
+  # Sao lưu hằng tuần: nơi ghi tệp và lịch lần sao lưu gần nhất. Cùng phiên
+  # bản với các mini app trong workspace, không kéo thêm gói nào — AD-13.
+  path_provider: ^2.1.6
+  shared_preferences: ^2.5.5
+
+  mini_app_core:
+    path: ../../packages/mini_app_core
+  personal_finance:
+    path: ../../packages/personal_finance
+  personal_projects:
+    path: ../../packages/personal_projects
+  rsi_alert:
+    path: ../../packages/rsi_alert
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  # Test chu trình sao lưu – khôi phục trên tệp thật: giả thư mục hệ thống và
+  # dựng cơ sở dữ liệu bản cài cũ. Đều đã có sẵn trong workspace — AD-13.
+  drift: ^2.31.0
+  path_provider_platform_interface: ^2.1.2
+  plugin_platform_interface: ^2.1.8
+
+flutter:
+  uses-material-design: true

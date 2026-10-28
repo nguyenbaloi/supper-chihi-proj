@@ -1,9 +1,14 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 
 import 'tables/tables.dart';
 
 part 'database.g.dart';
+
+/// Tên cơ sở dữ liệu. Tệp thật là `$kDatabaseName.sqlite`, đặt ở chỗ không
+/// hiện trong app Tệp — xem [miniAppDatabaseFile].
+const kDatabaseName = 'personal_projects';
 
 @DriftDatabase(
   tables: [
@@ -20,7 +25,16 @@ part 'database.g.dart';
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
-      : super(executor ?? driftDatabase(name: 'personal_projects'));
+      : super(
+          executor ??
+              driftDatabase(
+                name: kDatabaseName,
+                native: DriftNativeOptions(
+                  databasePath: () async =>
+                      (await miniAppDatabaseFile(kDatabaseName)).path,
+                ),
+              ),
+        );
 
   @override
   int get schemaVersion => 7;

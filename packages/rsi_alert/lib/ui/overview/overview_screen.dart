@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 
 import '../../app/providers.dart';
 import '../../domain/market_symbol.dart';
@@ -34,6 +35,7 @@ class OverviewScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: MiniAppScope.exitButtonOf(context),
         title: const Text(S.appTitle),
         actions: [
           IconButton(

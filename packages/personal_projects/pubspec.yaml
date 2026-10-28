@@ -6,6 +6,8 @@ version: 1.2.0+1
 environment:
   sdk: ^3.10.9
 
+resolution: workspace
+
 dependencies:
   flutter:
     sdk: flutter
@@ -43,6 +45,10 @@ dependencies:
 
 # KHÔNG có package:http. Ứng dụng không gọi mạng — xem AD-6.
 
+  # Hợp đồng chạy bên trong super app.
+  mini_app_core:
+    path: ../mini_app_core
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -53,11 +59,6 @@ dev_dependencies:
   # rồi để drift nâng cấp. Đã kiểm tra không có thư mục hook/ — AD-13.
   sqlite3: ^2.9.4
 
-# path_provider_foundation 2.6.0 kéo theo objective_c vốn dùng build hooks,
-# mà build_runner không compile được builder khi có build hooks trong cây phụ
-# thuộc. Ghim 2.5.1. Gỡ override này khi build_runner hỗ trợ hooks. Xem AD-13.
-dependency_overrides:
-  path_provider_foundation: 2.5.1
 
 flutter:
   uses-material-design: true

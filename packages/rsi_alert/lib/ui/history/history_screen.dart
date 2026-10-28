@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 
 import '../../app/providers.dart';
 import '../../domain/market_symbol.dart';
@@ -35,7 +36,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     ]..sort((a, b) => b.weekOpenTime.compareTo(a.weekOpenTime));
 
     return Scaffold(
-      appBar: AppBar(title: const Text(S.historyTitle)),
+      appBar: AppBar(
+        leading: MiniAppScope.exitButtonOf(context),
+        title: const Text(S.historyTitle),
+      ),
       body: Column(
         children: [
           _FilterBar(

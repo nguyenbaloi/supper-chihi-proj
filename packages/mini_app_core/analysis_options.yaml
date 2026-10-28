@@ -1,0 +1,8 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    # Trong workspace mọi package dùng chung một package_config, nên import
+    # một gói không khai báo trong pubspec vẫn biên dịch được. Nâng thành lỗi
+    # để ranh giới phụ thuộc của từng mini app còn hiệu lực.
+    depend_on_referenced_packages: error

@@ -1,0 +1,22 @@
+name: mini_app_core
+description: "Hợp đồng chung giữa super app và các mini app."
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.10.9
+
+resolution: workspace
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^3.3.2
+  # Vị trí tệp cơ sở dữ liệu của mini app. path_provider_foundation bị ghim
+  # 2.5.1 ở gốc workspace — xem AD-13.
+  path_provider: ^2.1.6
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0

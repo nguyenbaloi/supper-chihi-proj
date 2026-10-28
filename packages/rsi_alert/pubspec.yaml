@@ -6,6 +6,8 @@ version: 1.0.0+1
 environment:
   sdk: ^3.10.9
 
+resolution: workspace
+
 dependencies:
   flutter:
     sdk: flutter
@@ -20,7 +22,7 @@ dependencies:
   shared_preferences: ^2.5.5
 
   # Định dạng ngày tuần theo giờ Asia/Ho_Chi_Minh — AD-3.
-  intl: ^0.20.3
+  intl: 0.20.2       # khớp bản flutter_localizations ghim trong super app
 
 # KHÔNG có package biểu đồ. Hai khung phải chia chung một ChartViewport nên
 # biểu đồ được tự vẽ bằng CustomPainter — xem AD-7.
@@ -28,10 +30,14 @@ dependencies:
 # bản cũ hơn.
 # KHÔNG có analytics, crash reporting, quảng cáo — NFR-4.
 
+  # Hợp đồng chạy bên trong super app.
+  mini_app_core:
+    path: ../mini_app_core
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^5.0.0   # thống nhất với các package khác trong workspace
 
 flutter:
   uses-material-design: true

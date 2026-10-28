@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mini_app_core/mini_app_core.dart';
 
 import '../../core/format/vn_date.dart';
 import '../../core/format/vn_format.dart';
@@ -29,7 +30,10 @@ class SettingsScreen extends ConsumerWidget {
     final classes = ref.watch(assetClassesProvider).value ?? const [];
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.settings)),
+      appBar: AppBar(
+        leading: MiniAppScope.exitButtonOf(context),
+        title: Text(l10n.settings),
+      ),
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
