@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/market_repository.dart';
+import '../domain/fear_greed.dart';
 import '../domain/market_symbol.dart';
 import 'symbol_view.dart';
 
@@ -20,6 +21,12 @@ class OverviewState {
   final bool isRefreshing;
 
   SymbolView? viewOf(MarketSymbol symbol) => views[symbol];
+
+  /// Các cảnh báo Vùng DCA chưa xem, theo thứ tự Mã cố định (FR-17).
+  List<SymbolView> get withNewDca => [
+        for (final symbol in MarketSymbol.values)
+          if (views[symbol]?.newDca != null) views[symbol]!,
+      ];
 
   /// Các Tín hiệu mới cần hiện dải cảnh báo, theo thứ tự Mã cố định (FR-5).
   List<SymbolView> get withNewSignal => [
@@ -45,11 +52,23 @@ class OverviewState {
 class OverviewController extends Notifier<OverviewState> {
   MarketRepository get _repository => ref.read(marketRepositoryProvider);
 
+  /// F&G đang cầm — chỉ BTC dùng (AD-13).
+  List<FearGreedPoint> _fearGreed = const [];
+
+  SymbolView _view(SymbolData data, {DateTime? lastSeenSignal}) =>
+      SymbolView.from(
+        data,
+        lastSeenSignal: lastSeenSignal ?? _repository.lastSeenSignal(data.symbol),
+        lastSeenDca: _repository.lastSeenDca(data.symbol),
+        fearGreed: _fearGreed,
+      );
+
   @override
   OverviewState build() {
     // Dựng ngay từ Kho cục bộ để màn hình có số hiển thị trước khi mạng xong
     // (NFR-1). Việc tải mới phải hoãn sang microtask kế tiếp: gán `state`
     // trong lúc `build()` còn đang chạy sẽ đọc phải provider chưa khởi tạo.
+    _fearGreed = _repository.cachedFearGreed().points;
     final cached = _buildViews(_repository.cached);
     Future.microtask(refresh);
     return OverviewState(views: cached, isRefreshing: true);
@@ -59,14 +78,16 @@ class OverviewController extends Notifier<OverviewState> {
   Future<void> refresh() async {
     state = state.copyWith(isRefreshing: true);
 
+    final fearGreed = _repository.loadFearGreed();
     final results = await Future.wait(
       [for (final symbol in MarketSymbol.values) _repository.load(symbol)],
     );
+    _fearGreed = (await fearGreed).points;
 
     final views = <MarketSymbol, SymbolView>{};
     for (final data in results) {
       final lastSeen = _repository.lastSeenSignal(data.symbol);
-      final view = SymbolView.from(data, lastSeenSignal: lastSeen);
+      final view = _view(data);
 
       // Lần chạy đầu sau khi cài app: đặt mốc đã xem bằng Tín hiệu cuối cùng
       // tìm thấy, để người dùng không bị dội một loạt cảnh báo từ quá khứ
@@ -91,8 +112,20 @@ class OverviewController extends Notifier<OverviewState> {
     state = state.copyWith(
       views: {
         ...state.views,
-        symbol: SymbolView.from(view.data, lastSeenSignal: week),
+        symbol: _view(view.data, lastSeenSignal: week),
       },
+    );
+  }
+
+  /// Ghi nhận người dùng đã xem cảnh báo Vùng DCA của [symbol] (FR-17).
+  Future<void> markDcaSeen(MarketSymbol symbol) async {
+    final view = state.views[symbol];
+    final week = view?.newDca?.weekOpenTime;
+    if (view == null || week == null) return;
+
+    await _repository.markDcaSeen(symbol, week);
+    state = state.copyWith(
+      views: {...state.views, symbol: _view(view.data)},
     );
   }
 
@@ -101,10 +134,7 @@ class OverviewController extends Notifier<OverviewState> {
   ) =>
       {
         for (final symbol in MarketSymbol.values)
-          symbol: SymbolView.from(
-            source(symbol),
-            lastSeenSignal: _repository.lastSeenSignal(symbol),
-          ),
+          symbol: _view(source(symbol)),
       };
 }
 

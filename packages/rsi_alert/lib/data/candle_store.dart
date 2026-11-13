@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../domain/candle.dart';
+import '../domain/fear_greed.dart';
 import '../domain/market_symbol.dart';
 
 /// Kho cục bộ: JSON phẳng trong `shared_preferences`, mỗi Mã một khoá (AD-9).
@@ -86,6 +87,62 @@ class CandleStore {
         weekOpenTime.toUtc().millisecondsSinceEpoch,
       );
 
+  static String _lastSeenDcaKey(MarketSymbol symbol) =>
+      'lastSeenDca.${symbol.storageKey}';
+
+  /// Mốc tuần của cảnh báo Vùng DCA cuối cùng người dùng đã xem (FR-17).
+  /// Chỉ là một mốc thời gian — Vùng thì luôn tính lại (AD-2).
+  DateTime? loadLastSeenDca(MarketSymbol symbol) {
+    final millis = _prefs.getInt(_lastSeenDcaKey(symbol));
+    return millis == null
+        ? null
+        : DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
+  }
+
+  Future<void> saveLastSeenDca(MarketSymbol symbol, DateTime weekOpenTime) =>
+      _prefs.setInt(
+        _lastSeenDcaKey(symbol),
+        weekOpenTime.toUtc().millisecondsSinceEpoch,
+      );
+
+  static const String _fearGreedKey = 'fearGreed';
+
+  /// Chuỗi F&G thô (AD-13). Cùng lược đồ và cùng luật "thay toàn bộ" như nến.
+  StoredFearGreed? loadFearGreed() {
+    final raw = _prefs.getString(_fearGreedKey);
+    if (raw == null) return null;
+    try {
+      final json = jsonDecode(raw) as Map<String, dynamic>;
+      if (json['v'] != schemaVersion) return null;
+      return StoredFearGreed(
+        fetchedAt: DateTime.fromMillisecondsSinceEpoch(
+          (json['fetchedAt'] as num).toInt(),
+          isUtc: true,
+        ),
+        points: [
+          for (final item in json['points'] as List)
+            FearGreedPoint.fromJson(item as Map<String, dynamic>),
+        ],
+      );
+    } catch (error) {
+      debugPrint('CandleStore: bỏ bản ghi F&G hỏng: $error');
+      return null;
+    }
+  }
+
+  Future<void> saveFearGreed(
+    List<FearGreedPoint> points,
+    DateTime fetchedAt,
+  ) =>
+      _prefs.setString(
+        _fearGreedKey,
+        jsonEncode({
+          'v': schemaVersion,
+          'fetchedAt': fetchedAt.toUtc().millisecondsSinceEpoch,
+          'points': [for (final p in points) p.toJson()],
+        }),
+      );
+
   static const String _themeModeKey = 'themeMode';
 
   ThemeMode loadThemeMode() {
@@ -108,4 +165,11 @@ class StoredCandles {
 
   final DateTime fetchedAt;
   final List<Candle> candles;
+}
+
+class StoredFearGreed {
+  const StoredFearGreed({required this.fetchedAt, required this.points});
+
+  final DateTime fetchedAt;
+  final List<FearGreedPoint> points;
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../domain/dca.dart';
 import '../domain/rsi_status.dart';
 
 /// Bảng màu Trạng thái, đọc được ở cả chế độ sáng lẫn tối.
@@ -22,6 +23,27 @@ class StatusColors {
         dark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
     };
   }
+}
+
+/// Màu Vùng DCA: vùng mua dùng màu Quá bán, vùng bán dùng màu Quá mua, vùng
+/// thăm dò nhạt hơn vùng mạnh. Luôn đi kèm tên vùng — không chỉ dựa vào màu.
+class DcaColors {
+  const DcaColors._();
+
+  static Color of(DcaZone zone, Brightness brightness) => switch (zone) {
+        DcaZone.strongBuy => StatusColors.of(RsiStatus.oversold, brightness),
+        DcaZone.probeBuy => StatusColors.of(RsiStatus.oversold, brightness)
+            .withValues(alpha: 0.75),
+        DcaZone.hold => StatusColors.of(RsiStatus.neutral, brightness),
+        DcaZone.probeSell => StatusColors.of(RsiStatus.overbought, brightness)
+            .withValues(alpha: 0.75),
+        DcaZone.strongSell => brightness == Brightness.dark
+            ? const Color(0xFFF87171)
+            : const Color(0xFFB91C1C),
+      };
+
+  static Color divergence(Brightness brightness) =>
+      of(DcaZone.strongSell, brightness);
 }
 
 /// Màu nến. Theo quy ước Việt Nam: xanh lá tăng, đỏ giảm.

@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 import '../domain/candle.dart';
+import '../domain/fear_greed.dart';
 import '../domain/market_symbol.dart';
 import 'candle_store.dart';
+import 'fear_greed_source.dart';
 import 'market_data_source.dart';
 
 /// Độ tươi của dữ liệu đang cầm trên tay.
@@ -45,6 +47,20 @@ class SymbolData {
   bool get hasCandles => candles.isNotEmpty;
 }
 
+/// Kết quả tải Fear & Greed (AD-13). Rỗng không phải lỗi: Vùng vẫn xếp được
+/// bằng RSI, chỉ thiếu mức "tăng cường".
+class FearGreedData {
+  const FearGreedData({
+    required this.points,
+    required this.fetchedAt,
+    required this.staleness,
+  });
+
+  final List<FearGreedPoint> points;
+  final DateTime? fetchedAt;
+  final Staleness staleness;
+}
+
 /// Điều phối giữa các Nguồn dữ liệu và Kho cục bộ.
 ///
 /// **Không bao giờ ném lỗi ra ngoài** (AD-6). Mọi hỏng hóc đều được diễn dịch
@@ -54,13 +70,18 @@ class MarketRepository {
   MarketRepository({
     required CandleStore store,
     required Map<MarketSymbol, List<MarketDataSource>> sources,
+    FearGreedSource? fearGreedSource,
   })  : _store = store,
-        _sources = sources;
+        _sources = sources,
+        _fearGreedSource = fearGreedSource;
 
   final CandleStore _store;
 
   /// Thứ tự trong danh sách là thứ tự ưu tiên: phần tử đầu là Nguồn chính.
   final Map<MarketSymbol, List<MarketDataSource>> _sources;
+
+  /// `null` thì app chạy như trước khi có F&G — Vùng BTC chỉ dựa vào RSI.
+  final FearGreedSource? _fearGreedSource;
 
   /// Dữ liệu đã lưu, đọc được ngay lập tức để hiển thị trước khi mạng xong
   /// (NFR-1).
@@ -128,6 +149,42 @@ class MarketRepository {
       errorKind: lastError?.kind,
     );
   }
+
+  /// Chuỗi F&G đã lưu, đọc ngay để hiển thị trước khi mạng xong.
+  FearGreedData cachedFearGreed() {
+    final stored = _store.loadFearGreed();
+    return stored == null
+        ? const FearGreedData(points: [], fetchedAt: null, staleness: Staleness.empty)
+        : FearGreedData(
+            points: stored.points,
+            fetchedAt: stored.fetchedAt,
+            staleness: Staleness.stale,
+          );
+  }
+
+  /// Tải F&G. Cũng **không bao giờ ném** (AD-6): hỏng thì rơi về kho.
+  Future<FearGreedData> loadFearGreed() async {
+    final source = _fearGreedSource;
+    if (source == null) return cachedFearGreed();
+    try {
+      final points = await source.fetchDaily();
+      final fetchedAt = DateTime.now().toUtc();
+      await _store.saveFearGreed(points, fetchedAt);
+      return FearGreedData(
+        points: points,
+        fetchedAt: fetchedAt,
+        staleness: Staleness.fresh,
+      );
+    } catch (error) {
+      debugPrint('MarketRepository: F&G qua ${source.name} hỏng — $error');
+      return cachedFearGreed();
+    }
+  }
+
+  DateTime? lastSeenDca(MarketSymbol symbol) => _store.loadLastSeenDca(symbol);
+
+  Future<void> markDcaSeen(MarketSymbol symbol, DateTime weekOpenTime) =>
+      _store.saveLastSeenDca(symbol, weekOpenTime);
 
   DateTime? lastSeenSignal(MarketSymbol symbol) =>
       _store.loadLastSeenSignal(symbol);

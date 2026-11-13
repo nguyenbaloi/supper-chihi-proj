@@ -1,7 +1,7 @@
 ---
 title: RSI Alert
 created: 2026-09-04
-updated: 2026-09-04
+updated: 2026-11-13
 ---
 
 # PRD: RSI Alert
@@ -15,6 +15,8 @@ Tài liệu này dành cho pha Architect và pha Dev kế tiếp trong quy trìn
 RSI Alert cho người dùng biết đúng một điều: **RSI(14) khung tuần của Bitcoin và VNINDEX hiện đang ở đâu, và nó vừa cắt qua ngưỡng 30 hay 70 hay chưa.**
 
 Giá trị nằm ở chỗ app không làm gì khác. Không bảng giá, không tin tức, không danh mục, không khuyến nghị. Mở lên là thấy hai con số và trạng thái của chúng; muốn xem bối cảnh thì có biểu đồ nến tuần kèm khung RSI; muốn tự đánh giá độ tin cậy của tín hiệu thì có lịch sử mọi lần cắt ngưỡng trong quá khứ.
+
+**Bổ sung 2026-11-13 — Vùng DCA theo Cẩm nang.** Người dùng có một cẩm nang DCA tự soạn (5 vùng RSI tuần, kèm Fear & Greed cho BTC). App xếp tuần đã đóng gần nhất vào một trong năm vùng đó và **trích lại luật người dùng đã viết** cho vùng ấy — app không tự đưa lời khuyên (§5). Xem §4.6 và §11.
 
 Điều này quan trọng vì tín hiệu RSI tuần xuất hiện thưa và luôn rơi vào lúc thị trường ồn ào nhất. Một công cụ chỉ hiển thị đúng thứ cần nhìn, và im lặng phần còn lại, chính là thứ giúp giữ được kỷ luật của phương pháp.
 
@@ -61,6 +63,12 @@ Giá trị nằm ở chỗ app không làm gì khác. Không bảng giá, không
 - **Tín hiệu** — sự kiện RSI **cắt qua** một Ngưỡng giữa hai Nến đã đóng liền kề. Hai loại: `Quá bán` (nến trước có RSI ≥ 30, nến này có RSI < 30) và `Quá mua` (nến trước có RSI ≤ 70, nến này có RSI > 70). Một Nến đã đóng sinh ra tối đa một Tín hiệu. Quan hệ: một Mã có nhiều Tín hiệu, xếp theo thời gian.
 - **Tín hiệu mới** — Tín hiệu có mốc tuần muộn hơn mốc tuần của Tín hiệu cuối cùng mà người dùng đã xem, tính riêng theo từng Mã.
 - **Nguồn dữ liệu** — một dịch vụ HTTP công khai trả về chuỗi Nến tuần cho một Mã.
+- **Cẩm nang** — bộ luật DCA do người dùng tự soạn (hai tài liệu "Cẩm nang Chiến lược DCA & Phân bổ Vốn Dài hạn 2026–2028" và "Dữ liệu lịch sử các chu kỳ đáy & đỉnh"). App chỉ trích lại, không sửa nội dung.
+- **Vùng DCA** — một trong năm vùng xếp theo RSI của Nến đã đóng: `Vùng 1 · Gom mạnh`, `Vùng 2 · Gom thăm dò`, `Vùng 3 · Nắm giữ`, `Vùng 4 · Chốt thăm dò`, `Vùng 5 · Xả hàng`. Ranh giới "≤": BTC 35 / 45 / 70 / 82; VNINDEX 32 / 40 / 68 / 76.
+- **F&G** — Fear & Greed Index crypto (alternative.me), 0–100, theo ngày. Chỉ có cho BTC. Mức: ≤24 Sợ hãi cực độ, 25–42 Sợ hãi, 43–70 Trung tính, 71–82 Tham lam, ≥83 Tham lam cực độ.
+- **F&G cực độ cùng chiều** — Vùng mua kèm F&G ≤24, hoặc Vùng bán kèm F&G ≥83. Là mức tăng cường, **không** phải điều kiện để có Vùng.
+- **Phân kỳ giảm tuần** — tuần giá đóng cửa cao nhất trong 104 tuần trong khi RSI thấp hơn đỉnh RSI cao nhất trước đó trong cửa sổ, đỉnh đó đã vào Vùng 5, và giữa hai đỉnh RSI đã có lúc về Vùng Nắm giữ trở xuống.
+- **Lời nhắc tuần** — thông báo cục bộ lúc 09:30 thứ Hai giờ Việt Nam, không mang nội dung Vùng.
 - **Kho cục bộ** — nơi lưu Nến tuần và trạng thái đã xem trên máy, dùng để hiển thị khi không gọi được Nguồn dữ liệu.
 
 ## 4. Features
@@ -239,14 +247,62 @@ Hệ thống tính RSI chu kỳ 14 trên chuỗi giá đóng cửa Nến tuần 
 - Chuỗi dưới 15 nến thì trả về chuỗi rỗng, không ném lỗi.
 - Hàm thuần tuý: cùng đầu vào cho cùng đầu ra, không đọc thời gian hệ thống, không gọi mạng.
 
+### 4.6 Vùng DCA theo Cẩm nang (bổ sung 2026-11-13)
+
+**Description:** Mỗi thẻ Mã có thêm phần *Vùng DCA*: vùng của tuần đã đóng gần nhất, số tuần liên tiếp trong vùng, và luật của Cẩm nang cho vùng đó với tiền tố cố định "Theo cẩm nang của bạn:". Có dải cảnh báo riêng khi tuần mới đóng nằm ngoài Vùng Nắm giữ. Có bảng Cẩm nang mở từ thẻ. Không thêm màn hình thứ tư — bảng là bottom sheet của màn Tổng quan.
+
+#### FR-14: Xếp Vùng DCA cho mỗi tuần đã đóng
+
+**Consequences (testable):**
+- Vùng suy từ RSI của Nến đã đóng theo ranh giới "≤" ở §3. Ranh giới riêng cho từng Mã.
+- Nến đang chạy không được xếp Vùng chính thức. Thẻ chỉ hiện thêm một dòng "Tuần đang chạy (tạm tính): …" khi vùng tạm tính khác vùng chính thức.
+- Vùng không bao giờ được lưu (AD-2). Xoá dữ liệu rồi tải lại phải ra đúng các Vùng đó.
+
+#### FR-15: Fear & Greed cho BTC
+
+**Consequences (testable):**
+- F&G của một tuần là giá trị ngày Chủ nhật đóng nến. Nếu thiếu thì lùi tối đa 3 ngày, không bao giờ lấy giá trị sau khi nến đóng.
+- F&G **không** chặn Vùng; nó chỉ gắn nhãn "F&G cực độ cùng chiều". Lý do: đáy BTC 11/2022 có F&G 22–26, một cổng "F&G < 20" bắt buộc sẽ bỏ lỡ đáy đó (§11).
+- VNINDEX không có F&G. Bảng Cẩm nang ghi rõ VNINDEX chỉ xếp vùng bằng RSI.
+- Tải F&G lỗi không làm hỏng gì: dùng bản đã lưu; không có thì Vùng vẫn xếp bằng RSI.
+
+#### FR-16: Phân kỳ giảm tuần
+
+**Consequences (testable):**
+- Phát hiện theo định nghĩa ở §3, chỉ trên Nến đã đóng.
+- Khi có, thẻ và dải cảnh báo hiện luật "Xả nốt phần còn lại" của Cẩm nang.
+- **Lệch có chủ đích so với Cẩm nang:** Cẩm nang yêu cầu xác nhận khi "RSI cắt xuống dưới 70". Dữ liệu cho thấy ở đỉnh cuối chu kỳ RSI không hề vượt 70 (BTC 11/2021: 68.8; 10/2025: 64.3), nên điều kiện đó không bao giờ bật. App báo ngay tại tuần giá lập đỉnh mới.
+
+#### FR-17: Dải cảnh báo Vùng DCA
+
+**Consequences (testable):**
+- Hiện khi tuần đã đóng gần nhất ở Vùng 1, 2, 4, 5 hoặc có phân kỳ, và mốc tuần đó muộn hơn mốc `lastSeenDca.<Mã>`.
+- Mỗi tuần mới trong vùng là một dải mới, vì Cẩm nang giải ngân theo từng tuần.
+- Lần chạy đầu vẫn hiện, vì đó là trạng thái hiện tại chứ không phải lịch sử. Khác với FR-5.
+- Chạm vào dải thì đánh dấu đã xem và mở bảng Cẩm nang của Mã đó.
+- Vùng Nắm giữ không có dải — im lặng vẫn là kết quả đúng (UJ-1).
+
+#### FR-18: Bảng Cẩm nang và thống kê lịch sử
+
+**Consequences (testable):**
+- Liệt kê đủ 5 vùng, khoảng RSI, luật trích lại, và luật phân kỳ. Đánh dấu vùng hiện tại.
+- Mỗi vùng có thống kê tính trên chính chuỗi nến đang có: số tuần từng ở vùng, trung vị % thay đổi giá sau 52 tuần, tỉ lệ % lần giá cao hơn. Thiếu dữ liệu phía sau thì ghi rõ, không bịa số.
+
+#### FR-19: Lời nhắc sáng thứ Hai
+
+**Consequences (testable):**
+- Thông báo cục bộ lặp lại mỗi thứ Hai 09:30 giờ Việt Nam: sau khi nến BTC đóng (07:00) và nến VNINDEX được coi là đóng (09:00, AD-4).
+- Đặt lịch mỗi lần mở mini app, idempotent theo một id cố định. Không có quyền thông báo thì chỉ mất lời nhắc, app vẫn chạy.
+- Nội dung **không** chứa Vùng hay RSI: lúc đặt lịch chưa biết nến tuần sau đóng ở đâu, và không có chạy nền. Vùng được tính khi người dùng mở app.
+
 ## 5. Non-Goals (Explicit)
 
-- **Không đưa ra khuyến nghị.** App không nói "nên mua", không chấm điểm, không xếp hạng, không dùng bất kỳ từ ngữ nào ngụ ý hành động. Nó báo trạng thái, người dùng tự quyết.
+- **Không tự đưa ra khuyến nghị.** App không chấm điểm, không xếp hạng, không tự nói "nên mua". Ngoại lệ duy nhất, do người dùng chọn ngày 2026-11-13: câu hành động **trích nguyên luật trong Cẩm nang của người dùng**, luôn kèm tiền tố "Theo cẩm nang của bạn:" (§4.6). Mọi câu hành động khác vẫn là lỗi.
 - **Không trở thành app theo dõi tài sản.** Không danh mục, không lãi lỗ, không số dư, không kết nối tài khoản môi giới. Việc đó thuộc project `personal_finance`.
 - **Không có tài khoản, không đồng bộ đám mây, không backend.** Mọi thứ chạy trên máy.
 - **Không thu thập dữ liệu người dùng.** Không analytics, không crash reporting gửi đi, không quảng cáo.
 - **Không có tin tức, mạng xã hội, bảng giá thời gian thực.**
-- **Không chạy nền.** Người dùng đã chủ động loại bỏ; đừng thêm lại nếu không có yêu cầu mới rõ ràng.
+- **Không chạy nền.** Lời nhắc thứ Hai (FR-19) là thông báo cục bộ do hệ điều hành lên lịch — app không chạy code khi đang đóng. Không thêm workmanager, background fetch hay backend.
 
 ## 6. MVP Scope
 
@@ -261,11 +317,12 @@ Hệ thống tính RSI chu kỳ 14 trên chuỗi giá đóng cửa Nến tuần 
 
 ### 6.2 Out of Scope for MVP
 
-- Chạy nền và push notification — người dùng loại bỏ. `[GHI CHÚ CHO PM: đây là hạn chế nặng nhất của bản này; nếu thói quen mở app thủ công không hình thành sau vài tháng thì đây là thứ đầu tiên cần xem lại.]`
+- Chạy nền và push từ server. Đã có lời nhắc cục bộ thứ Hai (FR-19), nhưng lời nhắc đó không mang nội dung Vùng.
 - Ngưỡng tự đặt — hoãn sang v2, đã có trong lộ trình ở brief.
 - Thêm Mã do người dùng chọn — hoãn sang v2.
 - Thêm khung thời gian hoặc chỉ báo khác — không có kế hoạch.
-- Phân kỳ RSI — v3, phụ thuộc vào việc bản này có được dùng thật không.
+- ~~Phân kỳ RSI — v3~~ Đưa vào từ 2026-11-13, chỉ phân kỳ giảm (FR-16).
+- Sửa ngưỡng hoặc tỷ trọng của Cẩm nang trong app — ngưỡng vẫn là hằng số (AD-11).
 - Chế độ sáng/tối tuỳ chọn — bản đầu theo hệ thống.
 - Đa ngôn ngữ — chỉ tiếng Việt.
 
@@ -309,3 +366,30 @@ Hệ thống tính RSI chu kỳ 14 trên chuỗi giá đóng cửa Nến tuần 
 - §4.5 FR-10 — Dùng `data-api.binance.vision` thay `api.binance.com` do host chính không kết nối được từ mạng người dùng.
 - §4.5 FR-11 — Gộp nến ngày thành tuần ở nguồn dự phòng lấy mốc tuần bắt đầu từ thứ Hai giờ Việt Nam; chờ Open Question 1 xác nhận.
 - §2.3 UJ-4 — Người dùng muốn thấy RSI tạm tính của nến đang chạy chứ không muốn app giấu đi, miễn là ghi rõ đó là tạm tính.
+- §4.6 FR-16 — Lệch khỏi điều kiện xác nhận "RSI cắt xuống dưới 70" của Cẩm nang; xem lý do tại FR-16.
+- §4.6 FR-19 — 09:30 thứ Hai là đủ muộn để cả hai Mã đã đóng nến, và đủ sớm để là "sáng thứ Hai" như người dùng yêu cầu.
+
+## 11. Kiểm chứng Cẩm nang trên dữ liệu thật (2026-11-13)
+
+Chạy bằng `fvm dart run tool/phan_tich_dca.dart`. Công cụ dùng đúng `computeRsi` của app trên nến đã đóng. Dữ liệu: Binance 8/2017–11/2026, SSI 2007–11/2026, alternative.me 2/2018–11/2026.
+
+**Vùng mua đáng tin.** Sau các tuần ở Vùng 1, giá 52 tuần sau có trung vị +59% với BTC (89% số lần cao hơn) và +21% với VNINDEX (91%).
+
+**Vùng bán theo RSI thuần thì không đáng tin.** Sau các tuần BTC có RSI > 82, giá 52 tuần sau vẫn cao hơn ở 79% số lần (trung vị +28%). Tín hiệu đầu tiên bật ở 11/2020 khi giá khoảng $18k, còn đỉnh thật là $69k. Ngược lại, phân kỳ giảm theo FR-16 bắt được cả hai đỉnh 2021 và vùng đỉnh 2025: với BTC, 14/18 tuần báo phân kỳ có giá thấp hơn sau 52 tuần. Với VNINDEX là 22/35 — yếu hơn: phân kỳ 2017 báo sớm khoảng 20%.
+
+**Mô phỏng nạp đều mỗi tuần** (tiền chốt lời quay lại quỹ chờ, mua lại ở vùng đáy). Bội số là giá trị cuối kỳ trên số tiền đã nạp:
+
+| Chiến lược | BTC từ 6/2018 | VNINDEX từ 2010 |
+|---|---|---|
+| DCA đều 100% | ×4.40 | ×2.33 |
+| 50% DCA nền + 50% chờ vùng đáy, không bán | ×4.13 | ×2.23 |
+| Bán theo vùng RSI như Cẩm nang | ×2.59 | ×1.72 |
+| Chỉ bán khi RSI > 82 và F&G > 82 | ×3.44 | — |
+
+**Sai lệch của Cẩm nang so với dữ liệu thật:**
+- Cẩm nang ghi RSI BTC 11/2026 là 54–56. Thực tế tuần đóng 02/11 là 47.9, tuần đang chạy tạm tính 42.1.
+- Cẩm nang thiếu đáy BTC 2/2026 (RSI 26.8) và đợt VNINDEX 8–10/2025 có RSI 78–83.
+- Số liệu VNINDEX lệch: 3/2020 thực tế RSI 14.5 (Cẩm nang ghi 22.8); 10/2023 thực tế 37.7 (ghi 34.8); đầu 2022 thực tế 69.9 (ghi 74.5).
+- Không có nguồn dữ liệu công khai cho "F&G VN-Index".
+
+Hệ quả cho thiết kế: F&G là mức tăng cường chứ không phải cổng bắt buộc (FR-15); dùng phân kỳ thay cho điều kiện "cắt xuống 70" (FR-16); thống kê lịch sử hiện trong app để người dùng tự cân nhắc luật bán của mình (FR-18).

@@ -7,8 +7,8 @@ paradigm: 'layered — phụ thuộc hướng vào trong (ports & adapters rút 
 scope: 'Toàn bộ app RSI Alert: lấy dữ liệu, tính RSI, phát hiện tín hiệu, ba màn hình'
 status: final
 created: '2026-09-04'
-updated: '2026-09-04'
-binds: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13]
+updated: '2026-11-13'
+binds: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, FR-13, FR-14, FR-15, FR-16, FR-17, FR-18, FR-19]
 sources:
   - '_bmad-output/planning-artifacts/prds/prd-rsi-alert-2026-09-04/prd.md'
   - '_bmad-output/planning-artifacts/briefs/brief-rsi-alert-2026-09-04/brief.md'
@@ -99,6 +99,24 @@ graph TD
 - **Prevents:** số 14, 30, 70 nằm rải rác rồi lệch nhau giữa nơi tính và nơi vẽ vạch.
 - **Rule:** khai báo một lần trong `lib/domain/constants.dart` (`rsiPeriod = 14`, `oversold = 30`, `overbought = 70`). Cấm literal 14/30/70 ở mọi nơi khác trong ngữ cảnh RSI.
 
+### AD-12 — Vùng DCA là suy diễn thuần, ngưỡng theo từng Mã
+
+- **Binds:** FR-14, FR-16, FR-17, FR-18
+- **Prevents:** Vùng bị lưu cứng rồi lệch khỏi chuỗi nến; ngưỡng BTC bị áp nhầm cho VNINDEX.
+- **Rule:** `classifyDcaWeeks()` và `computeZoneStats()` trong `lib/domain/dca.dart` là hàm thuần, chỉ nhận Nến đã đóng (AD-5). Ngưỡng là `btcDcaThresholds` / `vnindexDcaThresholds` trong `constants.dart` (AD-11), chọn qua `dcaThresholdsOf(symbol)`. Kho chỉ lưu `lastSeenDca.<symbol>` (epoch tuần), không lưu Vùng, không lưu cờ phân kỳ. Câu hành động hiển thị cho mỗi Vùng nằm trong `S.dcaRule()` và luôn đi với `S.dcaQuotePrefix`.
+
+### AD-13 — F&G là nguồn thứ tư, chỉ cho BTC, chỉ để tăng cường
+
+- **Binds:** FR-15
+- **Prevents:** một API không chính thức thứ tư chặn được việc xếp Vùng; cổng "F&G < 20" bỏ lỡ đáy thật.
+- **Rule:** `FearGreedSource` (`api.alternative.me/fng/`) là host ra ngoài thứ tư và cuối cùng. Repository tải nó song song với hai Mã, không bao giờ ném. Hỏng thì dùng bản đã lưu ở khoá `fearGreed` (cùng lược đồ `v`, thay toàn bộ); không có thì danh sách rỗng. F&G chỉ gắn `fearGreedConfirms`, không bao giờ đổi `zone`.
+
+### AD-14 — Lời nhắc tuần: port ở domain, thông báo cục bộ ở data
+
+- **Binds:** FR-19
+- **Prevents:** `ui/` import `data/`; test phụ thuộc plugin native; lời nhắc nói Vùng của nến chưa đóng.
+- **Rule:** interface `WeeklyReminder` và `ReminderText` (Dart thuần) nằm ở `lib/domain/weekly_reminder.dart`. Bản cài `LocalNotificationWeeklyReminder` (`flutter_local_notifications` + `timezone`) nằm ở `lib/data/`. `weeklyReminderProvider` mặc định là `NoopWeeklyReminder`; `RsiMiniApp.createContainer` ghi đè bằng bản thật. `HomeShell` gọi `ensureScheduled` mỗi lần mở, truyền chữ từ `S`. Nội dung không chứa Vùng hay RSI. Host native cần desugaring và receiver trên Android, `UNUserNotificationCenter` delegate trên iOS.
+
 ## Consistency Conventions
 
 | Concern | Convention |
@@ -120,6 +138,8 @@ graph TD
 | Dart | 3.10.9 |
 | flutter_riverpod | ^3.3.2 (3.4.x yêu cầu Dart ≥3.12, SDK ghim là 3.10.9) |
 | http | ^1.6.0 |
+| flutter_local_notifications | ^22.3.3 (FR-19) |
+| timezone | ^0.11.2 (FR-19) |
 | shared_preferences | ^2.5.5 |
 | intl | ^0.20.3 |
 | flutter_lints | ^6.0.0 (dev) |
@@ -138,6 +158,9 @@ lib/
     candle.dart              # Candle: openTime UTC, ohlcv, isClosed — AD-3, AD-4
     rsi.dart                 # computeRsi(): hàm thuần Wilder — FR-13
     signal.dart              # Signal + detectSignals() — FR-4, AD-5
+    dca.dart                 # DcaZone, classifyDcaWeeks, phân kỳ, ZoneStats — AD-12
+    fear_greed.dart          # FearGreedPoint, tra F&G theo tuần — AD-13
+    weekly_reminder.dart     # port WeeklyReminder + ReminderText — AD-14
     rsi_status.dart          # RsiStatus + suy ra từ giá trị RSI — AD-2
   data/
     market_data_source.dart  # interface + MarketDataException
@@ -146,6 +169,8 @@ lib/
     vndirect_source.dart     # FR-11 dự phòng, gộp nến ngày → tuần
     candle_store.dart        # FR-12, shared_preferences — AD-9
     market_repository.dart   # điều phối nguồn + kho, trả SymbolData — AD-6
+    fear_greed_source.dart   # FR-15, api.alternative.me — AD-13
+    weekly_reminder.dart     # FR-19, flutter_local_notifications — AD-14
   app/
     providers.dart           # provider Riverpod — AD-8
     overview_controller.dart # tải hai Mã song song, tính tín hiệu mới — FR-2, FR-5
@@ -212,10 +237,15 @@ sequenceDiagram
 | FR-11 | `data/ssi_source.dart`, `data/vndirect_source.dart` | AD-3, AD-4, AD-6 |
 | FR-12 | `data/candle_store.dart` | AD-2, AD-9 |
 | FR-13 | `domain/rsi.dart` | AD-1, AD-11 |
+| FR-14, FR-16, FR-18 | `domain/dca.dart`, `app/symbol_view.dart`, `ui/overview/dca_section.dart`, `ui/overview/dca_guide_sheet.dart` | AD-2, AD-5, AD-11, AD-12 |
+| FR-15 | `domain/fear_greed.dart`, `data/fear_greed_source.dart`, `data/market_repository.dart` | AD-6, AD-13 |
+| FR-17 | `app/overview_controller.dart`, `ui/overview/dca_banner.dart` | AD-12 |
+| FR-19 | `domain/weekly_reminder.dart`, `data/weekly_reminder.dart`, `ui/home_shell.dart` | AD-14 |
 
 ## Deferred
 
-- **Chạy nền và push notification** — ngoài phạm vi MVP theo lựa chọn người dùng. Khi nào làm sẽ cần thêm cả một chiều kiến trúc (workmanager, quyền hệ thống, hoặc backend); AD-6 và AD-9 đủ ổn định để chịu được việc đó về sau.
+- **Chạy nền để lời nhắc mang nội dung Vùng** — FR-19 chỉ nhắc chung chung. Muốn nhắc kèm Vùng thì phải thêm chạy nền (workmanager, iOS BGAppRefresh — không bảo đảm giờ chạy) hoặc backend. AD-6, AD-9 và AD-14 đủ ổn định để chịu được việc đó về sau.
+- **Chạm thông báo mở thẳng mini app** — hiện chạm vào sẽ mở super app ở launcher. Muốn mở thẳng thì cần một kênh deep link trong `mini_app_core`.
 - **Ngưỡng tự đặt và thêm Mã** — AD-11 cố tình khoá cứng hằng số. Khi mở ra, đổi `constants.dart` thành một đối tượng cấu hình đọc từ kho; các tầng khác không đổi.
 - **Chiến lược khi hai nguồn VNINDEX lệch số** — Open Question 3 của PRD. v1 tin nguồn chính, không đối chiếu.
 - **Nến VNINDEX đang chạy vào cuối tuần** — Open Question 4. v1 theo đúng AD-4, không xử lý riêng.

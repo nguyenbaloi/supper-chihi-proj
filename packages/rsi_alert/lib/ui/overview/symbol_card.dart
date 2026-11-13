@@ -6,6 +6,7 @@ import '../../domain/rsi_status.dart';
 import '../format.dart';
 import '../strings.dart';
 import '../theme.dart';
+import 'dca_section.dart';
 
 /// Một thẻ Mã trên màn hình Tổng quan (FR-1, FR-3).
 class SymbolCard extends StatelessWidget {
@@ -14,11 +15,15 @@ class SymbolCard extends StatelessWidget {
     required this.view,
     required this.onTap,
     required this.onRetry,
+    this.onOpenGuide,
   });
 
   final SymbolView view;
   final VoidCallback onTap;
   final VoidCallback onRetry;
+
+  /// Mở bảng Cẩm nang DCA của Mã này (FR-18).
+  final VoidCallback? onOpenGuide;
 
   @override
   Widget build(BuildContext context) {
@@ -131,6 +136,7 @@ class SymbolCard extends StatelessWidget {
                   ],
                 ],
               ),
+              DcaSection(view: view, onOpenGuide: onOpenGuide),
               if (view.staleness == Staleness.stale) ...[
                 const SizedBox(height: 10),
                 _StaleNote(view: view),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
 import '../domain/market_symbol.dart';
+import '../domain/weekly_reminder.dart';
 import 'detail/detail_screen.dart';
 import 'history/history_screen.dart';
 import 'overview/overview_screen.dart';
@@ -21,6 +22,21 @@ class HomeShell extends ConsumerStatefulWidget {
 
 class _HomeShellState extends ConsumerState<HomeShell> {
   int? _focusCandleIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    // Đặt (lại) lời nhắc sáng thứ Hai mỗi lần mở — idempotent, không ném
+    // (FR-19). Không chờ: xin quyền thông báo không được chặn màn hình đầu.
+    ref.read(weeklyReminderProvider).ensureScheduled(
+          const ReminderText(
+            title: S.reminderTitle,
+            body: S.reminderBody,
+            channelName: S.reminderChannel,
+            channelDescription: S.reminderChannelDescription,
+          ),
+        );
+  }
 
   void _openChart(MarketSymbol symbol, {int? candleIndex}) {
     ref.read(selectedSymbolProvider.notifier).select(symbol);

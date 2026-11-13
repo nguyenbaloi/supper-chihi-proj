@@ -5,6 +5,7 @@ import 'package:mini_app_core/mini_app_core.dart';
 
 import 'app/providers.dart';
 import 'data/candle_store.dart';
+import 'data/weekly_reminder.dart';
 import 'ui/home_shell.dart';
 import 'ui/strings.dart';
 import 'ui/theme.dart';
@@ -33,6 +34,8 @@ class RsiMiniApp implements MiniApp {
       overrides: [
         candleStoreProvider.overrideWithValue(store),
         marketRepositoryProvider.overrideWithValue(buildRepository(store)),
+        weeklyReminderProvider
+            .overrideWithValue(LocalNotificationWeeklyReminder()),
       ],
     );
   }

@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/binance_source.dart';
 import '../data/candle_store.dart';
+import '../data/fear_greed_source.dart';
 import '../data/market_data_source.dart';
 import '../data/market_repository.dart';
 import '../data/ssi_source.dart';
 import '../data/vndirect_source.dart';
+import '../domain/weekly_reminder.dart';
 import '../domain/market_symbol.dart';
 
 export 'overview_controller.dart' show marketRepositoryProvider, overviewControllerProvider;
@@ -21,7 +23,14 @@ MarketRepository buildRepository(CandleStore store) => MarketRepository(
         MarketSymbol.btc: [BinanceSource()],
         MarketSymbol.vnindex: [SsiSource(), VndirectSource()],
       },
+      fearGreedSource: FearGreedSource(),
     );
+
+/// Lời nhắc sáng thứ Hai (FR-19). Mặc định không làm gì — để test và mọi
+/// môi trường không có plugin thông báo chạy được; app thật ghi đè ở
+/// `RsiMiniApp.createContainer`.
+final weeklyReminderProvider =
+    Provider<WeeklyReminder>((ref) => const NoopWeeklyReminder());
 
 /// Kho chứa nến và cấu hình.
 final candleStoreProvider = Provider<CandleStore>((ref) {

@@ -6,6 +6,8 @@ import '../../app/providers.dart';
 import '../../domain/market_symbol.dart';
 import '../format.dart';
 import '../strings.dart';
+import 'dca_banner.dart';
+import 'dca_guide_sheet.dart';
 import 'signal_banner.dart';
 import 'symbol_card.dart';
 
@@ -65,6 +67,14 @@ class OverviewScreen extends ConsumerWidget {
                   onOpenChart(view.symbol);
                 },
               ),
+            for (final view in state.withNewDca)
+              DcaBanner(
+                week: view.newDca!,
+                onTap: () {
+                  controller.markDcaSeen(view.symbol);
+                  showDcaGuide(context, view);
+                },
+              ),
             const SizedBox(height: 8),
             for (final symbol in MarketSymbol.values)
               if (state.viewOf(symbol) case final view?)
@@ -72,6 +82,7 @@ class OverviewScreen extends ConsumerWidget {
                   view: view,
                   onTap: () => onOpenChart(symbol),
                   onRetry: controller.refresh,
+                  onOpenGuide: () => showDcaGuide(context, view),
                 ),
             if (latestFetch.isNotEmpty)
               Padding(
